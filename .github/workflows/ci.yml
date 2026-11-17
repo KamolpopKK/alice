@@ -29,6 +29,15 @@ jobs:
         run: npm run test:e2e
         env:
           ALICE_SKIP_DESKTOP_PROBE: '1'
+      # trace และ snapshot ของเทสต์ที่ล้ม (ข้อมูลสังเคราะห์ของเทสต์เท่านั้น) เก็บไว้ 7 วันเพื่อหาสาเหตุ
+      - name: Keep Playwright results of failed tests
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore
 
   desktop-core:
     name: Desktop Rust core (against a real server)

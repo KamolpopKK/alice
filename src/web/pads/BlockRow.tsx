@@ -216,10 +216,29 @@ function SyncBadge({ row, api, offline }: { row: FlatRow; api: RowApi; offline: 
   return null
 }
 
-function useFocusRequest(api: RowApi, key: string, field: 'title' | 'content' | 'description', seq: number, focus: (f: { field: string; caret: 'start' | 'end' | number }) => void) {
+type FocusRequest = { field: string; caret: 'start' | 'end' | number }
+
+/**
+ * Applies a focus request to this row. If focus did not land (seen intermittently right after a new
+ * Pad opens on slow machines), try again on the next frames, but only while nothing else has taken
+ * focus in the meantime, so a click or Tab by the person always wins.
+ */
+function useFocusRequest(api: RowApi, key: string, field: 'title' | 'content' | 'description', seq: number, focus: (f: FocusRequest) => HTMLElement | null) {
   useLayoutEffect(() => {
     const req = api.consumeFocus(key, field)
-    if (req) focus(req)
+    if (!req) return
+    const el = focus(req)
+    if (!el || document.activeElement === el) return
+    let frame = 0
+    let tries = 0
+    const retry = () => {
+      const active = document.activeElement
+      if (!el.isConnected || (active !== null && active !== document.body)) return
+      focus(req)
+      if (document.activeElement !== el && ++tries < 10) frame = requestAnimationFrame(retry)
+    }
+    frame = requestAnimationFrame(retry)
+    return () => cancelAnimationFrame(frame)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seq])
 }
@@ -228,11 +247,12 @@ function TaskLine({ row, api, picker, pickerActive, pickerCount, focusSeq, disab
   const b = row.block
   const ref = useRef<HTMLInputElement>(null)
   useFocusRequest(api, b.key, 'title', focusSeq, (req) => {
-    if (req.field !== 'title' || !ref.current) return
+    if (req.field !== 'title' || !ref.current) return null
     const el = ref.current
     el.focus()
     const pos = req.caret === 'start' ? 0 : req.caret === 'end' ? el.value.length : req.caret
     el.setSelectionRange(pos, pos)
+    return el
   })
   const pickerHere = picker?.key === b.key
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -352,7 +372,9 @@ function EditableLine({ row, api, mentions, picker, pickerActive, pickerCount, f
     })
   }, [mentions])
   useFocusRequest(api, b.key, 'content', focusSeq, (req) => {
-    if (req.field === 'content' && ref.current) placeCaret(ref.current, req.caret)
+    if (req.field !== 'content' || !ref.current) return null
+    placeCaret(ref.current, req.caret)
+    return ref.current
   })
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -439,10 +461,11 @@ function DescriptionRegion({ row, api, picker, pickerActive, pickerCount, focusS
   const ref = useRef<HTMLTextAreaElement>(null)
   const pickerHere = picker?.key === `${b.key}:description`
   useFocusRequest(api, b.key, 'description', focusSeq, (req) => {
-    if (req.field !== 'description' || !ref.current) return
+    if (req.field !== 'description' || !ref.current) return null
     ref.current.focus()
     const pos = req.caret === 'start' ? 0 : ref.current.value.length
     ref.current.setSelectionRange(pos, pos)
+    return ref.current
   })
   useLayoutEffect(() => {
     const el = ref.current
