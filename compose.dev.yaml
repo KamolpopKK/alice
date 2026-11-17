@@ -1,0 +1,22 @@
+# Development entry point: docker compose -f compose.dev.yaml up
+# Runs the API with tsx watch and Vite with hot reload; source is bind-mounted.
+services:
+  alice-dev:
+    image: node:24-bookworm-slim
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev -- --host"
+    environment:
+      ALICE_DATA_DIR: /data
+      ALICE_HOST: 0.0.0.0
+      ALICE_PUBLIC_URL: http://localhost:5173
+      ALICE_DEV_API: http://127.0.0.1:8080
+    ports:
+      - "127.0.0.1:5173:5173"
+    volumes:
+      - .:/app
+      - alice-dev-node-modules:/app/node_modules
+      - alice-dev-data:/data
+
+volumes:
+  alice-dev-node-modules:
+  alice-dev-data:

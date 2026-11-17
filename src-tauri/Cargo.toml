@@ -1,0 +1,52 @@
+[package]
+name = "alice-desktop"
+version = "0.2.0"
+description = "Alice Desktop — remote client for an Alice server"
+authors = ["Alice contributors"]
+license = "AGPL-3.0-only"
+edition = "2021"
+rust-version = "1.80"
+
+[lib]
+name = "alice_desktop"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-window-state = "2"
+tauri-plugin-deep-link = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-global-shortcut = "2"
+minisign-verify = "0.2"
+semver = "1"
+base64 = "0.22"
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls-native-roots", "stream"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+futures-util = "0.3"
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+url = "2"
+thiserror = "2"
+open = "5"
+gethostname = "1"
+log = "0.4"
+
+[features]
+# ที่เก็บ credential แบบไฟล์ธรรมดา สำหรับ test อัตโนมัติเท่านั้น — ไม่เปิดใน release build
+test-credential-store = []
+
+[dev-dependencies]
+tempfile = "3"
+tokio = { version = "1", features = ["io-std", "io-util", "rt-multi-thread", "macros"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

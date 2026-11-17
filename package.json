@@ -1,0 +1,71 @@
+{
+  "name": "alice",
+  "version": "0.2.0",
+  "description": "Alice \u2014 a self-hosted taskboard shared by humans and AI agents",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "alice": "dist/alice.js",
+    "alice-server": "dist/alice-server.js",
+    "alice-mcp-stdio": "dist/alice-mcp-stdio.js"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run build:web && npm run build:server",
+    "build:web": "vite build",
+    "build:server": "node scripts/build-server.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:system": "vitest run tests/system",
+    "test:e2e": "playwright test",
+    "start": "node dist/alice-server.js serve",
+    "test:scale": "vitest run --config vitest.scale.config.ts",
+    "dev:web": "vite",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "tauri build",
+    "test:desktop": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "brand:build": "node scripts/brand/extract-mascots.mjs && node scripts/brand/build-vectors.mjs && node scripts/brand/derive-auth-light.mjs && node scripts/brand/build-manifest.mjs",
+    "build:runtime": "node scripts/runtime-build.mjs"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/rate-limit": "^11.2.2",
+    "@fastify/static": "^10.1.10",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@tanstack/react-query": "^5.107.1",
+    "@tauri-apps/api": "^2.12.4",
+    "better-sqlite3": "^13.1.1",
+    "fastify": "^5.12.8",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.18.5",
+    "remark-gfm": "^4.0.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
+    "@playwright/test": "^1.65.0",
+    "@tauri-apps/cli": "^2.12.4",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "esbuild": "^0.28.2",
+    "sharp": "^0.34.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0",
+    "yaml": "^2.9.1"
+  },
+  "alice": {
+    "runtimeNode": "24.18.0"
+  }
+}

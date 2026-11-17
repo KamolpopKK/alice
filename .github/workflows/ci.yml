@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  node:
+    name: Server, Web, CLI (Node)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Release preflight (dry run)
+        run: node scripts/release-preflight.mjs --dry-run
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Browser suites (the cross-client story runs in desktop-core, which has the Tauri libraries)
+        run: npm run test:e2e
+        env:
+          ALICE_SKIP_DESKTOP_PROBE: '1'
+
+  desktop-core:
+    name: Desktop Rust core (against a real server)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Tauri system libraries
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev
+      - run: npm ci
+      - run: npm run build
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
+      - run: npx playwright install --with-deps chromium
+      - name: Cross-client story (Web + CLI + real Desktop core + MCP)
+        run: npx playwright test tests/e2e/cross-client.spec.ts

@@ -1,0 +1,532 @@
+import * as z from 'zod'
+
+// ---------- Identity ----------
+export const ACTOR_KINDS = ['human', 'agent'] as const
+export type ActorKind = (typeof ACTOR_KINDS)[number]
+
+export const usernameSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^[a-z0-9][a-z0-9._-]{1,31}$/, 'Username must be 2–32 characters: letters, digits, dot, dash or underscore')
+export const displayNameSchema = z.string().trim().min(1, 'Display name is required').max(80)
+export const passwordSchema = z.string().min(10, 'Password must be at least 10 characters').max(256)
+
+export const bootstrapInput = z.object({
+  bootstrapToken: z.string().min(1).max(512),
+  username: usernameSchema,
+  displayName: displayNameSchema,
+  password: passwordSchema,
+})
+export const loginInput = z.object({ username: z.string().trim().min(1).max(64), password: z.string().min(1).max(256) })
+export const createInviteInput = z.object({
+  note: z.string().trim().max(200).default(''),
+  expiresInHours: z.number().int().min(1).max(24 * 30).default(72),
+})
+export const acceptInviteInput = z.object({
+  token: z.string().min(1).max(512),
+  username: usernameSchema,
+  displayName: displayNameSchema,
+  password: passwordSchema,
+})
+export const tokenNameSchema = z.string().trim().min(1).max(80)
+export const createAgentInput = z.object({ displayName: displayNameSchema, tokenName: tokenNameSchema.default('default') })
+export const issueTokenInput = z.object({ name: tokenNameSchema })
+
+export interface PublicActor {
+  id: string
+  kind: ActorKind
+  displayName: string
+  isOwner: boolean
+  username: string | null
+  createdAt: string
+  deactivatedAt: string | null
+}
+
+export interface AgentTokenInfo {
+  id: string
+  name: string
+  hint: string
+  createdAt: string
+  lastUsedAt: string | null
+  revokedAt: string | null
+}
+
+export interface InviteInfo {
+  id: string
+  note: string
+  createdAt: string
+  expiresAt: string
+  usedAt: string | null
+  revokedAt: string | null
+  status: 'pending' | 'used' | 'expired' | 'revoked'
+}
+
+export interface SessionInfo {
+  actor: PublicActor
+  csrfToken: string
+}
+
+// ---------- Activity ----------
+export interface ActivityEvent {
+  id: string
+  actor: { id: string; kind: ActorKind; displayName: string } | null
+  verb: string
+  resourceType: string
+  resourceId: string
+  data: Record<string, unknown>
+  createdAt: string
+}
+
+// ---------- Shared building blocks ----------
+export interface ActorRef {
+  id: string
+  kind: ActorKind
+  displayName: string
+}
+
+export const labelSchema = z.string().trim().min(1).max(40)
+/** Labels are free-form, trimmed and de-duplicated case-insensitively (first spelling wins). */
+export const labelsSchema = z
+  .array(labelSchema)
+  .max(20)
+  .transform((labels) => {
+    const seen = new Set<string>()
+    return labels.filter((l) => {
+      const key = l.toLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  })
+export const markdownSchema = z.string().max(100_000)
+export const idSchema = z.string().trim().min(1).max(64)
+export const cursorSchema = z.string().max(512).nullish()
+export const limitSchema = z.coerce.number().int().min(1).max(200).optional()
+
+export interface Page<T> {
+  items: T[]
+  nextCursor: string | null
+}
+
+// ---------- Projects ----------
+export const UNTITLED_PROJECT_NAME = 'Untitled'
+export const projectNameSchema = z.string().trim().min(1, 'Project name is required').max(120)
+
+export const createProjectInput = z.object({
+  name: projectNameSchema,
+  description: markdownSchema.default(''),
+  labels: labelsSchema.default([]),
+})
+export const updateProjectInput = z
+  .object({
+    name: projectNameSchema.optional(),
+    description: markdownSchema.optional(),
+    labels: labelsSchema.optional(),
+  })
+  .strict()
+export const ARCHIVE_FILTERS = ['active', 'archived', 'all'] as const
+export const archiveFilterSchema = z.enum(ARCHIVE_FILTERS).default('active')
+
+export interface Project {
+  id: string
+  name: string
+  description: string
+  labels: string[]
+  isSystem: boolean
+  systemKey: string | null
+  archivedAt: string | null
+  createdAt: string
+  updatedAt: string
+  createdBy: ActorRef | null
+  updatedBy: ActorRef | null
+}
+
+// ---------- Tasks ----------
+export const TASK_STATUSES = ['backlog', 'ready', 'in_progress', 'blocked', 'done', 'canceled'] as const
+export type TaskStatus = (typeof TASK_STATUSES)[number]
+export const TASK_PRIORITIES = ['none', 'low', 'medium', 'high', 'urgent'] as const
+export type TaskPriority = (typeof TASK_PRIORITIES)[number]
+export const PRIORITY_RANK: Record<TaskPriority, number> = { none: 0, low: 1, medium: 2, high: 3, urgent: 4 }
+export const STATUS_LABELS: Record<TaskStatus, string> = {
+  backlog: 'Backlog',
+  ready: 'Ready',
+  in_progress: 'In progress',
+  blocked: 'Blocked',
+  done: 'Done',
+  canceled: 'Canceled',
+}
+
+export const taskStatusSchema = z.enum(TASK_STATUSES)
+export const taskPrioritySchema = z.enum(TASK_PRIORITIES)
+export const taskTitleSchema = z.string().trim().min(1, 'Title is required').max(300)
+
+/** Accepts an ISO date (YYYY-MM-DD, treated as end of day UTC) or ISO date-time; normalizes to ISO UTC. */
+export const dueAtSchema = z
+  .string()
+  .trim()
+  .refine((v) => /^\d{4}-\d{2}-\d{2}$/.test(v) || !Number.isNaN(Date.parse(v)), 'Due date must be an ISO date or date-time')
+  .transform((v) => (/^\d{4}-\d{2}-\d{2}$/.test(v) ? `${v}T23:59:59.999Z` : new Date(v).toISOString()))
+
+export const createTaskInput = z
+  .object({
+    title: taskTitleSchema,
+    description: markdownSchema.default(''),
+    projectId: idSchema.nullish(),
+    status: taskStatusSchema.default('backlog'),
+    priority: taskPrioritySchema.default('none'),
+    dueAt: dueAtSchema.nullish(),
+    assigneeId: idSchema.nullish(),
+    labels: labelsSchema.default([]),
+    parentId: idSchema.nullish(),
+  })
+  .strict()
+
+export const updateTaskInput = z
+  .object({
+    title: taskTitleSchema.optional(),
+    description: markdownSchema.optional(),
+    projectId: idSchema.optional(),
+    status: taskStatusSchema.optional(),
+    priority: taskPrioritySchema.optional(),
+    dueAt: dueAtSchema.nullable().optional(),
+    assigneeId: idSchema.nullable().optional(),
+    labels: labelsSchema.optional(),
+  })
+  .strict()
+
+export const TASK_SORTS = ['updated', 'created', 'priority', 'due', 'title'] as const
+export type TaskSort = (typeof TASK_SORTS)[number]
+
+const listOf = <T extends z.ZodType>(item: T) =>
+  z.preprocess((v) => (v === undefined || v === null || v === '' ? undefined : Array.isArray(v) ? v : String(v).split(',')), z.array(item).max(50).optional())
+
+export const listTasksInput = z.object({
+  projectId: listOf(idSchema),
+  status: listOf(taskStatusSchema),
+  priority: listOf(taskPrioritySchema),
+  /** Actor ids; the literal `none` matches unassigned tasks. */
+  assigneeId: listOf(idSchema),
+  label: listOf(labelSchema),
+  dueBefore: dueAtSchema.optional(),
+  dueAfter: dueAtSchema.optional(),
+  archived: archiveFilterSchema,
+  q: z.string().trim().max(200).optional(),
+  /** Direct children of this task. */
+  parentId: idSchema.optional(),
+  /** Tasks that block this task (its blockers). */
+  blockersOf: idSchema.optional(),
+  /** Tasks that this task blocks (its dependents). */
+  dependentsOf: idSchema.optional(),
+  sort: z.enum(TASK_SORTS).default('updated'),
+  order: z.enum(['asc', 'desc']).optional(),
+  cursor: cursorSchema,
+  limit: limitSchema,
+})
+export type ListTasksInput = z.infer<typeof listTasksInput>
+
+export interface ProjectRef {
+  id: string
+  name: string
+  isSystem: boolean
+  archivedAt: string | null
+}
+
+export interface Task {
+  id: string
+  title: string
+  description: string
+  project: ProjectRef
+  status: TaskStatus
+  priority: TaskPriority
+  dueAt: string | null
+  assignee: ActorRef | null
+  labels: string[]
+  completedAt: string | null
+  archivedAt: string | null
+  createdAt: string
+  updatedAt: string
+  createdBy: ActorRef
+  updatedBy: ActorRef
+  parentId: string | null
+  childCount: number
+  /** Number of blockers that are not done or canceled. */
+  openBlockerCount: number
+}
+
+// ---------- Search ----------
+export const SEARCH_KINDS = ['task', 'document', 'comment'] as const
+export type SearchKind = (typeof SEARCH_KINDS)[number]
+/** Snippet highlight delimiters (control characters, never valid in user text rendering). */
+export const HIGHLIGHT_START = '\u0001'
+export const HIGHLIGHT_END = '\u0002'
+
+export const searchInput = z.object({
+  q: z.string().trim().min(1, 'Enter a search term').max(200),
+  kind: z.preprocess((v) => (v === undefined || v === '' ? undefined : Array.isArray(v) ? v : String(v).split(',')), z.array(z.enum(SEARCH_KINDS)).optional()),
+  archived: archiveFilterSchema,
+  cursor: cursorSchema,
+  limit: limitSchema,
+})
+
+export interface SearchResult {
+  kind: SearchKind
+  id: string
+  /** Task id for task and comment results. */
+  taskId: string | null
+  title: string
+  snippet: string
+  archived: boolean
+}
+
+// ---------- Documents ----------
+export const documentTitleSchema = z.string().trim().min(1, 'Title is required').max(200)
+export const sourceUrlSchema = z
+  .string()
+  .trim()
+  .max(2000)
+  .url('Source URL must be an absolute URL')
+  .refine((v) => /^https?:\/\//i.test(v), 'Source URL must use http:// or https://')
+
+const hasContent = (d: { body?: string; sourceUrl?: string | null }) => (d.body ?? '').trim().length > 0 || !!d.sourceUrl
+export const DOCUMENT_CONTENT_MESSAGE = 'A document needs a Markdown body or a source URL'
+
+export const createDocumentInput = z
+  .object({
+    title: documentTitleSchema,
+    body: markdownSchema.default(''),
+    sourceUrl: sourceUrlSchema.nullish(),
+  })
+  .strict()
+  .refine(hasContent, { message: DOCUMENT_CONTENT_MESSAGE, path: ['body'] })
+
+export const updateDocumentInput = z
+  .object({
+    title: documentTitleSchema.optional(),
+    body: markdownSchema.optional(),
+    sourceUrl: sourceUrlSchema.nullable().optional(),
+  })
+  .strict()
+
+export const listDocumentsInput = z.object({
+  q: z.string().trim().max(200).optional(),
+  taskId: idSchema.optional(),
+  projectId: idSchema.optional(),
+  archived: archiveFilterSchema,
+  cursor: cursorSchema,
+  limit: limitSchema,
+})
+
+/** Exactly one link target. */
+export const documentLinkInput = z
+  .object({ taskId: idSchema.optional(), projectId: idSchema.optional() })
+  .strict()
+  .refine((v) => (v.taskId ? 1 : 0) + (v.projectId ? 1 : 0) === 1, { message: 'Provide exactly one of taskId or projectId' })
+
+export interface TaskRef {
+  id: string
+  title: string
+  status: TaskStatus
+  archivedAt: string | null
+}
+
+export interface DocumentSummary {
+  id: string
+  title: string
+  sourceUrl: string | null
+  excerpt: string
+  bodyLength: number
+  revision: number
+  archivedAt: string | null
+  updatedAt: string
+  updatedBy: ActorRef
+}
+
+export interface DocumentDetail extends Omit<DocumentSummary, 'excerpt'> {
+  body: string
+  createdAt: string
+  createdBy: ActorRef
+  links: { tasks: TaskRef[]; projects: ProjectRef[] }
+}
+
+export interface DocumentRevision {
+  id: string
+  number: number
+  title: string
+  body: string
+  sourceUrl: string | null
+  restoredFrom: number | null
+  createdAt: string
+  createdBy: ActorRef
+}
+
+// ---------- Comments, completion and context ----------
+export const COMMENT_KINDS = ['comment', 'completion_summary'] as const
+export type CommentKind = (typeof COMMENT_KINDS)[number]
+export const commentBodySchema = z.string().trim().min(1, 'Comment cannot be empty').max(20_000)
+export const addCommentInput = z.object({ body: commentBodySchema }).strict()
+export const listCommentsInput = z.object({
+  order: z.enum(['asc', 'desc']).default('asc'),
+  cursor: cursorSchema,
+  limit: limitSchema,
+})
+export const completeTaskInput = z.object({ summary: z.string().trim().max(20_000).optional() }).strict()
+
+export interface Comment {
+  id: string
+  taskId: string
+  kind: CommentKind
+  body: string
+  author: ActorRef
+  createdAt: string
+}
+
+export const taskContextInput = z
+  .object({
+    maxChars: z.number().int().min(2_000).max(200_000).default(40_000),
+    commentLimit: z.number().int().min(0).max(50).default(10),
+    documentLimit: z.number().int().min(0).max(25).default(10),
+    relationLimit: z.number().int().min(0).max(100).default(20),
+  })
+  .strict()
+
+export interface Continuation {
+  tool: string
+  args: Record<string, unknown>
+}
+
+/** Every omission from a context response is reported here; nothing is dropped silently. */
+export interface Truncation {
+  path: string
+  kind: 'text' | 'collection'
+  total: number
+  returned: number
+  continuation: Continuation
+}
+
+export interface TaskContext {
+  task: Task
+  project: Project
+  parent: TaskRef | null
+  children: { items: TaskRef[]; total: number }
+  blockers: { items: TaskRef[]; total: number }
+  blocking: { items: TaskRef[]; total: number }
+  documents: { items: Array<DocumentSummary & { body: string }>; total: number }
+  comments: { items: Comment[]; total: number }
+  budget: { maxChars: number; usedChars: number; truncations: Truncation[] }
+}
+
+// ---------- Relationships ----------
+export const setParentInput = z.object({ parentId: idSchema.nullable() }).strict()
+export const blockerInput = z.object({ blockerId: idSchema }).strict()
+
+export interface TaskRelations {
+  parent: TaskRef | null
+  children: TaskRef[]
+  blockers: TaskRef[]
+  blocking: TaskRef[]
+}
+
+// ---- Client API v1 ----
+
+export interface ClientEventsInfo {
+  /** Hours a resumable event position stays available. */
+  retentionHours: number
+  /** Resuming further back than this many events yields a reset. */
+  maxReplay: number
+}
+
+/** `GET /client/v1/info` — public, contains no workspace data. */
+export const serverInfoSchema = z.object({
+  product: z.literal('alice'),
+  name: z.string(),
+  serverVersion: z.string(),
+  publicUrl: z.string(),
+  clientApi: z.object({ current: z.number().int(), minimum: z.number().int(), prefix: z.string() }),
+  capabilities: z.array(z.string()),
+  events: z.object({ retentionHours: z.number(), maxReplay: z.number() }),
+})
+export type ServerInfo = z.infer<typeof serverInfoSchema>
+
+/** One invalidation on `/client/v1/events`: identifies what changed, never carries the data. */
+export const clientEventSchema = z.object({
+  position: z.number().int(),
+  activityId: z.string().nullable(),
+  kind: z.string(),
+  id: z.string(),
+  mutation: z.string(),
+  /** Client mutation id behind a private Pad change (lets a client recognize its own write). */
+  origin: z.string().optional(),
+})
+export type ClientEvent = z.infer<typeof clientEventSchema>
+
+/** Sent when the requested resume position is unavailable; clients refetch everything. */
+export interface ClientEventReset {
+  position: number
+  reason: 'position_expired' | 'position_ahead_of_server' | 'too_many_events'
+}
+
+// ---- Device authorization and client sessions ----
+
+export const CLIENT_KINDS = ['desktop', 'cli'] as const
+export type ClientKind = (typeof CLIENT_KINDS)[number]
+
+export const deviceAuthorizeInput = z
+  .object({
+    clientKind: z.enum(CLIENT_KINDS),
+    clientName: z.string().trim().min(1).max(80),
+    deviceName: z.string().trim().min(1).max(120),
+    clientVersion: z.string().trim().min(1).max(40),
+  })
+  .strict()
+
+export interface DeviceAuthorization {
+  /** Secret the client polls with; shown to nobody. */
+  deviceCode: string
+  /** Short code the human confirms in the browser. */
+  userCode: string
+  verificationUri: string
+  verificationUriComplete: string
+  expiresIn: number
+  interval: number
+}
+
+export const deviceTokenInput = z.object({ deviceCode: z.string().min(1).max(200) }).strict()
+export const userCodeInput = z.object({ userCode: z.string().trim().min(1).max(20) }).strict()
+export const refreshInput = z.object({ refreshToken: z.string().min(1).max(200) }).strict()
+
+export interface DeviceRequestInfo {
+  clientKind: ClientKind
+  clientName: string
+  deviceName: string
+  clientVersion: string
+  createdAt: string
+  expiresAt: string
+  status: 'pending' | 'approved' | 'denied' | 'exchanged'
+}
+
+export interface ClientSessionInfo {
+  id: string
+  actor: ActorRef
+  clientKind: ClientKind
+  clientName: string
+  deviceName: string
+  clientVersion: string
+  createdAt: string
+  lastUsedAt: string
+  lastRefreshedAt: string | null
+  revokedAt: string | null
+  revokeReason: string | null
+  /** True for the session making the request. */
+  current: boolean
+}
+
+/** Returned once by device exchange and by every refresh. */
+export interface ClientCredentials {
+  accessToken: string
+  accessExpiresAt: string
+  refreshToken: string
+  refreshExpiresAt: string
+  session: ClientSessionInfo
+  actor: PublicActor
+}

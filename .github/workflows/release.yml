@@ -1,0 +1,262 @@
+name: Release clients
+
+# Builds Alice Desktop installers + updater artifacts for every supported target, the standalone CLI,
+# checksums, the updater manifest and the macOS install script, and attaches them to a draft release.
+#
+# macOS arm64 carries the Local runtime. It needs no Apple Developer ID: every Mach-O is
+# code-signed with the release's self-signed certificate (ALICE_MACOS_CERTIFICATE) or ad-hoc, and the
+# app is not notarized (see docs/release.md). Updates are verified with the Tauri updater key.
+#
+# Secrets (repository → Settings → Secrets):  TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD,
+#   ALICE_MACOS_CERTIFICATE, ALICE_MACOS_CERTIFICATE_PASSWORD (self-signed; generate with scripts/release-keys.sh)
+#   Windows installers are not code-signed yet (SmartScreen is explained in the README).
+#   Optional upgrade only: APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY,
+#   APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID (Developer ID signing + notarization of the x64 build)
+# Variables (public): ALICE_UPDATER_PUBKEY, ALICE_UPDATE_URL (https://…/latest.json), ALICE_DOWNLOAD_BASE_URL
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    # ล้มก่อน build ถ้า tag/version/CHANGELOG ไม่ตรงกัน หรือขาด secret/variable
+    name: Release preflight
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Versions, CHANGELOG, secrets and variables
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          ALICE_MACOS_CERTIFICATE: ${{ secrets.ALICE_MACOS_CERTIFICATE }}
+          ALICE_MACOS_CERTIFICATE_PASSWORD: ${{ secrets.ALICE_MACOS_CERTIFICATE_PASSWORD }}
+          ALICE_UPDATER_PUBKEY: ${{ vars.ALICE_UPDATER_PUBKEY }}
+          ALICE_UPDATE_URL: ${{ vars.ALICE_UPDATE_URL }}
+          ALICE_DOWNLOAD_BASE_URL: ${{ vars.ALICE_DOWNLOAD_BASE_URL }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then node scripts/release-preflight.mjs; else node scripts/release-preflight.mjs --dry-run; fi
+
+  desktop:
+    name: Desktop ${{ matrix.name }}
+    needs: preflight
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: macOS arm64, runner: macos-15, target: aarch64-apple-darwin, platform: darwin-aarch64, bundles: app,dmg, local: true }
+          - { name: macOS x64, runner: macos-15-intel, target: x86_64-apple-darwin, platform: darwin-x86_64, bundles: app,dmg }
+          - { name: Windows x64, runner: windows-latest, target: x86_64-pc-windows-msvc, platform: windows-x86_64, bundles: nsis,msi }
+          - { name: Linux x64, runner: ubuntu-22.04, target: x86_64-unknown-linux-gnu, platform: linux-x86_64, bundles: appimage,deb,rpm }
+          - { name: Linux arm64, runner: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu, platform: linux-aarch64, bundles: appimage,deb,rpm }
+    env:
+      ALICE_UPDATER_PUBKEY: ${{ vars.ALICE_UPDATER_PUBKEY }}
+      ALICE_UPDATE_URL: ${{ vars.ALICE_UPDATE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Tauri system libraries (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev xvfb rpm
+      - run: npm ci
+      - name: Release signing identity (self-signed or ad-hoc; no Apple Developer ID)
+        if: runner.os == 'macOS'
+        env:
+          ALICE_MACOS_CERTIFICATE: ${{ secrets.ALICE_MACOS_CERTIFICATE }}
+          ALICE_MACOS_CERTIFICATE_PASSWORD: ${{ secrets.ALICE_MACOS_CERTIFICATE_PASSWORD }}
+        run: node scripts/macos-import-certificate.mjs
+      - name: Local runtime (pinned Node.js verified against SHASUMS256, bundles, SQLite, signed)
+        if: matrix.local
+        run: |
+          npm run build:web
+          npm run build:runtime -- --target darwin-arm64
+          node scripts/runtime-stage-desktop.mjs --runtime dist/runtime/darwin-arm64
+      - name: Release configuration (public key and manifest URL only)
+        run: node scripts/desktop-release-config.mjs src-tauri/tauri.release.conf.json
+      - name: Build and sign
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        # secret ที่ไม่ได้ตั้งมาเป็นสตริงว่าง แต่ Tauri ดูแค่ว่ามีตัวแปรไหม: APPLE_CERTIFICATE ว่างทำให้ import ล้ม
+        # และ APPLE_SIGNING_IDENTITY ว่างจะทับ identity self-signed ใน tauri.release.conf.json จึง unset ตัวที่ว่างก่อน build
+        shell: bash
+        run: |
+          for v in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            [ -n "${!v}" ] || unset "$v"
+          done
+          npx tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --config src-tauri/tauri.release.conf.json
+      - name: Collect artifacts
+        shell: bash
+        run: node scripts/desktop-collect.mjs src-tauri/target/${{ matrix.target }}/release/bundle ${{ matrix.platform }} out
+      - name: Verify bundle contents (Remote-only builds carry no Node or SQLite; arm64 carries exactly the signed Local runtime)
+        shell: bash
+        run: |
+          if [ "${{ matrix.local }}" = "true" ]; then
+            node scripts/desktop-verify-artifacts.mjs src-tauri/target/${{ matrix.target }}/release ${{ matrix.platform }} --local-runtime "$(node -p "require('./package.json').version")"
+          else
+            node scripts/desktop-verify-artifacts.mjs src-tauri/target/${{ matrix.target }}/release ${{ matrix.platform }}
+          fi
+      - name: Launch smoke (production UI loads and talks to Rust; deep link handling)
+        shell: bash
+        run: node scripts/desktop-launch-smoke.mjs src-tauri/target/${{ matrix.target }}/release ${{ matrix.platform }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.platform }}
+          path: out/*
+          if-no-files-found: error
+
+  cli:
+    name: Standalone CLI
+    needs: preflight
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build:server
+      - name: Runs alone, without node_modules or server dependencies
+        run: |
+          mkdir -p out isolated
+          cp dist/alice.js isolated/alice.js
+          (cd isolated && node alice.js version --json)
+          ! grep -q better-sqlite3 dist/alice.js
+          REF="${GITHUB_REF_NAME:-dev}"
+          cp dist/alice.js "out/alice-cli-${REF//\//-}.js"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli
+          path: out/*
+
+  image:
+    # Server image ต่อ architecture บน runner ของ arch นั้นเอง (ไม่ใช้ QEMU)
+    # push แบบ digest อย่างเดียว แล้ว image-manifest รวมเป็น :<version> — :latest ขยับตอน Publish เท่านั้น
+    name: Server image ${{ matrix.arch }}
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: preflight
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { arch: amd64, runner: ubuntu-24.04 }
+          - { arch: arm64, runner: ubuntu-24.04-arm }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Image name and version
+        id: meta
+        run: |
+          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/${{ matrix.arch }}
+          build-args: |
+            ALICE_VERSION=${{ steps.meta.outputs.version }}
+            ALICE_REVISION=${{ github.sha }}
+          outputs: type=image,name=${{ steps.meta.outputs.image }},push-by-digest=true,name-canonical=true,push=true
+      - name: Ready on this architecture
+        run: |
+          docker run -d --name probe -e ALICE_PUBLIC_URL=http://localhost:8080 -p 127.0.0.1:8080:8080 "${{ steps.meta.outputs.image }}@${{ steps.build.outputs.digest }}"
+          for _ in $(seq 1 60); do curl -fsS http://127.0.0.1:8080/readyz && exit 0; sleep 1; done
+          docker logs probe; exit 1
+      - run: |
+          mkdir -p digests
+          touch "digests/${DIGEST#sha256:}"
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: image-digest-${{ matrix.arch }}
+          path: digests/*
+          if-no-files-found: error
+
+  image-manifest:
+    name: Server image (multi-arch :version)
+    needs: image
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: digests
+          pattern: image-digest-*
+          merge-multiple: true
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Create the manifest list
+        working-directory: digests
+        run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker buildx imagetools create -t "$IMAGE:${GITHUB_REF_NAME#v}" $(printf "$IMAGE@sha256:%s " *)
+          docker buildx imagetools inspect "$IMAGE:${GITHUB_REF_NAME#v}" | tee manifest.txt
+          grep -q 'linux/amd64' manifest.txt && grep -q 'linux/arm64' manifest.txt
+
+  publish:
+    name: Draft release
+    # manual runs build and verify only; a draft release (and its image) comes from a v* tag
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [desktop, cli, image-manifest]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist-release
+          merge-multiple: true
+      - name: Updater manifest and checksums
+        env:
+          BASE_URL: ${{ vars.ALICE_DOWNLOAD_BASE_URL }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          node scripts/desktop-latest-json.mjs "$VERSION" "$BASE_URL" dist-release > dist-release/latest.json
+          sed "s#__ALICE_DOWNLOAD_BASE__#${BASE_URL}#" scripts/install-macos.sh > dist-release/install-macos.sh
+          (cd dist-release && sha256sum * > SHA256SUMS)
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/release-notes.mjs "${GITHUB_REF_NAME#v}" > release-notes.md
+          gh release create "$GITHUB_REF_NAME" dist-release/* --draft --title "Alice $GITHUB_REF_NAME" --notes-file release-notes.md

@@ -1,0 +1,134 @@
+{
+ "valid": [
+  [
+   "alice://open/task/tsk_0123456789abcdefghjk?profile=work",
+   {
+    "profile": "work",
+    "kind": "task",
+    "id": "tsk_0123456789abcdefghjk"
+   }
+  ],
+  [
+   "alice://open/document/doc_abcd1234?profile=Staging-2",
+   {
+    "profile": "Staging-2",
+    "kind": "document",
+    "id": "doc_abcd1234"
+   }
+  ],
+  [
+   "alice://open/project/prj_abcd1234?profile=a.b_c",
+   {
+    "profile": "a.b_c",
+    "kind": "project",
+    "id": "prj_abcd1234"
+   }
+  ],
+  [
+   "alice://open/task/tsk_0123456789abcdefghjk?workspace=wsp_abcd1234efgh5678jkmn",
+   {
+    "workspace": "wsp_abcd1234efgh5678jkmn",
+    "kind": "task",
+    "id": "tsk_0123456789abcdefghjk"
+   }
+  ]
+ ],
+ "invalid": [
+  [
+   "",
+   "empty"
+  ],
+  [
+   "https://alice.example.com/tasks/tsk_abcd1234",
+   "other scheme"
+  ],
+  [
+   "alice://open/task/tsk_abcd1234",
+   "missing profile"
+  ],
+  [
+   "alice://open/task/tsk_abcd1234?profile=work&server=https://evil.example",
+   "embedded server URL"
+  ],
+  [
+   "alice://open/task/tsk_abcd1234?profile=work&token=alice_ca_x",
+   "embedded credential parameter"
+  ],
+  [
+   "alice://user:pass@open/task/tsk_abcd1234?profile=work",
+   "userinfo"
+  ],
+  [
+   "alice://open:8080/task/tsk_abcd1234?profile=work",
+   "port"
+  ],
+  [
+   "alice://open/task/tsk_abcd1234?profile=work#x",
+   "fragment"
+  ],
+  [
+   "alice://evil.example/task/tsk_abcd1234?profile=work",
+   "unknown action/host"
+  ],
+  [
+   "alice://open/user/usr_abcd1234?profile=work",
+   "unsupported kind"
+  ],
+  [
+   "alice://open/task/prj_abcd1234?profile=work",
+   "id of another kind"
+  ],
+  [
+   "alice://open/task/tsk_ABCD?profile=work",
+   "malformed id"
+  ],
+  [
+   "alice://open/task/../../etc?profile=work",
+   "path traversal"
+  ],
+  [
+   "alice://open/task/tsk_abcd1234/extra?profile=work",
+   "extra segment"
+  ],
+  [
+   "alice://open/task/tsk_abcd1234?profile=bad%20name",
+   "invalid profile"
+  ],
+  [
+   "alice://open/task/tsk_abcd1234?profile=a&profile=b",
+   "duplicate profile"
+  ],
+  [
+   "alice://open/task/tsk_abcd1234?profile=work\n",
+   "control character"
+  ],
+  [
+   "alice://open/task/tsk_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa?profile=work",
+   "too long"
+  ],
+  [
+   "alice://open//tsk_abcd1234?profile=work",
+   "empty kind"
+  ],
+  [
+   "alice:open/task/tsk_abcd1234?profile=work",
+   "no authority"
+  ],
+  [
+   "alice://open/task/tsk_abcd1234?workspace=personal",
+   "workspace alias instead of id"
+  ],
+  [
+   "alice://open/task/tsk_abcd1234?workspace=wsp_abcd1234&profile=work",
+   "both selectors"
+  ],
+  [
+   "alice://open/task/tsk_abcd1234?workspace=wsp_a&workspace=wsp_b",
+   "duplicate workspace"
+  ],
+  [
+   "alice://open/task/tsk_abcd1234?workspace=prj_abcd1234",
+   "id of another kind as workspace"
+  ]
+ ]
+}

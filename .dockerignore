@@ -1,0 +1,11 @@
+node_modules
+dist
+data
+.alice-test
+.git
+test-results
+playwright-report
+*.db
+*.db-wal
+*.db-shm
+.env

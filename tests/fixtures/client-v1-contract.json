@@ -1,0 +1,19 @@
+{
+  "_comment": "Frozen Client API v1 response shapes that released v1 clients (Web 0.2, Desktop 0.2, CLI 0.2) rely on. Fields may be added; none of these may be removed or renamed while CLIENT_API_MIN_VERSION is 1.",
+  "info": ["product", "name", "serverVersion", "publicUrl", "clientApi.current", "clientApi.minimum", "clientApi.prefix", "capabilities", "events.retentionHours", "events.maxReplay"],
+  "error": ["error.code", "error.message"],
+  "project": ["id", "name", "description", "labels", "isSystem", "archivedAt", "createdAt", "updatedAt", "createdBy", "updatedBy"],
+  "task": ["id", "title", "description", "project.id", "project.name", "status", "priority", "dueAt", "assignee", "labels", "completedAt", "archivedAt", "createdAt", "updatedAt", "createdBy.id", "createdBy.kind", "createdBy.displayName", "updatedBy", "parentId", "childCount", "openBlockerCount"],
+  "page": ["items", "nextCursor"],
+  "comment": ["id", "taskId", "kind", "body", "author.id", "author.kind", "author.displayName", "createdAt"],
+  "document": ["id", "title", "body", "sourceUrl", "revision", "archivedAt", "createdAt", "updatedAt", "createdBy", "updatedBy", "links.tasks", "links.projects"],
+  "revision": ["id", "number", "title", "body", "sourceUrl", "restoredFrom", "createdAt", "createdBy"],
+  "activity": ["id", "actor.id", "actor.kind", "actor.displayName", "verb", "resourceType", "resourceId", "data", "createdAt"],
+  "relations": ["parent", "children", "blockers", "blocking"],
+  "session": ["id", "actor", "clientKind", "clientName", "deviceName", "clientVersion", "createdAt", "lastUsedAt", "lastRefreshedAt", "revokedAt", "revokeReason", "current"],
+  "credentials": ["accessToken", "accessExpiresAt", "refreshToken", "refreshExpiresAt", "session.id", "actor.id", "actor.displayName"],
+  "deviceAuthorization": ["deviceCode", "userCode", "verificationUri", "verificationUriComplete", "expiresIn", "interval"],
+  "event": ["position", "activityId", "kind", "id", "mutation"],
+  "eventTypes": ["ready", "invalidate", "reset", "unauthorized"],
+  "errorCodes": ["VALIDATION_ERROR", "UNAUTHENTICATED", "FORBIDDEN", "NOT_FOUND", "INVALID_STATE", "CLAIM_FAILED", "RELATIONSHIP_CYCLE", "CONFLICT", "RATE_LIMITED", "IDEMPOTENCY_CONFLICT", "CLIENT_INCOMPATIBLE", "DEVICE_AUTHORIZATION_PENDING", "DEVICE_SLOW_DOWN", "DEVICE_ACCESS_DENIED", "DEVICE_CODE_EXPIRED"]
+}

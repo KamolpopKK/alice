@@ -1,0 +1,252 @@
+{
+  "version": "1.1.0",
+  "source": "Approved Alice concept boards and workspace-peek reference; workflow and regeneration in docs/brand-assets.md",
+  "palette": {
+    "brand-navy-900": "#202A44",
+    "brand-navy-700": "#344466",
+    "brand-ivory": "#FFF8EE",
+    "brand-cocoa": "#4A312E",
+    "brand-coral": "#EE715F",
+    "brand-coral-accessible": "#B64336"
+  },
+  "assets": {
+    "logoLight": {
+      "path": "/brand/alice-logo-horizontal-light.svg",
+      "width": 205,
+      "height": 64,
+      "bytes": 1911,
+      "surfaces": [
+        "auth",
+        "readme"
+      ],
+      "schemes": [
+        "light"
+      ]
+    },
+    "logoDark": {
+      "path": "/brand/alice-logo-horizontal-dark.svg",
+      "width": 205,
+      "height": 64,
+      "bytes": 2317,
+      "surfaces": [
+        "auth"
+      ],
+      "schemes": [
+        "dark"
+      ]
+    },
+    "mark": {
+      "path": "/brand/alice-mark.svg",
+      "width": 64,
+      "height": 64,
+      "bytes": 1546,
+      "surfaces": [
+        "header",
+        "compact"
+      ],
+      "schemes": [
+        "light",
+        "dark"
+      ]
+    },
+    "markMonochrome": {
+      "path": "/brand/alice-mark-monochrome.svg",
+      "width": 64,
+      "height": 64,
+      "bytes": 939,
+      "surfaces": [
+        "single-colour contexts"
+      ],
+      "schemes": [
+        "light",
+        "dark"
+      ]
+    },
+    "mascotFriendly": {
+      "path": "/brand/alice-mascot-friendly.webp",
+      "width": 265,
+      "height": 547,
+      "bytes": 27540,
+      "surfaces": [
+        "login",
+        "setup",
+        "invite"
+      ],
+      "schemes": [
+        "light",
+        "dark"
+      ]
+    },
+    "mascotPeek": {
+      "path": "/brand/alice-mascot-peek.webp",
+      "width": 533,
+      "height": 1100,
+      "bytes": 62738,
+      "surfaces": [
+        "login",
+        "setup",
+        "invite"
+      ],
+      "schemes": [
+        "light",
+        "dark"
+      ]
+    },
+    "mascotPeekPng": {
+      "path": "/brand/alice-mascot-peek.png",
+      "width": 533,
+      "height": 1100,
+      "bytes": 144966,
+      "surfaces": [
+        "design source",
+        "fallback"
+      ],
+      "schemes": [
+        "light",
+        "dark"
+      ]
+    },
+    "mascotNeutral": {
+      "path": "/brand/alice-mascot-neutral.webp",
+      "width": 242,
+      "height": 286,
+      "bytes": 15244,
+      "surfaces": [
+        "my-tasks-empty"
+      ],
+      "schemes": [
+        "light",
+        "dark"
+      ]
+    },
+    "mascotCurious": {
+      "path": "/brand/alice-mascot-curious.webp",
+      "width": 243,
+      "height": 284,
+      "bytes": 15434,
+      "surfaces": [
+        "projects-empty"
+      ],
+      "schemes": [
+        "light",
+        "dark"
+      ]
+    },
+    "mascotFocused": {
+      "path": "/brand/alice-mascot-focused.webp",
+      "width": 243,
+      "height": 287,
+      "bytes": 15518,
+      "surfaces": [
+        "documents-empty"
+      ],
+      "schemes": [
+        "light",
+        "dark"
+      ]
+    },
+    "mascotConcerned": {
+      "path": "/brand/alice-mascot-concerned.webp",
+      "width": 242,
+      "height": 285,
+      "bytes": 15578,
+      "surfaces": [
+        "not-found",
+        "full-page-error"
+      ],
+      "schemes": [
+        "light",
+        "dark"
+      ]
+    },
+    "authWorkspaceDark": {
+      "path": "/brand/alice-auth-workspace-dark.webp",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 11832,
+      "surfaces": [
+        "authentication background"
+      ],
+      "schemes": [
+        "dark"
+      ]
+    },
+    "authWorkspaceLight": {
+      "path": "/brand/alice-auth-workspace-light.webp",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 7776,
+      "surfaces": [
+        "authentication background"
+      ],
+      "schemes": [
+        "light"
+      ]
+    },
+    "favicon": {
+      "path": "/brand/favicon.svg",
+      "width": 64,
+      "height": 64,
+      "bytes": 1546,
+      "surfaces": [
+        "favicon"
+      ],
+      "schemes": [
+        "light",
+        "dark"
+      ]
+    },
+    "favicon32": {
+      "path": "/brand/favicon-32.png",
+      "width": 32,
+      "height": 32,
+      "bytes": 1182,
+      "surfaces": [
+        "favicon fallback"
+      ],
+      "schemes": [
+        "light",
+        "dark"
+      ]
+    },
+    "appleTouchIcon": {
+      "path": "/brand/apple-touch-icon.png",
+      "width": 180,
+      "height": 180,
+      "bytes": 6505,
+      "surfaces": [
+        "apple-touch-icon"
+      ],
+      "schemes": [
+        "light",
+        "dark"
+      ]
+    },
+    "icon192": {
+      "path": "/brand/icon-192.png",
+      "width": 192,
+      "height": 192,
+      "bytes": 7093,
+      "surfaces": [
+        "web manifest"
+      ],
+      "schemes": [
+        "light",
+        "dark"
+      ]
+    },
+    "icon512": {
+      "path": "/brand/icon-512.png",
+      "width": 512,
+      "height": 512,
+      "bytes": 20845,
+      "surfaces": [
+        "web manifest"
+      ],
+      "schemes": [
+        "light",
+        "dark"
+      ]
+    }
+  }
+}
