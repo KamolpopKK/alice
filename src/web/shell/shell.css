@@ -483,3 +483,91 @@
 .home-meta-project {
   font-size: var(--ui-text-sm);
 }
+
+/* ---------- onboarding (Desktop first run) ---------- */
+.onboarding-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--ui-space-6) var(--ui-space-4);
+  background: var(--ui-canvas);
+  color: var(--ui-text);
+  font-family: var(--ui-font);
+}
+.onboarding-card {
+  width: min(100%, 860px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: var(--ui-space-6);
+  align-items: center;
+  padding: var(--ui-space-8);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-surface);
+}
+.onboarding-content,
+.onboarding-form {
+  display: grid;
+  gap: var(--ui-space-4);
+}
+.onboarding-form h1 {
+  margin: 0;
+  font-size: var(--ui-text-2xl);
+  line-height: var(--ui-leading-tight);
+}
+.onboarding-form h1:focus {
+  outline: none;
+}
+.onboarding-step {
+  font-size: var(--ui-text-sm);
+}
+.onboarding-alice {
+  margin: 0;
+  font-size: var(--ui-text-lg);
+}
+.onboarding-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--ui-space-2);
+}
+.onboarding-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  margin-top: var(--ui-space-2);
+}
+.onboarding-art {
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-illustration-bg);
+}
+.onboarding-art img {
+  max-width: 100%;
+  height: auto;
+}
+/* จอแคบ: Alice เหลือครึ่งตัวด้านบน แล้วตัดออกก่อนที่ปุ่มจะถูกเบียด */
+@media (max-width: 719px) {
+  .onboarding-card {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--ui-space-5);
+  }
+  .onboarding-art {
+    order: -1;
+    height: 96px;
+    overflow: hidden;
+    place-items: start center;
+  }
+  .onboarding-art img {
+    width: 96px;
+  }
+}
+@media (max-width: 359px), (max-height: 520px) {
+  .onboarding-art {
+    display: none;
+  }
+}

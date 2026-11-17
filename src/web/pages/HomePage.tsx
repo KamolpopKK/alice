@@ -12,6 +12,7 @@ import { usePads } from '../pads/hooks'
 import { useNewPad } from '../pads/PadSidebar'
 import { Avatar, Badge, Banner, Button, EmptyState, IconButton, LinkButton, List, ListItem, SectionHeader, Skeleton } from '../ui'
 import { LegacyTasksRedirect } from './TasksPage'
+import { markWhatsNewSeen, whatsNewSeen } from '../whats-new'
 import { useTaskPages } from './ListPage'
 
 const GREETING_KEY = 'alice.home.summary'
@@ -91,6 +92,8 @@ export function HomePage() {
         </section>
       )}
 
+      <WhatsNew />
+
       <QuickCreate taskPads={taskPads} />
 
       <div className="home-grid">
@@ -116,6 +119,25 @@ export function HomePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+/** Once per device, for people who used the previous interface. Concise, factual, dismissible. */
+function WhatsNew() {
+  const [open, setOpen] = useState(() => !whatsNewSeen())
+  if (!open) return null
+  return (
+    <Banner
+      tone="info"
+      title="What’s new in Alice"
+      onDismiss={() => {
+        markWhatsNewSeen()
+        setOpen(false)
+      }}
+    >
+      Navigation moved to the sidebar. Board, List and My tasks are now views in Tasks, and Admin and Devices are in Settings. Press Ctrl K (⌘K on a Mac) to find anything,
+      and choose Light, Dark or System in Settings.
+    </Banner>
   )
 }
 

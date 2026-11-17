@@ -1,6 +1,9 @@
 // หน้าของ Local workspaces ใน Desktop: onboarding ครั้งแรก, จัดการ workspace และหน้ากู้คืน
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { ErrorMessage, TextInput } from '../components/ui'
+import { MascotImage } from '../brand'
+import { markWhatsNewSeen } from '../whats-new'
+import { Button, Checkbox, FieldMessage, RadioGroup, TextField } from '../ui'
 import { native, workspaceLabel, type AgentIntegration, type DesktopProfile, type ProfilesView } from './native'
 
 function messageOf(err: unknown): string {
@@ -12,33 +15,86 @@ export interface OnboardingResult {
   tools: { cli: boolean; codex: boolean; claude: boolean }
 }
 
+type Stage = 'welcome' | 'workspace' | 'agents' | 'first-task'
+const STAGES: Stage[] = ['welcome', 'workspace', 'agents', 'first-task']
+const PROGRESS_KEY = 'alice.onboarding'
+interface Progress {
+  stage: Stage
+  workspaceName: string
+  ownerName: string
+  tools: OnboardingResult['tools']
+}
+
+function readProgress(): Progress | null {
+  try {
+    const raw = localStorage.getItem(PROGRESS_KEY)
+    const value = raw ? (JSON.parse(raw) as Progress) : null
+    return value && STAGES.includes(value.stage) ? value : null
+  } catch {
+    return null
+  }
+}
+function saveProgress(p: Progress | null) {
+  try {
+    if (p) localStorage.setItem(PROGRESS_KEY, JSON.stringify(p))
+    else localStorage.removeItem(PROGRESS_KEY)
+  } catch {
+    /* progress lasts for this window only */
+  }
+}
+
 /**
- * Three decisions only: names, opt-in tools, then straight into a Task Pad. No URL, port, database
- * path, password or MCP configuration is ever asked for.
+ * True after the workspace was set up but before the first capture: Desktop resumes onboarding at
+ * its last stage instead of skipping it (nothing is created twice).
+ */
+export function onboardingPending(): boolean {
+  return readProgress()?.stage === 'first-task'
+}
+
+/**
+ * Alice-guided first run in four stages: Welcome, Workspace (Local, or Remote through the server
+ * switcher), Agents (optional) and First task in a real Task Pad. Progress survives a restart.
+ * No URL, port, database path, password or MCP configuration is asked for on the Local path.
  */
 export function Onboarding({
   onBegin,
   onFinish,
   onFail,
+  onRemote,
   applyTools,
 }: {
   /** Called before the first native change, so profile events do not leave onboarding half-way. */
   onBegin: () => void
   onFinish: (result: OnboardingResult) => void
   onFail: () => void
+  /** Leaves onboarding for the Remote server setup (add a server and sign in through the browser). */
+  onRemote?: () => void
   applyTools?: (tools: OnboardingResult['tools']) => Promise<void>
 }) {
-  const [step, setStep] = useState<1 | 2>(1)
-  const [workspaceName, setWorkspaceName] = useState('Personal')
+  const saved = useRef(readProgress()).current
+  const [stage, setStage] = useState<Stage>(saved?.stage ?? 'welcome')
+  const [where, setWhere] = useState<'local' | 'remote'>('local')
+  const [workspaceName, setWorkspaceName] = useState(saved?.workspaceName ?? 'Personal')
   // ไม่ดึงชื่อบัญชีของ OS มาใส่เอง: ค่าเริ่มต้นเป็นชื่อกลาง ๆ ที่แก้ได้
-  const [ownerName, setOwnerName] = useState('Local Owner')
-  const [tools, setTools] = useState({ cli: true, codex: true, claude: true })
+  const [ownerName, setOwnerName] = useState(saved?.ownerName ?? 'Local Owner')
+  const [tools, setTools] = useState(saved?.tools ?? { cli: true, codex: true, claude: true })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const heading = useRef<HTMLHeadingElement>(null)
-  useEffect(() => heading.current?.focus(), [step])
+  useEffect(() => heading.current?.focus(), [stage])
+  useEffect(() => {
+    // กลับมาที่ขั้นสุดท้ายหลังเปิดแอปใหม่: workspace มีอยู่แล้ว ให้ shell ข้าม evaluate จนกว่าจะจบ
+    if (saved?.stage === 'first-task') onBegin()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const go = (next: Stage) => {
+    setError(null)
+    setStage(next)
+    saveProgress({ stage: next, workspaceName, ownerName, tools })
+  }
 
-  const finish = async () => {
+  /** Creates (or reuses) the Local workspace, applies names and the chosen tools. Idempotent. */
+  const setUp = async (chosen: OnboardingResult['tools']) => {
     setBusy(true)
     setError(null)
     onBegin()
@@ -48,81 +104,127 @@ export function Onboarding({
       if (workspaceName.trim() && workspaceName.trim() !== 'Personal') await native.workspaceRename(id, workspaceName.trim())
       await native.testProfile(id)
       if (ownerName.trim() && ownerName.trim() !== 'Local Owner') await native.ownerRename(ownerName.trim())
-      if (applyTools) await applyTools(tools)
-      onFinish({ ownerName: ownerName.trim(), tools })
+      if (applyTools) await applyTools(chosen)
+      setTools(chosen)
+      setBusy(false)
+      setStage('first-task')
+      saveProgress({ stage: 'first-task', workspaceName, ownerName, tools: chosen })
     } catch (err) {
       setError(messageOf(err))
       setBusy(false)
       onFail()
     }
   }
+  const index = STAGES.indexOf(stage) + 1
+  const submit = (fn: () => void) => (e: FormEvent) => {
+    e.preventDefault()
+    fn()
+  }
 
   return (
-    <main className="page narrow onboarding">
-      <section className="panel stack" aria-labelledby="onboarding-heading">
-        <p className="muted small">Step {step} of 3</p>
-        {step === 1 ? (
-          <form
-            className="stack"
-            onSubmit={(e: FormEvent) => {
-              e.preventDefault()
-              setStep(2)
-            }}
-          >
-            <h1 id="onboarding-heading" tabIndex={-1} ref={heading}>
-              Welcome to Alice
-            </h1>
-            <p>Your tasks stay on this computer in a private Local workspace. There is no server to set up and nothing to sign in to.</p>
-            <TextInput label="Workspace name" value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)} maxLength={80} required />
-            <TextInput label="Your name" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} maxLength={80} required hint="Shown on what you create; agents get their own names." />
-            <div className="row">
-              <button className="primary" type="submit">
-                Continue
-              </button>
-            </div>
-          </form>
-        ) : (
-          <form
-            className="stack"
-            onSubmit={(e: FormEvent) => {
-              e.preventDefault()
-              void finish()
-            }}
-          >
-            <h1 id="onboarding-heading" tabIndex={-1} ref={heading}>
-              Work with your terminal and agents
-            </h1>
-            <p>
-              Alice can install its command-line tool and teach Codex and Claude to use this workspace. Each agent works under its own name, so you
-              can always see who changed what. You can change this later in Settings.
-            </p>
-            <fieldset className="stack">
-              <legend>Install</legend>
-              <label className="checkbox">
-                <input type="checkbox" checked={tools.cli} onChange={(e) => setTools({ ...tools, cli: e.target.checked })} /> The <code>alice</code> command for your terminal
-              </label>
-              <label className="checkbox">
-                <input type="checkbox" checked={tools.codex} onChange={(e) => setTools({ ...tools, codex: e.target.checked })} /> Codex (adds Alice skills to ~/.codex)
-              </label>
-              <label className="checkbox">
-                <input type="checkbox" checked={tools.claude} onChange={(e) => setTools({ ...tools, claude: e.target.checked })} /> Claude Code (adds Alice skills to ~/.claude)
-              </label>
-            </fieldset>
-            {error && (
-              <p className="error" role="alert">
-                {error}
+    <main className="onboarding-page">
+      <section className="onboarding-card" aria-labelledby="onboarding-heading">
+        <div className="onboarding-content">
+          <p className="ui-text-muted onboarding-step">
+            Step {index} of 4
+          </p>
+          {stage === 'welcome' && (
+            <form className="onboarding-form" onSubmit={submit(() => go('workspace'))}>
+              <h1 id="onboarding-heading" tabIndex={-1} ref={heading}>
+                Welcome to Alice
+              </h1>
+              <p className="onboarding-alice">I keep your tasks in one place, for you and the agents you work with.</p>
+              <p className="ui-text-muted">Setup takes a minute: choose where your work lives, connect agents if you like, then capture your first task.</p>
+              <div className="onboarding-actions">
+                <Button variant="primary" type="submit">
+                  Get started
+                </Button>
+              </div>
+            </form>
+          )}
+          {stage === 'workspace' && (
+            <form className="onboarding-form" onSubmit={submit(() => (where === 'remote' ? onRemote?.() : go('agents')))}>
+              <h1 id="onboarding-heading" tabIndex={-1} ref={heading}>
+                Where should your work live?
+              </h1>
+              <RadioGroup
+                legend="Workspace"
+                name="where"
+                value={where}
+                onChange={(v) => setWhere(v as 'local' | 'remote')}
+                options={[
+                  { value: 'local', label: 'On this computer', hint: 'A private Local workspace. No server, nothing to sign in to.' },
+                  ...(onRemote ? [{ value: 'remote', label: 'On a team server', hint: 'Connect to an Alice server and sign in through your browser.' }] : []),
+                ]}
+              />
+              {where === 'local' && (
+                <>
+                  <TextField label="Workspace name" value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)} maxLength={80} required />
+                  <TextField label="Your name" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} maxLength={80} required hint="Shown on what you create; agents get their own names." />
+                </>
+              )}
+              <div className="onboarding-actions">
+                <Button variant="primary" type="submit">
+                  {where === 'remote' ? 'Connect to a server' : 'Continue'}
+                </Button>
+                <Button onClick={() => go('welcome')}>Back</Button>
+              </div>
+            </form>
+          )}
+          {stage === 'agents' && (
+            <form className="onboarding-form" onSubmit={submit(() => void setUp(tools))}>
+              <h1 id="onboarding-heading" tabIndex={-1} ref={heading}>
+                Work with your terminal and agents
+              </h1>
+              <p className="ui-text-muted">
+                Alice can install its command-line tool and teach Codex and Claude to use this workspace. Each agent works under its own name, so you can always see who changed
+                what. You can change this later in Settings.
               </p>
-            )}
-            <div className="row">
-              <button className="primary" type="submit" disabled={busy}>
-                {busy ? 'Setting up…' : 'Open my Task Pad'}
-              </button>
-              <button type="button" onClick={() => setStep(1)} disabled={busy}>
-                Back
-              </button>
-            </div>
-          </form>
-        )}
+              <fieldset className="onboarding-fieldset">
+                <legend className="ui-field-label">Install</legend>
+                <Checkbox label={<>The <code>alice</code> command for your terminal</>} checked={tools.cli} onChange={(e) => setTools({ ...tools, cli: e.target.checked })} />
+                <Checkbox label="Codex (adds Alice skills to ~/.codex)" checked={tools.codex} onChange={(e) => setTools({ ...tools, codex: e.target.checked })} />
+                <Checkbox label="Claude Code (adds Alice skills to ~/.claude)" checked={tools.claude} onChange={(e) => setTools({ ...tools, claude: e.target.checked })} />
+              </fieldset>
+              {error && <FieldMessage tone="error">{error}</FieldMessage>}
+              <div className="onboarding-actions">
+                <Button variant="primary" type="submit" loading={busy}>
+                  {busy ? 'Setting up…' : 'Continue'}
+                </Button>
+                <Button variant="ghost" disabled={busy} onClick={() => void setUp({ cli: false, codex: false, claude: false })}>
+                  Skip for now
+                </Button>
+                <Button disabled={busy} onClick={() => go('workspace')}>
+                  Back
+                </Button>
+              </div>
+            </form>
+          )}
+          {stage === 'first-task' && (
+            <form
+              className="onboarding-form"
+              onSubmit={submit(() => {
+                saveProgress(null)
+                markWhatsNewSeen()
+                onFinish({ ownerName: ownerName.trim(), tools })
+              })}
+            >
+              <h1 id="onboarding-heading" tabIndex={-1} ref={heading}>
+                Capture your first task
+              </h1>
+              <p className="onboarding-alice">Your workspace is ready. Let’s write down the first thing on your mind.</p>
+              <p className="ui-text-muted">A Task Pad opens with its first line ready: type a task and press Enter. It becomes a real task right away.</p>
+              <div className="onboarding-actions">
+                <Button variant="primary" type="submit">
+                  Open my Task Pad
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
+        <div className="onboarding-art" aria-hidden="true">
+          <MascotImage pose={stage === 'first-task' ? 'friendly' : stage === 'agents' ? 'focused' : 'curious'} width={200} loading="eager" />
+        </div>
       </section>
     </main>
   )

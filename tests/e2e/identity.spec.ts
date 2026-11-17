@@ -24,6 +24,8 @@ test('owner sets up Alice, invites a teammate and creates an agent token', async
   await page.getByLabel('Password', { exact: true }).fill('olivia-password-1')
   await page.getByRole('button', { name: 'Create owner account' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Good morning, Olivia' }).or(page.getByRole('heading', { level: 1, name: /^Good (afternoon|evening), Olivia$/ }))).toBeVisible()
+  // บัญชีแรกที่เพิ่งตั้ง: ไม่มีอะไร "ใหม่" ให้บอก
+  await expect(page.getByText('What’s new in Alice')).toHaveCount(0)
 
   // Admin อยู่ใน Settings (เฉพาะ owner)
   await page.getByRole('navigation', { name: 'More' }).getByRole('link', { name: 'Settings' }).click()

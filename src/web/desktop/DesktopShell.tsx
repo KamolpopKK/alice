@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { setTransport } from '../api'
 import { ErrorMessage, Loading, TextInput } from '../components/ui'
 import { isNativeError, native, workspaceLabel, type AuthEvent, type ConnectionTest, type DesktopProfile, type ProfilesView } from './native'
-import { AgentsSection, LocalRecovery, LocalWorkspacesSection, Onboarding } from './LocalScreens'
+import { AgentsSection, LocalRecovery, LocalWorkspacesSection, Onboarding, onboardingPending } from './LocalScreens'
 import { LocalWorkspaceContext } from '../workspace-mode'
 import { ShellWorkspaceContext, type ShellWorkspace } from '../shell/workspace'
 import { TauriTransport } from './transport'
@@ -70,6 +70,8 @@ export function DesktopShell({ children }: { children: ReactNode }) {
     const active = v.profiles.find((p) => p.active)
     // ครั้งแรกที่ไม่มีอะไรเลย: Local เป็นค่าเริ่มต้น (ไม่ถาม URL หรือ sign-in)
     if (!active) return setPhase(v.localAvailable && v.profiles.length === 0 ? { kind: 'onboarding' } : { kind: 'profiles' })
+    // workspace ถูกตั้งแล้วแต่ยังไม่ถึงงานแรก (ปิดแอประหว่างทาง): กลับไปขั้นสุดท้ายของ onboarding
+    if (active.local && onboardingPending()) return setPhase({ kind: 'onboarding' })
     // เปลี่ยน workspace = เปลี่ยนข้อมูลและตัวตน: ล้าง cache และตำแหน่งหน้าเดิมก่อนแสดงข้อมูลใหม่
     qc.clear()
     const previous = lastActive.current
@@ -159,6 +161,7 @@ export function DesktopShell({ children }: { children: ReactNode }) {
       <Onboarding
         onBegin={() => (onboarding.current = true)}
         onFail={() => (onboarding.current = false)}
+        onRemote={() => setPhase({ kind: 'profiles' })}
         onFinish={() => {
           onboarding.current = false
           // จบ onboarding ใน Task Pad ใหม่ที่โฟกัสบรรทัดแรก

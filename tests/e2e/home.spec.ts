@@ -73,3 +73,22 @@ for (const scheme of ['light', 'dark'] as const) {
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   })
 }
+
+test('people who used the previous interface see What’s new once per device; new accounts do not', async ({ app, owner, page, browser }) => {
+  void owner
+  await signIn(page, app)
+  const note = page.getByRole('status').filter({ hasText: 'What’s new in Alice' })
+  await expect(note).toBeVisible()
+  await expect(note).toContainText('Ctrl K')
+  await note.getByRole('button', { name: 'Dismiss' }).click()
+  await expect(note).toHaveCount(0)
+  await page.reload()
+  await expect(page.getByRole('heading', { level: 1, name: HOME_HEADING })).toBeVisible()
+  await expect(note).toHaveCount(0)
+  // อุปกรณ์อื่นยังเห็นครั้งแรกของตัวเอง
+  const other = await browser.newContext()
+  const second = await other.newPage()
+  await signIn(second, app)
+  await expect(second.getByRole('status').filter({ hasText: 'What’s new in Alice' })).toBeVisible()
+  await other.close()
+})
