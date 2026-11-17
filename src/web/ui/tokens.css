@@ -1,0 +1,245 @@
+/*
+ * Alice UI tokens. Primitive palette values exist only in this file; components and pages use the
+ * semantic --ui-* roles below. Theme: <html data-theme="light|dark">, or no attribute for System.
+ * The dark block appears twice (System dark and explicit Dark); tests/unit/alice-ui-tokens.test.ts
+ * keeps the two identical.
+ */
+:root {
+  /* ---------- primitive palette (inputs only, never used outside this file) ---------- */
+  --p-navy-950: #141a2b;
+  --p-navy-900: #202a44;
+  --p-navy-800: #2a3656;
+  --p-navy-700: #344466;
+  --p-navy-200: #c5d0ee;
+  --p-navy-100: #e5e9f3;
+  --p-coral-700: #a63b2f;
+  --p-coral-600: #b64336;
+  --p-coral-400: #ee715f;
+  --p-coral-300: #f2998a;
+  --p-coral-100: #fbe6e1;
+  --p-warm-0: #ffffff;
+  --p-warm-50: #fbf7f1;
+  --p-warm-100: #f3eee5;
+  --p-warm-150: #ece5d9;
+  --p-warm-200: #e0d8ca;
+  --p-warm-400: #9c9384;
+  --p-ink-600: #5d606d;
+  --p-ink-900: #1f2333;
+  --p-night-950: #14161d;
+  --p-night-900: #1b1e28;
+  --p-night-850: #222634;
+  --p-night-800: #2b3040;
+  --p-night-700: #363c50;
+  --p-night-500: #5a6178;
+  --p-night-300: #a7aab8;
+  --p-night-100: #edeae4;
+  --p-green-800: #24632e;
+  --p-green-700: #2f7d3b;
+  --p-green-100: #e1f1e3;
+  --p-green-300: #6fcf7c;
+  --p-green-950: #17301b;
+  --p-amber-700: #8a5a00;
+  --p-amber-100: #f6ead2;
+  --p-amber-300: #e8b55a;
+  --p-amber-950: #3a2f1a;
+  --p-red-700: #a83224;
+  --p-red-100: #f8e1dd;
+  --p-red-300: #ef7d6e;
+  --p-red-950: #3a211d;
+  --p-blue-700: #2f5aa8;
+  --p-blue-100: #e3ebf8;
+  --p-blue-300: #8fb0ee;
+  --p-blue-950: #1c2840;
+
+  /* ---------- typography ---------- */
+  --ui-font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --ui-font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --ui-text-xs: 0.75rem;
+  --ui-text-sm: 0.8125rem;
+  --ui-text-md: 0.9375rem;
+  --ui-text-lg: 1.0625rem;
+  --ui-text-xl: 1.375rem;
+  --ui-text-2xl: 1.75rem;
+  --ui-leading-tight: 1.25;
+  --ui-leading: 1.5;
+  --ui-weight-regular: 400;
+  --ui-weight-medium: 500;
+  --ui-weight-semibold: 600;
+  --ui-weight-bold: 700;
+
+  /* ---------- space, size, radius ---------- */
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-5: 20px;
+  --ui-space-6: 24px;
+  --ui-space-8: 32px;
+  --ui-space-10: 40px;
+  --ui-space-12: 48px;
+  --ui-radius-sm: 6px;
+  --ui-radius-md: 8px;
+  --ui-radius-lg: 12px;
+  --ui-radius-pill: 999px;
+  --ui-control-sm: 32px;
+  --ui-control-md: 40px;
+  --ui-target-min: 24px;
+  --ui-content-max: 1120px;
+  --ui-content-narrow: 640px;
+  --ui-icon-sm: 16px;
+  --ui-icon-md: 20px;
+  --ui-icon-lg: 24px;
+  --ui-focus-width: 2px;
+  --ui-focus-offset: 2px;
+
+  /* ---------- motion and layers ---------- */
+  --ui-duration-fast: 120ms;
+  --ui-duration-base: 180ms;
+  --ui-ease: cubic-bezier(0.2, 0, 0, 1);
+  --ui-z-sticky: 100;
+  --ui-z-dropdown: 1000;
+  --ui-z-overlay: 1100;
+  --ui-z-modal: 1200;
+  --ui-z-toast: 1300;
+  --ui-z-tooltip: 1400;
+
+  /* ---------- semantic colour roles: Light ---------- */
+  color-scheme: light;
+  --ui-canvas: var(--p-warm-50);
+  --ui-surface: var(--p-warm-0);
+  --ui-surface-raised: var(--p-warm-0);
+  --ui-surface-sunken: var(--p-warm-100);
+  --ui-surface-hover: var(--p-warm-150);
+  --ui-surface-selected: var(--p-coral-100);
+  --ui-text: var(--p-ink-900);
+  --ui-text-muted: var(--p-ink-600);
+  --ui-text-on-action: var(--p-warm-0);
+  --ui-border: var(--p-warm-200);
+  --ui-border-strong: var(--p-warm-400);
+  --ui-action-primary: var(--p-coral-600);
+  --ui-action-primary-hover: var(--p-coral-700);
+  --ui-action-secondary: var(--p-warm-0);
+  --ui-action-secondary-hover: var(--p-warm-150);
+  --ui-action-danger: var(--p-red-700);
+  --ui-action-danger-hover: #8f2a1e;
+  --ui-link: var(--p-navy-700);
+  --ui-brand: var(--p-navy-900);
+  --ui-brand-soft: var(--p-navy-100);
+  --ui-accent-decorative: var(--p-coral-400);
+  --ui-focus: var(--p-coral-600);
+  --ui-overlay: rgb(20 22 29 / 0.45);
+  --ui-shadow-float: 0 4px 16px rgb(31 35 51 / 0.12), 0 1px 3px rgb(31 35 51 / 0.08);
+  --ui-shadow-overlay: 0 16px 48px rgb(31 35 51 / 0.2);
+  --ui-info-bg: var(--p-blue-100);
+  --ui-info-text: var(--p-blue-700);
+  --ui-success-bg: var(--p-green-100);
+  --ui-success-text: var(--p-green-800);
+  --ui-warning-bg: var(--p-amber-100);
+  --ui-warning-text: var(--p-amber-700);
+  --ui-danger-bg: var(--p-red-100);
+  --ui-danger-text: var(--p-red-700);
+  --ui-agent-bg: var(--p-amber-100);
+  --ui-agent-text: var(--p-amber-700);
+  --ui-skeleton: var(--p-warm-150);
+  --ui-illustration-bg: var(--p-navy-100);
+}
+
+/* System theme while the OS is dark (identical to [data-theme='dark'] below) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --ui-canvas: var(--p-night-950);
+    --ui-surface: var(--p-night-900);
+    --ui-surface-raised: var(--p-night-850);
+    --ui-surface-sunken: var(--p-night-950);
+    --ui-surface-hover: var(--p-night-800);
+    --ui-surface-selected: #3a2622;
+    --ui-text: var(--p-night-100);
+    --ui-text-muted: var(--p-night-300);
+    --ui-text-on-action: var(--p-navy-950);
+    --ui-border: var(--p-night-700);
+    --ui-border-strong: var(--p-night-500);
+    --ui-action-primary: var(--p-coral-300);
+    --ui-action-primary-hover: #f6b3a7;
+    --ui-action-secondary: var(--p-night-850);
+    --ui-action-secondary-hover: var(--p-night-800);
+    --ui-action-danger: var(--p-red-300);
+    --ui-action-danger-hover: #f39a8e;
+    --ui-link: var(--p-navy-200);
+    --ui-brand: var(--p-navy-200);
+    --ui-brand-soft: #283153;
+    --ui-accent-decorative: var(--p-coral-400);
+    --ui-focus: var(--p-coral-300);
+    --ui-overlay: rgb(0 0 0 / 0.6);
+    --ui-shadow-float: 0 4px 16px rgb(0 0 0 / 0.45), 0 1px 3px rgb(0 0 0 / 0.35);
+    --ui-shadow-overlay: 0 16px 48px rgb(0 0 0 / 0.55);
+    --ui-info-bg: var(--p-blue-950);
+    --ui-info-text: var(--p-blue-300);
+    --ui-success-bg: var(--p-green-950);
+    --ui-success-text: var(--p-green-300);
+    --ui-warning-bg: var(--p-amber-950);
+    --ui-warning-text: var(--p-amber-300);
+    --ui-danger-bg: var(--p-red-950);
+    --ui-danger-text: var(--p-red-300);
+    --ui-agent-bg: var(--p-amber-950);
+    --ui-agent-text: var(--p-amber-300);
+    --ui-skeleton: var(--p-night-800);
+    --ui-illustration-bg: #283153;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --ui-canvas: var(--p-night-950);
+  --ui-surface: var(--p-night-900);
+  --ui-surface-raised: var(--p-night-850);
+  --ui-surface-sunken: var(--p-night-950);
+  --ui-surface-hover: var(--p-night-800);
+  --ui-surface-selected: #3a2622;
+  --ui-text: var(--p-night-100);
+  --ui-text-muted: var(--p-night-300);
+  --ui-text-on-action: var(--p-navy-950);
+  --ui-border: var(--p-night-700);
+  --ui-border-strong: var(--p-night-500);
+  --ui-action-primary: var(--p-coral-300);
+  --ui-action-primary-hover: #f6b3a7;
+  --ui-action-secondary: var(--p-night-850);
+  --ui-action-secondary-hover: var(--p-night-800);
+  --ui-action-danger: var(--p-red-300);
+  --ui-action-danger-hover: #f39a8e;
+  --ui-link: var(--p-navy-200);
+  --ui-brand: var(--p-navy-200);
+  --ui-brand-soft: #283153;
+  --ui-accent-decorative: var(--p-coral-400);
+  --ui-focus: var(--p-coral-300);
+  --ui-overlay: rgb(0 0 0 / 0.6);
+  --ui-shadow-float: 0 4px 16px rgb(0 0 0 / 0.45), 0 1px 3px rgb(0 0 0 / 0.35);
+  --ui-shadow-overlay: 0 16px 48px rgb(0 0 0 / 0.55);
+  --ui-info-bg: var(--p-blue-950);
+  --ui-info-text: var(--p-blue-300);
+  --ui-success-bg: var(--p-green-950);
+  --ui-success-text: var(--p-green-300);
+  --ui-warning-bg: var(--p-amber-950);
+  --ui-warning-text: var(--p-amber-300);
+  --ui-danger-bg: var(--p-red-950);
+  --ui-danger-text: var(--p-red-300);
+  --ui-agent-bg: var(--p-amber-950);
+  --ui-agent-text: var(--p-amber-300);
+  --ui-skeleton: var(--p-night-800);
+  --ui-illustration-bg: #283153;
+}
+
+/* Touch screens get 44 px targets for core controls */
+@media (pointer: coarse) {
+  :root {
+    --ui-control-md: 44px;
+    --ui-target-min: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ui-duration-fast: 0ms;
+    --ui-duration-base: 0ms;
+  }
+}

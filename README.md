@@ -133,6 +133,7 @@ Alice runs as a single instance: never start two against the same data volume.
 
 - Releases and compatibility: [docs/release.md](docs/release.md) · [CHANGELOG](CHANGELOG.md)
 - Architecture: [docs/architecture.md](docs/architecture.md) · Client API: [docs/client-api.md](docs/client-api.md)
+- Design system: [docs/alice-ui.md](docs/alice-ui.md)
 
 ### Development
 
