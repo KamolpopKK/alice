@@ -1,13 +1,13 @@
 import { createAgent } from '../helpers/client'
 import { connectMcp } from '../helpers/mcp'
-import { expect, signIn, test } from './fixtures'
+import { expect, goTo, signIn, test } from './fixtures'
 
 test('document created in the browser, edited and linked by an agent, restored in the browser @mobile', async ({ app, owner, page }) => {
   const agent = await createAgent(owner, 'Doc Writer')
   const task = (await owner.post('/api/tasks', { title: 'Prepare launch checklist' })).body.task
   await signIn(page, app)
 
-  await page.getByRole('link', { name: 'Documents' }).click()
+  await goTo(page, 'Documents')
   await page.getByRole('button', { name: 'New document' }).click()
   await page.getByLabel('Document title').fill('Launch checklist')
   await page.getByLabel('Body (Markdown)').fill('- [ ] DNS\n- [ ] Backups')

@@ -1,3 +1,4 @@
+import { accountButton } from './fixtures'
 import { startApp } from '../helpers/app'
 import { bootstrapOwner, OWNER } from '../helpers/client'
 import { expect, test } from '@playwright/test'
@@ -11,7 +12,7 @@ test('approved page-level states show Alice with the exact line; inline empties 
     await page.getByLabel('Username').fill(OWNER.username)
     await page.getByLabel('Password', { exact: true }).fill(OWNER.password)
     await page.getByRole('button', { name: 'Sign in' }).click()
-    await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+    await expect(accountButton(page)).toBeVisible()
 
     const states = [
       ['/my-tasks', 'Nothing assigned to you', 'All tidy. Nothing needs your attention right now.', 'alice-mascot-neutral'],
@@ -67,7 +68,7 @@ test('the signed-in 404 is concerned, factual and leads back to the Board', asyn
     await page.getByLabel('Username').fill(OWNER.username)
     await page.getByLabel('Password', { exact: true }).fill(OWNER.password)
     await page.getByRole('button', { name: 'Sign in' }).click()
-    await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+    await expect(accountButton(page)).toBeVisible()
     await page.goto(`${app.url}/no/such/page`)
     await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible()
     await expect(page.getByText('I couldn’t find that page. Let’s head back somewhere familiar.', { exact: true })).toBeVisible()
@@ -90,7 +91,7 @@ test('a page whose data cannot load offers a calm retry, and validation errors s
     await page.getByLabel('Username').fill(OWNER.username)
     await page.getByLabel('Password', { exact: true }).fill(OWNER.password)
     await page.getByRole('button', { name: 'Sign in' }).click()
-    await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+    await expect(accountButton(page)).toBeVisible()
 
     await page.route(`**/client/v1/tasks/${task.id}`, (r) => r.abort())
     await page.goto(`${app.url}/tasks/${task.id}`)

@@ -57,6 +57,12 @@ export function ThemeProvider({ children, initial }: { children: ReactNode; init
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
 }
 
+/** The explicit choice when there is one, or null for System (also outside a ThemeProvider). */
+export function useExplicitTheme(): ResolvedTheme | null {
+  const state = useContext(ThemeContext)
+  return state && state.preference !== 'system' ? state.preference : null
+}
+
 export function useTheme(): ThemeState {
   const state = useContext(ThemeContext)
   if (!state) throw new Error('useTheme needs a ThemeProvider')

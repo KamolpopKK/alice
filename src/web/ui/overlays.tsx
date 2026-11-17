@@ -40,18 +40,39 @@ export function Tooltip({ content, children, side = 'top' }: { content: ReactNod
 /* ---------- Menu ---------- */
 
 export type MenuItem =
-  | { kind?: 'item'; label: string; icon?: LucideIcon; onSelect: () => void; destructive?: boolean; disabled?: boolean; shortcut?: string }
+  | {
+      kind?: 'item'
+      label: string
+      icon?: LucideIcon
+      onSelect: () => void
+      destructive?: boolean
+      disabled?: boolean
+      shortcut?: string
+      /** The item takes the person somewhere else: leave focus where the new view puts it. */
+      navigates?: boolean
+    }
   | { kind: 'separator' }
   | { kind: 'label'; label: string }
 
 /** Action menu with arrow-key navigation, typeahead, Escape, and focus back on the trigger. */
 /** Named by its trigger (Radix sets aria-labelledby), so give the trigger a specific name. */
 export function Menu({ trigger, items, align = 'end' }: { trigger: ReactElement; items: MenuItem[]; align?: 'start' | 'end' }) {
+  const navigated = useRef(false)
   return (
     <RMenu.Root>
       <RMenu.Trigger asChild>{trigger}</RMenu.Trigger>
       <RMenu.Portal>
-        <RMenu.Content className="ui-menu" align={align} sideOffset={4} collisionPadding={8}>
+        <RMenu.Content
+          className="ui-menu"
+          align={align}
+          sideOffset={4}
+          collisionPadding={8}
+          onCloseAutoFocus={(e) => {
+            if (!navigated.current) return
+            navigated.current = false
+            e.preventDefault()
+          }}
+        >
           {items.map((item, i) =>
             item.kind === 'separator' ? (
               <RMenu.Separator key={i} className="ui-menu-separator" />
@@ -60,7 +81,15 @@ export function Menu({ trigger, items, align = 'end' }: { trigger: ReactElement;
                 {item.label}
               </RMenu.Label>
             ) : (
-              <RMenu.Item key={i} className={cx('ui-menu-item', item.destructive && 'is-destructive')} disabled={item.disabled} onSelect={item.onSelect}>
+              <RMenu.Item
+                key={i}
+                className={cx('ui-menu-item', item.destructive && 'is-destructive')}
+                disabled={item.disabled}
+                onSelect={() => {
+                  navigated.current = item.navigates === true
+                  item.onSelect()
+                }}
+              >
                 {item.icon && <Icon icon={item.icon} size="sm" />}
                 <span className="ui-menu-item-label">{item.label}</span>
                 {item.shortcut && <kbd className="ui-kbd">{item.shortcut}</kbd>}
@@ -160,8 +189,29 @@ export function Dialog({ open, onOpenChange, title, description, children, actio
  * Edge-anchored modal panel: right side on wide screens, bottom sheet on narrow ones. Used for
  * mobile navigation and full-height detail views.
  */
-export function Sheet({ open, onOpenChange, title, children, side = 'right', hideTitle }: { open: boolean; onOpenChange: (open: boolean) => void; title: ReactNode; children: ReactNode; side?: 'left' | 'right' | 'bottom'; hideTitle?: boolean }) {
-  const onCloseAutoFocus = useReturnFocus(open)
+export function Sheet({
+  open,
+  onOpenChange,
+  title,
+  children,
+  side = 'right',
+  hideTitle,
+  onCloseAutoFocus: custom,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: ReactNode
+  children: ReactNode
+  side?: 'left' | 'right' | 'bottom'
+  hideTitle?: boolean
+  /** Runs first; call preventDefault() to place focus yourself (for example after navigating). */
+  onCloseAutoFocus?: (e: Event) => void
+}) {
+  const returnFocus = useReturnFocus(open)
+  const onCloseAutoFocus = (e: Event) => {
+    custom?.(e)
+    if (!e.defaultPrevented) returnFocus(e)
+  }
   return (
     <RDialog.Root open={open} onOpenChange={onOpenChange}>
       <RDialog.Portal>

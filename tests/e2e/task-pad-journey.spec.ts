@@ -77,7 +77,7 @@ test('primary journey: private capture becomes authoritative shared work across 
   } finally {
     await mcp.close()
   }
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Board' }).click()
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Tasks' }).click()
   await expect(page.getByRole('link', { name: /Share notes with legal/ }).first()).toBeVisible()
   await page.goBack()
 
@@ -181,7 +181,7 @@ test.describe('Task Pads accessibility, reflow, motion and compatibility', () =>
       await route.fulfill({ response: res, json: body })
     })
     await signIn(page, app)
-    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Board' })).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Tasks' })).toBeVisible()
     await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Task Pads' })).toHaveCount(0)
     await page.goto(`${app.url}/pads`)
     await expect(page.getByText('does not offer Task Pads yet')).toBeVisible()

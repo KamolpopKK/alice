@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { lazy, Suspense, type ReactNode } from 'react'
 import { AuthProvider, useAuth } from './auth'
-import { Layout } from './components/Layout'
+import { AppShell } from './shell/AppShell'
 import { Loading } from './components/ui'
 import { AdminPage } from './pages/AdminPage'
 import { DevicePage } from './pages/DevicePage'
@@ -10,16 +10,17 @@ import { ForAgentPage } from './pages/ForAgentPage'
 import { safeReturnPath } from './navigation'
 import { isDesktop } from './platform'
 import { NotFoundState } from './brand'
+import { ThemeProvider, ToastProvider, TooltipProvider } from './ui'
 
 // โค้ดเฉพาะ Desktop โหลดเมื่ออยู่ใน Tauri เท่านั้น
 const DesktopShell = lazy(() => import('./desktop/DesktopShell').then((m) => ({ default: m.DesktopShell })))
 import { InvitePage, LoginPage, SetupPage } from './pages/AuthPages'
 import { ActivityPage } from './pages/ActivityPage'
-import { BoardPage } from './pages/BoardPage'
 import { DocumentDetailPage } from './pages/DocumentDetailPage'
 import { DocumentsPage } from './pages/DocumentsPage'
-import { ListPage } from './pages/ListPage'
-import { MyTasksPage } from './pages/MyTasksPage'
+import { LegacyTasksRedirect, TasksPage } from './pages/TasksPage'
+import { SettingsPage } from './pages/SettingsPage'
+import { AgentsPage } from './pages/AgentsPage'
 import { SearchPage } from './pages/SearchPage'
 import { ProjectDetailPage } from './pages/ProjectDetailPage'
 import { ProjectsPage } from './pages/ProjectsPage'
@@ -61,10 +62,12 @@ export function AppRoutes() {
       <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
       <Route path="/setup" element={<PublicOnly><SetupPage /></PublicOnly>} />
       <Route path="/invite/:token" element={<PublicOnly><InvitePage /></PublicOnly>} />
-      <Route element={<RequireAuth><Layout /></RequireAuth>}>
-        <Route index element={<BoardPage />} />
-        <Route path="list" element={<ListPage />} />
-        <Route path="my-tasks" element={<MyTasksPage />} />
+      <Route element={<RequireAuth><AppShell /></RequireAuth>}>
+        {/* Home มาใน TASK-058; ระหว่างนี้ / (Board เดิม) เปิด Tasks แบบ Board พร้อม filter เดิม */}
+        <Route index element={<LegacyTasksRedirect view="board" />} />
+        <Route path="tasks" element={<TasksPage />} />
+        <Route path="list" element={<LegacyTasksRedirect view="list" />} />
+        <Route path="my-tasks" element={<LegacyTasksRedirect view="my-work" />} />
         <Route path="pads" element={<TaskPadsPage />} />
         <Route path="pads/:padId" element={<TaskPadsPage />} />
         <Route path="documents" element={<DocumentsPage />} />
@@ -77,7 +80,9 @@ export function AppRoutes() {
         <Route path="tasks/:id" element={<TaskDetailPage />} />
         <Route path="device" element={<DevicePage />} />
         <Route path="devices" element={<DevicePage />} />
+        <Route path="agents" element={<AgentsPage />} />
         <Route path="for-agent" element={<ForAgentPage />} />
+        <Route path="settings" element={<SettingsPage />} />
         <Route path="admin" element={<RequireOwner><AdminPage /></RequireOwner>} />
         <Route path="*" element={<NotFoundState />} />
       </Route>
@@ -87,8 +92,11 @@ export function AppRoutes() {
 
 export function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+    <ThemeProvider>
+      <TooltipProvider>
+        <ToastProvider>
+          <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
         {isDesktop ? (
           <Suspense fallback={<Loading />}>
             <DesktopShell>
@@ -102,7 +110,10 @@ export function App() {
             <AppRoutes />
           </AuthProvider>
         )}
-      </BrowserRouter>
-    </QueryClientProvider>
+            </BrowserRouter>
+          </QueryClientProvider>
+        </ToastProvider>
+      </TooltipProvider>
+    </ThemeProvider>
   )
 }

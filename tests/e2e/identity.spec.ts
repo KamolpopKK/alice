@@ -1,3 +1,4 @@
+import { accountButton, signOut } from './fixtures'
 import { test as base, expect } from '@playwright/test'
 import { startApp, type RunningApp } from '../helpers/app'
 
@@ -24,7 +25,9 @@ test('owner sets up Alice, invites a teammate and creates an agent token', async
   await page.getByRole('button', { name: 'Create owner account' }).click()
   await expect(page.getByRole('heading', { name: 'Board' })).toBeVisible()
 
-  await page.getByRole('link', { name: 'Admin' }).click()
+  // Admin อยู่ใน Settings (เฉพาะ owner)
+  await page.getByRole('navigation', { name: 'More' }).getByRole('link', { name: 'Settings' }).click()
+  await page.getByRole('link', { name: 'Workspace admin' }).click()
   await page.getByRole('button', { name: 'Create invite link' }).click()
   const inviteUrl = (await page.getByTestId('secret-value').textContent())!.trim()
   expect(inviteUrl).toContain('/invite/')
@@ -48,10 +51,12 @@ test('owner sets up Alice, invites a teammate and creates an agent token', async
   await guestPage.getByLabel('Username').fill('bob')
   await guestPage.getByLabel('Password', { exact: true }).fill('bob-password-12')
   await guestPage.getByRole('button', { name: 'Create account' }).click()
-  await expect(guestPage.getByRole('button', { name: 'Sign out' })).toBeVisible()
-  await expect(guestPage.getByRole('link', { name: 'Admin' })).toHaveCount(0)
+  await expect(accountButton(guestPage)).toBeVisible()
+  await guestPage.getByRole('navigation', { name: 'More' }).getByRole('link', { name: 'Settings' }).click()
+  await expect(guestPage.getByRole('heading', { name: 'Settings' })).toBeVisible()
+  await expect(guestPage.getByRole('link', { name: 'Workspace admin' })).toHaveCount(0)
 
-  await guestPage.getByRole('button', { name: 'Sign out' }).click()
+  await signOut(guestPage)
   await expect(guestPage).toHaveURL(/\/login$/)
 
   // ลิงก์เชิญใช้ซ้ำไม่ได้

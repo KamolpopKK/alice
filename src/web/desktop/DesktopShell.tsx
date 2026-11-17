@@ -6,6 +6,7 @@ import { ErrorMessage, Loading, TextInput } from '../components/ui'
 import { isNativeError, native, workspaceLabel, type AuthEvent, type ConnectionTest, type DesktopProfile, type ProfilesView } from './native'
 import { AgentsSection, LocalRecovery, LocalWorkspacesSection, Onboarding } from './LocalScreens'
 import { LocalWorkspaceContext } from '../workspace-mode'
+import { ShellWorkspaceContext, type ShellWorkspace } from '../shell/workspace'
 import { TauriTransport } from './transport'
 
 type Phase =
@@ -184,7 +185,8 @@ export function DesktopShell({ children }: { children: ReactNode }) {
   }
   return (
     <div className="desktop">
-      {profile && <ProfileBar profile={profile} onManage={() => setManaging(true)} />}
+      {/* เมื่อพร้อมใช้งาน แถบ workspace อยู่บนสุดของ sidebar ใน shell แทน */}
+      {profile && phase.kind !== 'ready' && <ProfileBar profile={profile} onManage={() => setManaging(true)} />}
       {notice}
       {phase.kind === 'loading' || phase.kind === 'checking' ? (
         <main className="page narrow">
@@ -215,7 +217,9 @@ export function DesktopShell({ children }: { children: ReactNode }) {
       ) : phase.kind === 'sign-in' ? (
         <SignInScreen profile={phase.profile} />
       ) : (
-        <LocalWorkspaceContext.Provider value={phase.kind === 'ready' && !!phase.profile.local}>{children}</LocalWorkspaceContext.Provider>
+        <LocalWorkspaceContext.Provider value={phase.kind === 'ready' && !!phase.profile.local}>
+          <ShellWorkspaceContext.Provider value={profile ? shellWorkspace(profile, () => setManaging(true)) : null}>{children}</ShellWorkspaceContext.Provider>
+        </LocalWorkspaceContext.Provider>
       )}
     </div>
   )
@@ -230,6 +234,12 @@ function StateCard({ title, tone, children }: { title: string; tone?: 'warning';
       </section>
     </main>
   )
+}
+
+function shellWorkspace(profile: DesktopProfile, onSwitch: () => void): ShellWorkspace {
+  if (profile.local) return { name: workspaceLabel(profile), kind: 'local', detail: `${profile.local.alias} · on this computer`, onSwitch }
+  const detail = profile.session ? `${profile.server} · ${profile.session.actorName}` : profile.server
+  return { name: profile.name, kind: 'remote', detail, insecure: profile.insecure, onSwitch }
 }
 
 function ProfileBar({ profile, onManage }: { profile: DesktopProfile; onManage: () => void }) {

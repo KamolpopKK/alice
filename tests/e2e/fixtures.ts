@@ -34,7 +34,22 @@ export async function signIn(page: Page, app: RunningApp, username = OWNER.usern
   await page.getByLabel('Username').fill(username)
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+  await expect(accountButton(page)).toBeVisible()
+}
+
+/** The signed-in person's menu at the bottom of the sidebar (Sign out lives inside it). */
+export const accountButton = (page: Page) => page.getByRole('button', { name: /^Account: / })
+
+/** Follows a sidebar destination; on phone widths it first opens the navigation sheet. */
+export async function goTo(page: Page, name: string) {
+  const menu = page.getByRole('button', { name: 'Open navigation' })
+  if (await menu.isVisible()) await menu.click()
+  await page.getByRole('navigation', { name: /^(Main|More)$/ }).getByRole('link', { name, exact: true }).click()
+}
+
+export async function signOut(page: Page) {
+  await accountButton(page).click()
+  await page.getByRole('menuitem', { name: 'Sign out' }).click()
 }
 
 /**

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Project } from '../../shared/contracts'
 import { client } from '../api'
@@ -15,7 +15,8 @@ export function useProjects(archived: 'active' | 'archived' | 'all' = 'active') 
 export function ProjectsPage() {
   const [showArchived, setShowArchived] = useState(false)
   const projects = useProjects(showArchived ? 'archived' : 'active')
-  const [creating, setCreating] = useState(false)
+  const location = useLocation()
+  const [creating, setCreating] = useState(() => (location.state as { create?: boolean } | null)?.create === true)
   return (
     <div className="page">
       <div className="page-head">

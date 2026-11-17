@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import type { Page } from '@playwright/test'
 import { FakeNativeCore } from './desktop-bridge'
-import { expect, signIn, test } from './fixtures'
+import { expect, signIn, test, accountButton } from './fixtures'
 
 // Visual evidence of Task Pads for review, written to test-results/ (never committed). Runs only when asked:
 //   ALICE_CAPTURE_EVIDENCE=1 npx playwright test tests/e2e/task-pad-evidence.spec.ts --project=desktop
@@ -96,7 +96,7 @@ test('capture Task Pad evidence', async ({ app, owner, browser }) => {
   await d.getByRole('button', { name: 'Sign in with browser' }).click()
   await expect(d.getByLabel('Sign-in code')).toHaveText(/^[A-Z]{4}-[A-Z]{4}$/)
   await owner.post('/client/v1/device/approve', { userCode: native.pendingUserCode })
-  await expect(d.getByRole('button', { name: 'Sign out' })).toBeVisible()
+  await expect(accountButton(d)).toBeVisible()
   await d.goto(`${app.url}/pads`)
   await d.getByRole('button', { name: 'More pad options' }).click()
   await d.getByRole('menuitem', { name: 'Capture shortcuts…' }).click()

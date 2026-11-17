@@ -35,7 +35,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #14161d;
     --surface: #1b1e28;
     --surface-2: #252a38;
@@ -55,6 +55,25 @@
     color-scheme: dark;
   }
 }
+:root[data-theme='dark'] {
+    --bg: #14161d;
+    --surface: #1b1e28;
+    --surface-2: #252a38;
+    --border: #363c50;
+    --text: #edeae4;
+    --muted: #a7aab8;
+    --accent: #c5d0ee;
+    --accent-hover: #dbe2f6;
+    --accent-text: var(--brand-navy-900);
+    --accent-soft: #283153;
+    --danger: #ef7d6e;
+    --danger-soft: #3a211d;
+    --agent: #e8b55a;
+    --agent-soft: #3a2f1a;
+    --live: #6fcf7c;
+    --focus: #f2998a;
+    color-scheme: dark;
+  }
 
 * {
   box-sizing: border-box;
@@ -342,7 +361,7 @@ main:focus {
   overflow-x: clip;
 }
 @media (prefers-color-scheme: dark) {
-  .auth-scene {
+  :root:not([data-theme='light']) .auth-scene {
     --auth-bg: #161b2b;
     --auth-surface: rgb(27 32 49 / 0.92);
     --auth-surface-border: #3a4561;
@@ -350,6 +369,13 @@ main:focus {
     background-image: var(--auth-scene-dark);
   }
 }
+:root[data-theme='dark'] .auth-scene {
+    --auth-bg: #161b2b;
+    --auth-surface: rgb(27 32 49 / 0.92);
+    --auth-surface-border: #3a4561;
+    --auth-shadow: 0 30px 80px -30px rgb(0 0 0 / 0.75);
+    background-image: var(--auth-scene-dark);
+  }
 .auth-stage {
   width: 100%;
   display: flex;
@@ -428,12 +454,17 @@ main:focus {
   --auth-ring: var(--brand-navy-900);
 }
 @media (prefers-color-scheme: dark) {
-  .auth-scene {
+  :root:not([data-theme='light']) .auth-scene {
     --auth-field-bg: #141929;
     --auth-field-border: #717c99;
     --auth-ring: var(--brand-ivory);
   }
 }
+:root[data-theme='dark'] .auth-scene {
+    --auth-field-bg: #141929;
+    --auth-field-border: #717c99;
+    --auth-ring: var(--brand-ivory);
+  }
 /* label มองเห็นเสมอ อยู่เหนือช่อง (ไม่มี floating label) */
 .auth-surface .field label {
   font-weight: 600;
@@ -1108,12 +1139,17 @@ dl.details dd {
   font-size: 0.875rem;
 }
 @media (prefers-color-scheme: dark) {
-  .insecure-warning,
-  .disconnected-banner {
+  :root:not([data-theme='light']) .insecure-warning,
+  :root:not([data-theme='light']) .disconnected-banner {
     background: #4a3b00;
     color: #ffe7a0;
   }
 }
+:root[data-theme='dark'] .insecure-warning,
+:root[data-theme='dark'] .disconnected-banner {
+    background: #4a3b00;
+    color: #ffe7a0;
+  }
 .desktop-version {
   text-align: center;
 }

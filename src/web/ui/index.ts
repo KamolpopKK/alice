@@ -10,4 +10,4 @@ export { Badge, Avatar, Card, SectionHeader, EmptyState, Skeleton, Banner, List,
 export { Tooltip, TooltipProvider, Menu, Popover, Dialog, Sheet, ConfirmDialog, type MenuItem } from './overlays'
 export { Tabs, SegmentedControl, type TabItem, type SegmentOption } from './navigation'
 export { ToastProvider, useToast, type ToastTone } from './toast'
-export { ThemeProvider, useTheme, readThemePreference, applyThemePreference, type ThemePreference, type ResolvedTheme } from './theme'
+export { ThemeProvider, useTheme, useExplicitTheme, readThemePreference, applyThemePreference, type ThemePreference, type ResolvedTheme } from './theme'

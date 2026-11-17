@@ -19,7 +19,10 @@ async function openAs(browser: Browser, who: 'owner' | 'member', options: Parame
   await page.getByLabel('Username').fill(who === 'owner' ? OWNER.username : 'member')
   await page.getByLabel('Password', { exact: true }).fill(who === 'owner' ? OWNER.password : 'member-password-123')
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await page.getByRole('link', { name: 'For agent' }).click()
+  // จอแคบ: เมนูอยู่ใน sheet ที่เปิดจากแถบด้านบน
+  await page.getByRole('button', { name: /^Account: / }).first().waitFor()
+  if (await page.getByRole('button', { name: 'Open navigation' }).isVisible()) await page.getByRole('button', { name: 'Open navigation' }).click()
+  await page.getByRole('navigation', { name: 'More' }).getByRole('link', { name: 'Agents' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'For agent' })).toBeVisible()
   return page
 }
@@ -87,7 +90,7 @@ test('a refused clipboard leaves the text selectable and says so', async ({ brow
   await page.getByLabel('Username').fill(OWNER.username)
   await page.getByLabel('Password', { exact: true }).fill(OWNER.password)
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await page.getByRole('link', { name: 'For agent' }).click()
+  await page.getByRole('navigation', { name: 'More' }).getByRole('link', { name: 'Agents' }).click()
   await page.getByRole('button', { name: 'Copy prompt' }).click()
   await expect(page.getByText('Copy failed — select the text manually.')).toBeVisible()
   const block = page.getByLabel('Setup prompt for Claude Code')

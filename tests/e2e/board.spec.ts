@@ -9,7 +9,7 @@ test('board shows work by status and updates live after an agent mutation', asyn
   await signIn(page, app)
   const ready = page.getByRole('region', { name: 'Ready' })
   await expect(ready.getByRole('link', { name: 'Wire up websockets' })).toBeVisible()
-  await expect(page.locator('.live-live')).toBeAttached()
+  await expect(page.locator('[data-live="live"]')).toContainText('Connected')
 
   // agent เปลี่ยนสถานะผ่าน API — หน้าบอร์ดที่เปิดอยู่ต้องย้ายการ์ดเองโดยไม่ reload
   await agentClient(app, agent).patch(`/api/tasks/${task.id}`, { status: 'in_progress', assigneeId: agent.id })
@@ -29,13 +29,14 @@ test('list filters, my tasks, search and activity views', async ({ app, owner, p
   await owner.post('/api/tasks', { title: 'Filterable beta', priority: 'low' })
   await signIn(page, app)
 
-  await page.getByRole('link', { name: 'List' }).click()
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Tasks' }).click()
+  await page.getByRole('radio', { name: 'List' }).click()
   await page.getByLabel('Priority').selectOption('urgent')
   await expect(page.getByRole('link', { name: 'Filterable alpha' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Filterable beta' })).toHaveCount(0)
   await expect(page).toHaveURL(/priority=urgent/)
 
-  await page.getByRole('link', { name: 'My tasks' }).click()
+  await page.getByRole('radio', { name: 'My Work' }).click()
   await expect(page.getByRole('link', { name: 'Filterable alpha' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Filterable beta' })).toHaveCount(0)
 

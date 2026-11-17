@@ -1,3 +1,4 @@
+import { accountButton } from './fixtures'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 import { startApp } from '../helpers/app'
@@ -48,7 +49,7 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.getByLabel('Username').fill(OWNER.username)
       await page.getByLabel('Password', { exact: true }).fill(OWNER.password)
       await page.getByRole('button', { name: 'Sign in' }).click()
-      await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+      await expect(accountButton(page)).toBeVisible()
       for (const path of ['/', '/my-tasks', '/projects', '/documents', '/no/such/page']) {
         await page.goto(`${app.url}${path}`)
         await page.waitForLoadState('networkidle')
@@ -69,7 +70,7 @@ test('keyboard order runs skip link → brand → navigation → user controls, 
     await page.getByLabel('Username').fill(OWNER.username)
     await page.getByLabel('Password', { exact: true }).fill(OWNER.password)
     await page.getByRole('button', { name: 'Sign in' }).click()
-    await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+    await expect(accountButton(page)).toBeVisible()
     await page.goto(`${app.url}/my-tasks`)
     await expect(page.getByRole('heading', { name: 'Nothing assigned to you' })).toBeVisible()
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
@@ -78,7 +79,7 @@ test('keyboard order runs skip link → brand → navigation → user controls, 
       await page.keyboard.press('Tab')
       order.push(await page.evaluate(() => (document.activeElement as HTMLElement).innerText.trim() || (document.activeElement as HTMLElement).getAttribute('aria-label') || ''))
     }
-    expect(order).toEqual(['Skip to content', 'Alice', 'Board', 'List'])
+    expect(order).toEqual(['Skip to content', 'Alice', 'Collapse sidebar', 'New'])
     // focus บนโลโก้มองเห็นได้
     await page.keyboard.press('Shift+Tab')
     await page.keyboard.press('Shift+Tab')
