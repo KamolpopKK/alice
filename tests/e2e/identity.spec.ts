@@ -23,7 +23,7 @@ test('owner sets up Alice, invites a teammate and creates an agent token', async
   await page.getByLabel('Username').fill('olivia')
   await page.getByLabel('Password', { exact: true }).fill('olivia-password-1')
   await page.getByRole('button', { name: 'Create owner account' }).click()
-  await expect(page.getByRole('heading', { name: 'Board' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Good morning, Olivia' }).or(page.getByRole('heading', { level: 1, name: /^Good (afternoon|evening), Olivia$/ }))).toBeVisible()
 
   // Admin อยู่ใน Settings (เฉพาะ owner)
   await page.getByRole('navigation', { name: 'More' }).getByRole('link', { name: 'Settings' }).click()

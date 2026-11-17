@@ -57,7 +57,7 @@ test('human and agent operate on one authoritative board @mobile', async ({ app,
   await expect(page.getByText(/Revision 2 · updated/)).toContainText('Journey Agent')
 
   // the board shows the finished card with the agent assignee
-  await page.goto(app.url)
+  await page.goto(`${app.url}/tasks?view=board`)
   const doneColumn = page.getByRole('region', { name: 'Done' })
   await expect(doneColumn.getByRole('link', { name: 'Add password reset' })).toBeVisible()
   await expect(doneColumn.getByText('Journey Agent')).toBeVisible()

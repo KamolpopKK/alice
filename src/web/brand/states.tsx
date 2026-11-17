@@ -14,7 +14,7 @@ export function NotFoundState() {
         imageWidth={150}
         action={
           <Link to="/" className="button primary">
-            Back to Board
+            Back to Home
           </Link>
         }
       />
@@ -41,7 +41,7 @@ export function FullPageError({ error, onRetry }: { error: unknown; onRetry: () 
               Try again
             </button>
             <Link to="/" className="button">
-              Back to Board
+              Back to Home
             </Link>
           </>
         }

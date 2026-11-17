@@ -39,7 +39,7 @@ test('approved page-level states show Alice with the exact line; inline empties 
     await page.goto(`${app.url}/documents?q=zzzz-nothing`)
     await expect(page.getByText('No documents found.')).toBeVisible()
     await expect(page.locator('img.mascot')).toHaveCount(0)
-    await page.goto(`${app.url}/`)
+    await page.goto(`${app.url}/tasks?view=board`)
     await expect(page.getByRole('heading', { name: 'Board' })).toBeVisible()
     await expect(page.locator('img.mascot')).toHaveCount(0)
 
@@ -60,7 +60,7 @@ test('approved page-level states show Alice with the exact line; inline empties 
   }
 })
 
-test('the signed-in 404 is concerned, factual and leads back to the Board', async ({ page }) => {
+test('the signed-in 404 is concerned, factual and leads back Home', async ({ page }) => {
   const app = await startApp()
   try {
     await bootstrapOwner(app)
@@ -73,8 +73,8 @@ test('the signed-in 404 is concerned, factual and leads back to the Board', asyn
     await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible()
     await expect(page.getByText('I couldn’t find that page. Let’s head back somewhere familiar.', { exact: true })).toBeVisible()
     expect(await page.locator('img.mascot').getAttribute('src')).toContain('alice-mascot-concerned')
-    await page.getByRole('link', { name: 'Back to Board' }).click()
-    await expect(page.getByRole('heading', { name: 'Board' })).toBeVisible()
+    await page.getByRole('link', { name: 'Back to Home' }).click()
+    await expect(page.getByRole('heading', { level: 1, name: /^Good (morning|afternoon|evening), / })).toBeVisible()
 
   } finally {
     await app.stop()

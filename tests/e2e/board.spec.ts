@@ -7,6 +7,7 @@ test('board shows work by status and updates live after an agent mutation', asyn
   const task = (await owner.post('/api/tasks', { title: 'Wire up websockets', projectId: project.id, status: 'ready' })).body.task
 
   await signIn(page, app)
+  await page.goto(`${app.url}/tasks?view=board`)
   const ready = page.getByRole('region', { name: 'Ready' })
   await expect(ready.getByRole('link', { name: 'Wire up websockets' })).toBeVisible()
   await expect(page.locator('[data-live="live"]')).toContainText('Connected')
@@ -53,6 +54,7 @@ test('list filters, my tasks, search and activity views', async ({ app, owner, p
 test('mobile: inspect a task and change its status @mobile', async ({ app, owner, page }) => {
   const task = (await owner.post('/api/tasks', { title: 'Phone-sized work', status: 'ready' })).body.task
   await signIn(page, app)
+  await page.goto(`${app.url}/tasks?view=board`)
   await page.getByRole('link', { name: 'Phone-sized work' }).click()
   await expect(page.getByRole('heading', { name: 'Phone-sized work' })).toBeVisible()
   await page.getByLabel('Status').selectOption('done')

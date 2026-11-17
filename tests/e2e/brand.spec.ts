@@ -97,8 +97,7 @@ test('the sidebar shows mark + wordmark when wide and the phone top bar the mark
   await brand.focus()
   await expect(brand).toBeFocused()
   await page.keyboard.press('Enter')
-  // หน้าแรก (Home มาใน TASK-058; ตอนนี้ / เปิด Tasks แบบ Board)
-  await expect(page.getByRole('heading', { name: 'Board' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: /^Good (morning|afternoon|evening), / })).toBeVisible()
 })
 
 test('dark mode swaps the logo variant without filtering the mascot', async ({ app, browser }) => {

@@ -25,7 +25,7 @@ test('active-tab shortcuts open the last pad or create exactly one new pad, and 
   const recent = (await owner.post(`${V1}/pads`, { name: 'Shortcut target' })).body.pad
   await owner.post(`${V1}/pads/${recent.id}/blocks`, { type: 'task', title: 'Already here' })
   await signIn(page, app)
-  await expect(page.getByRole('heading', { name: 'Board' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: /^Good (morning|afternoon|evening), / })).toBeVisible()
   await shortcutsReady(page)
 
   await page.keyboard.press('Alt+Shift+KeyP')

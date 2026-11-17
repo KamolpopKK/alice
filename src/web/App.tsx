@@ -19,6 +19,7 @@ import { ActivityPage } from './pages/ActivityPage'
 import { DocumentDetailPage } from './pages/DocumentDetailPage'
 import { DocumentsPage } from './pages/DocumentsPage'
 import { LegacyTasksRedirect, TasksPage } from './pages/TasksPage'
+import { HomeRoute } from './pages/HomePage'
 import { SettingsPage } from './pages/SettingsPage'
 import { AgentsPage } from './pages/AgentsPage'
 import { SearchPage } from './pages/SearchPage'
@@ -63,8 +64,7 @@ export function AppRoutes() {
       <Route path="/setup" element={<PublicOnly><SetupPage /></PublicOnly>} />
       <Route path="/invite/:token" element={<PublicOnly><InvitePage /></PublicOnly>} />
       <Route element={<RequireAuth><AppShell /></RequireAuth>}>
-        {/* Home มาใน TASK-058; ระหว่างนี้ / (Board เดิม) เปิด Tasks แบบ Board พร้อม filter เดิม */}
-        <Route index element={<LegacyTasksRedirect view="board" />} />
+        <Route index element={<HomeRoute />} />
         <Route path="tasks" element={<TasksPage />} />
         <Route path="list" element={<LegacyTasksRedirect view="list" />} />
         <Route path="my-tasks" element={<LegacyTasksRedirect view="my-work" />} />

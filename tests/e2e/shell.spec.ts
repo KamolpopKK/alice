@@ -11,6 +11,8 @@ test('the sidebar has exactly six primary and three secondary destinations, the 
   await signIn(page, app)
   expect(await names(page, 'Main')).toEqual(['Home', 'Task Pads', 'Tasks', 'Projects', 'Documents', 'Search'])
   expect(await names(page, 'More')).toEqual(['Agents', 'Activity', 'Settings'])
+  await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page')
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Tasks' }).click()
   await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Tasks' })).toHaveAttribute('aria-current', 'page')
 
   // member: ปลายทางหลักเหมือนกัน แต่ใน Settings ไม่มีหน้าดูแลระบบ
@@ -38,8 +40,9 @@ test('old Board, List and My Tasks links open the matching Tasks view and keep t
   await page.goto(`${app.url}/my-tasks`)
   await expect(page).toHaveURL(/\/tasks\?view=my-work$/)
   await expect(page.getByRole('radio', { name: 'My Work' })).toHaveAttribute('aria-checked', 'true')
-  await page.goto(`${app.url}/`)
-  await expect(page).toHaveURL(/\/tasks\?view=board$/)
+  // ลิงก์ Board เดิมที่มี filter (/?…) ยังเปิด Board; / เปล่า ๆ คือ Home
+  await page.goto(`${app.url}/?priority=low`)
+  await expect(page).toHaveURL(/\/tasks\?priority=low&view=board$/)
   await expect(page.getByRole('heading', { name: 'Board' })).toBeVisible()
   // ปุ่ม Back ของ browser ไม่วนกลับไปที่ redirect
   await page.getByRole('radio', { name: 'List' }).click()
