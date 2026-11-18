@@ -1,11 +1,11 @@
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import { build } from 'esbuild'
 // @ts-expect-error — plain .mjs build helper shared with the release build
 import { cliBuildOptions } from '../../scripts/cli-build.mjs'
 import { tempDataDir } from './app'
+import { testDir } from './tmp'
 
 const ROOT = path.resolve(import.meta.dirname, '../..')
 let built: Promise<{ dir: string; standalone: string }> | null = null
@@ -28,7 +28,7 @@ export function buildCli() {
       packages: 'external',
       logLevel: 'warning',
     })
-    const standalone = fs.mkdtempSync(path.join(os.tmpdir(), 'alice-cli-standalone-'))
+    const standalone = testDir('alice-cli-standalone-')
     fs.copyFileSync(path.join(dir, 'alice.js'), path.join(standalone, 'alice.js'))
     return { dir, standalone }
   })()

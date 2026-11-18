@@ -1,13 +1,13 @@
 import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { APP_VERSION, MCP_CONTRACT_VERSION } from '../../src/shared/version'
 import { startApp, tempDataDir, type RunningApp } from '../helpers/app'
 // @ts-expect-error build script เป็น .mjs ไม่มี type declaration
 import { buildDownloads } from '../../scripts/downloads-build.mjs'
+import { testDir } from '../helpers/tmp'
 
 const ROOT = path.resolve(import.meta.dirname, '../..')
 const SKILL = fs.readFileSync(path.join(ROOT, 'skill/alice/SKILL.md'), 'utf8')
@@ -59,7 +59,7 @@ describe('agent tooling downloads', () => {
 
   it('downloaded tools run standalone with Node only', async () => {
     // ต้องอยู่นอก repo: ถ้าอยู่ใต้ repo Node จะไปเจอ node_modules ของ repo และพิสูจน์ไม่ได้ว่า standalone
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'alice-fetched-'))
+    const dir = testDir('alice-fetched-')
     const home = tempDataDir('home')
     for (const name of ['alice.js', 'alice-mcp-stdio.js']) {
       fs.writeFileSync(path.join(dir, name), Buffer.from(await (await fetch(`${app.url}/downloads/${name}`)).arrayBuffer()))
@@ -77,7 +77,6 @@ describe('agent tooling downloads', () => {
     expect(adapter.status).toBe(0)
     expect(adapter.stdout).toContain(APP_VERSION)
     expect(adapter.stdout).toContain(`v${MCP_CONTRACT_VERSION}`)
-    fs.rmSync(dir, { recursive: true, force: true })
   })
 
   it('answers JSON 404 for unknown files and never falls back to the HTML shell', async () => {
