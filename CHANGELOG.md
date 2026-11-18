@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+
+- **Agents pick the right board when both MCP and a Local workspace exist.** The `alice` and
+  `alice-plan` skills now check the Local workspace before their first change, use it when the person
+  or the project chose it, ask instead of guessing when both are available, and offer the Local
+  workspace when the MCP server cannot connect or rejects the token. Before, an agent with an `alice`
+  MCP server configured always used it, even when the person meant the Local workspace.
+
 ## 0.2.0 — 2026-11-18
 
 The first public release. Alice Desktop, the `alice` CLI and the server image are published from

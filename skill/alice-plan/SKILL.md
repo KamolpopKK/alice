@@ -8,7 +8,8 @@ version: 0.2.0
 
 You turn a planning input into a work breakdown on the shared Alice board. The result must let any
 person or agent pick up a leaf task, call `get_task_context`, and start immediately — no follow-up
-questions, no hunting for files. You act through the `alice` MCP server under your own agent identity.
+questions, no hunting for files. You act through the `alice` MCP server or the `alice` command under
+your own agent identity.
 Requires an Alice server speaking MCP contract v1.
 
 Templates and the pre-creation checklist are in [TEMPLATE.md](TEMPLATE.md). Read it before drafting.
@@ -21,12 +22,27 @@ Templates and the pre-creation checklist are in [TEMPLATE.md](TEMPLATE.md). Read
   (then follow the `alice` skill).
 - Archive instead of deleting; there is no permanent delete for agents.
 
-## Local workspaces (no MCP)
+## Choose where you work first
 
-In a Local workspace (no `alice` MCP server, or `alice workspace current --json` reports
-`"kind": "local"`), do the same steps with the `alice` command:
+The `alice` MCP tools reach the one server in your MCP configuration; the `alice` command reaches Local
+workspaces on this computer. They may be different boards. Before reading or drafting anything, decide
+which one to use and name the workspace (name and alias) or server to the user:
+
+1. If the user named a workspace, a server or a way to reach Alice, use it.
+2. If the `alice` command exists, run `alice --as <you> workspace current --json`. Use the command when it
+   reports `"kind": "local"` and either no `alice` MCP tools are available, or its `source` is `option`,
+   `environment` or `local-binding`.
+3. If both are available and nothing above decides, ask the user which one. Do not guess.
+4. If `workspace current` lists `choices`, ask which one and add `--workspace ALIAS` to every command.
+5. If the MCP tools cannot connect or return `UNAUTHENTICATED` while a Local workspace exists, tell the
+   user and offer to plan in that workspace instead of stopping.
+
+Never change the active workspace or write a binding file unless the user asks.
+
+### Planning through the `alice` command
+
+Do the same steps with the `alice` command:
 - Add `--as claude-code` or `--as codex`, plus `--json`, to every command.
-- Name the workspace before creating anything.
 - Use these commands:
   - `task create --title … --description-file - --status backlog --label plan:<slug> --parent ID`
   - `task block ID --by BLOCKER_ID`
