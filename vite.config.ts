@@ -14,11 +14,13 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // key ที่ขึ้นต้นด้วย ^ เป็น regex: match เฉพาะ path ของ server จริง
+    // ไม่ให้ไปจับ module ของ Vite อย่าง /api.ts (root คือ src/web)
     proxy: {
-      '/api': { target: apiTarget, changeOrigin: false },
-      '/mcp': { target: apiTarget, changeOrigin: false },
-      '/readyz': apiTarget,
-      '/livez': apiTarget,
+      '^/(client|api)/': { target: apiTarget, changeOrigin: false },
+      '^/mcp(/|$|\\?)': { target: apiTarget, changeOrigin: false },
+      '^/downloads/': { target: apiTarget, changeOrigin: false },
+      '^/(readyz|livez)$': { target: apiTarget, changeOrigin: false },
     },
   },
 })
