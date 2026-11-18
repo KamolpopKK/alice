@@ -13,6 +13,7 @@ const LIST_KEYS: Record<string, string[][]> = {
   pad: [['pads'], ['pad-search']],
   pad_block: [['pad-search']],
   saved_view: [['saved-views']],
+  approval: [['approvals']],
 }
 
 /**

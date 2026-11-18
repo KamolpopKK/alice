@@ -92,3 +92,32 @@ test('people who used the previous interface see What’s new once per device; n
   await expect(second.getByRole('status').filter({ hasText: 'What’s new in Alice' })).toBeVisible()
   await other.close()
 })
+
+test('Waiting for you lists an agent’s approval request; deciding it on Home reaches the agent and the task', async ({ app, owner, page }) => {
+  const { connectMcp } = await import('../helpers/mcp')
+  const stamp = Date.now().toString(36)
+  const agent = await createAgent(owner, `Approval Agent ${stamp}`)
+  const task = (await owner.post(`${V1}/tasks`, { title: `Needs a yes ${stamp}`, status: 'ready' })).body.task
+  const mcp = await connectMcp(app.url, agent.token)
+  const asked = await mcp.ok('request_approval', { taskId: task.id, question: `Delete the staging data ${stamp}?` })
+
+  await signIn(page, app)
+  const waiting = page.getByRole('region', { name: /Waiting for you/ })
+  const item = waiting.getByRole('listitem').filter({ hasText: `Delete the staging data ${stamp}?` })
+  await expect(item).toContainText(`Approval Agent ${stamp}`)
+  await expect(item.getByText('Agent', { exact: true })).toBeVisible()
+  await expect(item.getByRole('link', { name: task.title })).toBeVisible()
+  const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).include('#main').analyze()
+  expect(axe.violations.map((v) => v.id)).toEqual([])
+  await item.getByLabel('Note (optional)').fill('Keep a backup first')
+  await item.getByRole('button', { name: 'Approve' }).click()
+  await expect(item).toHaveCount(0)
+
+  expect((await mcp.ok('get_approval', { id: asked.approval.id })).approval).toMatchObject({ status: 'approved', note: 'Keep a backup first', decidedBy: { displayName: 'Olivia Owner' } })
+  await mcp.close()
+  await page.goto(`${app.url}/tasks/${task.id}`)
+  const approvals = page.getByRole('region', { name: 'Approvals' })
+  await expect(approvals).toContainText('Approved')
+  await expect(approvals).toContainText('Keep a backup first')
+  await expect(page.getByRole('region', { name: 'Activity' })).toContainText(`approved “Delete the staging data ${stamp}?” (Keep a backup first)`)
+})

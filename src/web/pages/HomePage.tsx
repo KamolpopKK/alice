@@ -14,6 +14,7 @@ import { Avatar, Badge, Banner, Button, EmptyState, IconButton, LinkButton, List
 import { LegacyTasksRedirect } from './TasksPage'
 import { markWhatsNewSeen, whatsNewSeen } from '../whats-new'
 import { useTaskPages } from '../tasks/hooks'
+import { WaitingForYou } from '../tasks/approvals'
 
 const GREETING_KEY = 'alice.home.summary'
 const SHOW = 5
@@ -102,6 +103,7 @@ export function HomePage() {
 
       <div className="home-grid">
         <div className="home-column">
+          <WaitingForYou />
           {taskPads && <ContinuePad />}
           <section aria-labelledby="home-my-work" className="home-section">
             <SectionHeader title={<span id="home-my-work">My work</span>} level={2} actions={<Link to="/tasks?view=my-work">All my work</Link>} />

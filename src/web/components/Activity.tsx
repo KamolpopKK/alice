@@ -37,6 +37,10 @@ const PLAN_VERBS: Record<string, (d: Record<string, unknown>) => string> = {
   'project.milestone_completed': (d) => `completed milestone “${String(d.title)}”`,
   'project.milestone_reopened': (d) => `reopened milestone “${String(d.title)}”`,
   'project.milestone_removed': (d) => `removed milestone “${String(d.title)}”`,
+  'approval.requested': (d) => `asked for approval: “${String(d.question)}”`,
+  'approval.approved': (d) => `approved “${String(d.question)}”${d.note ? ` (${String(d.note)})` : ''}`,
+  'approval.rejected': (d) => `rejected “${String(d.question)}”${d.note ? ` (${String(d.note)})` : ''}`,
+  'approval.canceled': (d) => `withdrew the approval request “${String(d.question)}”`,
 }
 
 export function describeActivity(event: ActivityEvent): string {

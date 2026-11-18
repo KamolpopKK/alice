@@ -3,13 +3,17 @@ import type { Task } from '../../shared/contracts'
 import { LinkedDocuments } from '../components/LinkedDocuments'
 import { CompleteTask, Comments } from '../components/Comments'
 import { Relations } from '../components/Relations'
+import { TaskApprovals } from '../tasks/approvals'
 
 // ส่วนเพิ่มเติมของหน้า task detail ที่ task ถัด ๆ ไปเพิ่ม (relationships, documents, comments)
 export interface TaskSection {
   key: string
   Component: ComponentType<{ task: Task }>
 }
-export const TASK_MAIN_SECTIONS: TaskSection[] = [{ key: 'comments', Component: Comments }]
+export const TASK_MAIN_SECTIONS: TaskSection[] = [
+  { key: 'approvals', Component: TaskApprovals },
+  { key: 'comments', Component: Comments },
+]
 export const TASK_SIDE_SECTIONS: TaskSection[] = [
   { key: 'complete', Component: CompleteTask },
   { key: 'relations', Component: Relations },

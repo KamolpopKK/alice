@@ -33,6 +33,8 @@ store: the CLI reads your credential itself.
 4. **Context.** `alice --as <you> task context ID --json`
 5. **Comment.** `alice --as <you> task comment ID --body "…" --json`
 6. **Complete.** `alice --as <you> task complete ID --summary "…" --json` (the summary is required).
+7. **Ask before risky steps.** `alice --as <you> task ask ID --question "…" [--of PERSON] --json`, then
+   wait until `alice --as <you> task approval APPROVAL_ID --json` shows `approved` (follow its `note`).
 
 Other commands work the same way: `project`, `document`, `search` and `task parent|block|update`. See
 `alice --help`. Every result is `{ "ok", "workspace", "data" }` or `{ "ok": false, "error": { "code",
@@ -55,6 +57,11 @@ means the person disabled your integration: stop and tell them.
    `status: "blocked"` with `update_task` instead of guessing.
 5. **Communicate.** Use `add_comment` for questions, decisions and meaningful progress (not every
    step). Be concrete: what you did, what you found, what you need. `@mentions` are plain text.
+5a. **Ask before risky steps.** When a step needs a person's go-ahead (production changes, spending,
+   deleting data, a decision that is not yours), call `request_approval { taskId, question }` —
+   add `requestedOfId` to ask one person. Do not proceed until `get_approval` shows `approved`;
+   follow the `note`. If it is `rejected`, comment on what you will do instead. Withdraw requests you
+   no longer need with `cancel_approval`.
 6. **Record knowledge.** Put reusable findings in documents (`create_document`, `update_document`)
    and connect them with `link_document`. Every document edit keeps a full revision.
 7. **Complete with a summary.** Finish with `complete_task { id, summary }`. The summary is required

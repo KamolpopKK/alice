@@ -2,6 +2,7 @@ import * as z from 'zod'
 import type { SavedView, createSavedViewInput } from '../shared/saved-views'
 import type {
   ActivityEvent,
+  ApprovalRequest,
   ClientCredentials,
   ClientSessionInfo,
   DeviceAuthorization,
@@ -31,6 +32,8 @@ import type {
   createInviteInput,
   createDocumentInput,
   createMilestoneInput,
+  listApprovalsInput,
+  requestApprovalInput,
   createProjectInput,
   createTaskInput,
   listDocumentsInput,
@@ -254,6 +257,16 @@ export class AliceClient {
     link: (id: string, target: { taskId?: string; projectId?: string }) => this.call<LinkResult>('POST', `/documents/${enc(id)}/links`, { body: target, idempotent: true }),
     unlink: (id: string, target: { taskId?: string; projectId?: string }) => this.call<LinkResult>('DELETE', `/documents/${enc(id)}/links`, { body: target }),
     activity: (id: string, page: { cursor?: string | null; limit?: number } = {}) => this.get<Page<ActivityEvent>>(`/documents/${enc(id)}/activity`, page),
+  }
+
+  /** Approval requests on tasks (capability `approvals`). */
+  readonly approvals = {
+    list: (input: In<typeof listApprovalsInput> = {}) => this.get<{ items: ApprovalRequest[] }>('/approvals', input as Record<string, QueryValue>).then((r) => r.items),
+    get: (id: string) => this.get<{ approval: ApprovalRequest }>(`/approvals/${enc(id)}`).then((r) => r.approval),
+    request: (taskId: string, input: In<typeof requestApprovalInput>) => this.call<{ approval: ApprovalRequest }>('POST', `/tasks/${enc(taskId)}/approvals`, { body: input }),
+    approve: (id: string, note?: string) => this.call<{ approval: ApprovalRequest }>('POST', `/approvals/${enc(id)}/approve`, { body: note ? { note } : {} }),
+    reject: (id: string, note?: string) => this.call<{ approval: ApprovalRequest }>('POST', `/approvals/${enc(id)}/reject`, { body: note ? { note } : {} }),
+    cancel: (id: string) => this.call<{ approval: ApprovalRequest }>('POST', `/approvals/${enc(id)}/cancel`, { body: {} }),
   }
 
   /** Saved Tasks views (capability `saved-views`); private to the signed-in human. */

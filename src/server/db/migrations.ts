@@ -544,6 +544,29 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX milestones_project ON milestones(project_id, due_date);
     `,
   },
+  {
+    version: 15,
+    name: 'approval_requests',
+    sql: `
+      -- คำขออนุมัติบน task: agent (หรือคน) ถาม แล้วคนเป็นผู้ตัดสิน
+      CREATE TABLE approval_requests (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL REFERENCES workspaces(id),
+        task_id TEXT NOT NULL REFERENCES tasks(id),
+        question TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'canceled')),
+        requested_by TEXT REFERENCES actors(id),
+        requested_of TEXT REFERENCES actors(id),
+        decided_by TEXT REFERENCES actors(id),
+        decided_at TEXT,
+        note TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      ) STRICT;
+      CREATE INDEX approval_requests_task ON approval_requests(task_id, created_at);
+      CREATE INDEX approval_requests_pending ON approval_requests(workspace_id, status, created_at);
+    `,
+  },
 ]
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version

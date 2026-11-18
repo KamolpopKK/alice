@@ -5,6 +5,7 @@ import { registerAuth } from './auth'
 import { registerClientApi, registerLegacyEvents } from './client-api'
 import { registerIdentityRoutes } from './identity-routes'
 import { registerProjectRoutes } from './project-routes'
+import { registerApprovalRoutes } from './approval-routes'
 import { registerTaskRoutes } from './task-routes'
 import { registerDocumentRoutes } from './document-routes'
 import { registerCommentRoutes } from './comment-routes'
@@ -26,6 +27,7 @@ export const HUMAN_ROUTES: RouteRegistrar[] = [
   registerCommentRoutes,
   registerRelationshipRoutes,
   registerWorkspaceRoutes,
+  registerApprovalRoutes,
 ]
 
 /**

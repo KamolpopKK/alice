@@ -19,7 +19,7 @@ validation, actor attribution, activity history and live invalidation are identi
   "serverVersion": "0.2.0",
   "publicUrl": "https://alice.example.com",
   "clientApi": { "current": 1, "minimum": 1, "prefix": "/client/v1" },
-  "capabilities": ["projects", "tasks", "documents", "comments", "relationships", "activity", "search", "admin", "idempotency", "events.resume", "device-auth", "client-sessions", "task-pads", "saved-views", "project-planning"],
+  "capabilities": ["projects", "tasks", "documents", "comments", "relationships", "activity", "search", "admin", "idempotency", "events.resume", "device-auth", "client-sessions", "task-pads", "saved-views", "project-planning", "approvals"],
   "events": { "retentionHours": 24, "maxReplay": 1000 }
 }
 ```
@@ -54,6 +54,7 @@ All routes are below `/client/v1`. Bodies and queries use the shared zod schemas
 | Invites (owner) | `GET/POST /invites`, `POST /invites/:id/revoke`, `POST /invites/check`, `POST /invites/accept` |
 | Actors and agents | `GET /actors`; owner only: `GET/POST /agents`, `POST /agents/:id/tokens`, `POST /agents/:id/deactivate`, `POST /agent-tokens/:id/rotate`, `POST /agent-tokens/:id/revoke` |
 | Projects | `GET/POST /projects`, `GET/PATCH /projects/:id`, `POST /projects/:id/archive`, `POST /projects/:id/restore` |
+| Approvals | `GET /approvals?status=&taskId=&for=me`, `GET /approvals/:id`, `POST /tasks/:id/approvals`, `POST /approvals/:id/approve\|reject\|cancel`; see [Approval requests](#approval-requests) |
 | Project planning | `GET /projects/:id/members`, `PUT/DELETE /projects/:id/members/:actorId`, `GET/POST /projects/:id/milestones`, `PATCH/DELETE /milestones/:id`, `GET /projects/:id/progress`; see [Project planning](#project-planning) |
 | Tasks | `GET/POST /tasks`, `GET/PATCH /tasks/:id`, `POST /tasks/:id/claim`, `POST /tasks/:id/archive`, `POST /tasks/:id/restore`, `GET /tasks/:id/activity` |
 | Discussion | `GET/POST /tasks/:id/comments`, `POST /tasks/:id/complete`, `GET /tasks/:id/context` |
@@ -110,6 +111,26 @@ Other actors never see these positions; their streams simply skip them.
 Resume with `Last-Event-ID: <position>` (EventSource sends this automatically) or `?after=<position>`. The
 header wins when both are present. Positions are kept for `ALICE_CLIENT_EVENT_RETENTION_HOURS` (default 24).
 They live in the database, so they survive a server restart.
+
+## Approval requests
+
+Capability `approvals`. Before going on with a task, someone (usually an agent) can ask a person to approve
+something.
+
+- **Asking.** `POST /tasks/:id/approvals` takes `{ question, requestedOfId? }`.
+  - `requestedOfId` names one active person.
+  - Without it, anyone may decide.
+  - Archived tasks answer `INVALID_STATE`.
+- **Deciding.** `POST /approvals/:id/approve` and `POST /approvals/:id/reject` take an optional `{ note }`.
+  - Only people decide.
+  - The one who asked never decides.
+  - A request that names a person can be decided by that person or the workspace owner.
+- **Withdrawing.** `POST /approvals/:id/cancel` withdraws a pending request; only the one who asked can do this.
+- **After a decision.** A decided request cannot change again (`INVALID_STATE`).
+- **What waits for you.** `GET /approvals?for=me` lists the pending requests the signed-in person may decide.
+  This is what Home shows under **Waiting for you**.
+- **Activity.** Each step is recorded in the task's activity (`approval.requested`, `approval.approved`, …)
+  under whoever took it.
 
 ## Project planning
 

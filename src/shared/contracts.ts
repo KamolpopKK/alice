@@ -463,6 +463,39 @@ export interface TaskContext {
   budget: { maxChars: number; usedChars: number; truncations: Truncation[] }
 }
 
+// ---------- Approval requests (capability `approvals`) ----------
+export const APPROVAL_STATUSES = ['pending', 'approved', 'rejected', 'canceled'] as const
+export type ApprovalStatus = (typeof APPROVAL_STATUSES)[number]
+export const approvalQuestionSchema = z.string().trim().min(1, 'Say what needs approval').max(2000)
+export const requestApprovalInput = z.object({ question: approvalQuestionSchema, requestedOfId: idSchema.nullish() }).strict()
+export const decideApprovalInput = z.object({ note: z.string().trim().max(2000).optional() }).strict()
+export const listApprovalsInput = z
+  .object({
+    status: z.enum(APPROVAL_STATUSES).optional(),
+    taskId: idSchema.optional(),
+    /** `me`: pending requests this person may decide (asked of them, or of anyone). */
+    for: z.literal('me').optional(),
+    limit: limitSchema,
+  })
+  .strict()
+
+/**
+ * A question someone (usually an agent) asks a person before going on with a task. Only people
+ * decide, never the one who asked; when it names a person, only that person or the owner decides.
+ */
+export interface ApprovalRequest {
+  id: string
+  task: TaskRef
+  question: string
+  status: ApprovalStatus
+  requestedBy: ActorRef | null
+  requestedOf: ActorRef | null
+  decidedBy: ActorRef | null
+  decidedAt: string | null
+  note: string | null
+  createdAt: string
+}
+
 // ---------- Relationships ----------
 export const setParentInput = z.object({ parentId: idSchema.nullable() }).strict()
 export const blockerInput = z.object({ blockerId: idSchema }).strict()
