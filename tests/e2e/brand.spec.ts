@@ -72,7 +72,7 @@ test('sign-in, setup and invite greet with the approved line, one logo name and 
   await expect(page.locator('img.mascot')).toHaveCount(0)
 })
 
-test('the header shows mark + wordmark when wide and the mark alone at 720 px, always named Alice', async ({ app, owner, page }) => {
+test('the sidebar shows mark + wordmark when wide and the phone top bar the mark alone, always named Alice', async ({ app, owner, page }) => {
   void owner // server ใหม่ของ worker อาจยังไม่มี owner ให้ sign in
   const { signIn } = await import('./fixtures')
   await page.setViewportSize({ width: 1440, height: 900 })
@@ -80,15 +80,15 @@ test('the header shows mark + wordmark when wide and the mark alone at 720 px, a
   const brand = page.getByRole('link', { name: 'Alice', exact: true })
   await expect(brand).toBeVisible()
   await expect(page.locator('.brand-wordmark')).toBeVisible()
-  const height = await page.locator('.topbar').evaluate((el) => el.getBoundingClientRect().height)
-  expect(height).toBeLessThanOrEqual(56)
   const mark = await page.locator('.brand-mark').boundingBox()
   expect(mark!.height).toBeGreaterThanOrEqual(28)
   expect(mark!.height).toBeLessThanOrEqual(32)
 
   for (const width of [720, 390, 320]) {
     await page.setViewportSize({ width, height: 800 })
-    await expect(page.locator('.brand-wordmark')).toHaveCSS('position', 'absolute')
+    const height = await page.locator('.shell-topbar').evaluate((el) => el.getBoundingClientRect().height)
+    expect(height).toBeLessThanOrEqual(56)
+    await expect(page.locator('.shell-topbar .brand-wordmark')).toHaveCSS('position', 'absolute')
     await expect(brand).toHaveAccessibleName('Alice')
     await noOverflow(page)
   }
@@ -97,8 +97,7 @@ test('the header shows mark + wordmark when wide and the mark alone at 720 px, a
   await brand.focus()
   await expect(brand).toBeFocused()
   await page.keyboard.press('Enter')
-  await expect(page).toHaveURL(`${app.url}/`)
-  await expect(page.getByRole('heading', { name: 'Board' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: /^Good (morning|afternoon|evening), / })).toBeVisible()
 })
 
 test('dark mode swaps the logo variant without filtering the mascot', async ({ app, browser }) => {

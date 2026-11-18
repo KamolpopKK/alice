@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test'
 import type { HttpClient } from '../helpers/client'
 import type { RunningApp } from '../helpers/app'
 import { FakeNativeCore } from './desktop-bridge'
-import { expect, signIn, test } from './fixtures'
+import { expect, signIn, test, accountButton } from './fixtures'
 
 const V1 = '/client/v1'
 const padIds = async (owner: HttpClient) => ((await owner.get(`${V1}/pads?archived=all&limit=200`)).body.items as Array<{ id: string; name: string }>)
@@ -18,14 +18,14 @@ async function desktopSignIn(page: Page, app: RunningApp, owner: HttpClient, nat
   await page.getByRole('button', { name: 'Sign in with browser' }).click()
   await expect(page.getByLabel('Sign-in code')).toHaveText(/^[A-Z]{4}-[A-Z]{4}$/)
   expect((await owner.post('/client/v1/device/approve', { userCode: native.pendingUserCode })).status).toBe(200)
-  await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+  await expect(accountButton(page)).toBeVisible()
 }
 
 test('active-tab shortcuts open the last pad or create exactly one new pad, and can be turned off', async ({ app, owner, page }) => {
   const recent = (await owner.post(`${V1}/pads`, { name: 'Shortcut target' })).body.pad
   await owner.post(`${V1}/pads/${recent.id}/blocks`, { type: 'task', title: 'Already here' })
   await signIn(page, app)
-  await expect(page.getByRole('heading', { name: 'Board' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: /^Good (morning|afternoon|evening), / })).toBeVisible()
   await shortcutsReady(page)
 
   await page.keyboard.press('Alt+Shift+KeyP')

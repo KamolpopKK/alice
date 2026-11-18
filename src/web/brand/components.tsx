@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { LOGOS, MASCOTS, type MascotPose } from './assets'
 import { ALICE_COPY, type AliceCopyKey } from './copy'
+import { useExplicitTheme } from '../ui/theme'
 
 /**
  * The Alice logo. `full` shows the horizontal logo (light/dark variant chosen by the colour scheme,
@@ -8,6 +9,7 @@ import { ALICE_COPY, type AliceCopyKey } from './copy'
  * 720 px and below; the accessible name stays "Alice" in every mode and is announced once.
  */
 export function BrandLogo({ variant = 'full', height = 40 }: { variant?: 'full' | 'compact'; height?: number }) {
+  const explicit = useExplicitTheme()
   if (variant === 'compact') {
     return (
       <span className="brand-logo brand-logo-compact">
@@ -17,6 +19,8 @@ export function BrandLogo({ variant = 'full', height = 40 }: { variant?: 'full' 
     )
   }
   const width = Math.round((LOGOS.light.width / LOGOS.light.height) * height)
+  // ธีมที่เลือกเองชนะ OS; System ปล่อยให้ <picture> เลือกตาม prefers-color-scheme
+  if (explicit) return <img className="brand-logo" src={LOGOS[explicit].src} width={width} height={height} alt="Alice" />
   return (
     <picture className="brand-logo">
       <source srcSet={LOGOS.dark.src} media="(prefers-color-scheme: dark)" />

@@ -1,14 +1,21 @@
 import { useId, useState, type ReactNode, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
 import { ApiError } from '../api'
+import { Avatar, FieldMessage, Spinner } from '../ui'
 
+/**
+ * Label + control for the few forms not yet built from Alice UI fields (auth scene, label entry).
+ * Uses the Alice UI field layout so it looks and reads the same.
+ */
 export function Field({ label, hint, children, id }: { label: string; hint?: ReactNode; children: (id: string) => ReactNode; id?: string }) {
   const generated = useId()
   const fieldId = id ?? generated
   return (
-    <div className="field">
-      <label htmlFor={fieldId}>{label}</label>
+    <div className="field ui-field">
+      <label htmlFor={fieldId} className="ui-field-label">
+        {label}
+      </label>
       {children(fieldId)}
-      {hint && <p className="hint">{hint}</p>}
+      {hint && <p className="hint ui-field-hint">{hint}</p>}
     </div>
   )
 }
@@ -66,22 +73,23 @@ export function Select({ label, hint, children, ...props }: { label: string; hin
   )
 }
 
+/** A failed request, announced at once, in the same form as Alice UI field errors. */
 export function ErrorMessage({ error }: { error: unknown }) {
   if (!error) return null
   const message = error instanceof ApiError ? error.message : error instanceof Error ? error.message : String(error)
-  return (
-    <p className="error" role="alert">
-      {message}
-    </p>
-  )
+  return <FieldMessage tone="error">{message}</FieldMessage>
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-  return <p className="empty">{children}</p>
+  return <p className="empty ui-text-muted">{children}</p>
 }
 
 export function Loading() {
-  return <p className="muted" aria-live="polite">Loading…</p>
+  return (
+    <p className="ui-text-muted loading-line" aria-live="polite">
+      <Spinner size="sm" /> Loading…
+    </p>
+  )
 }
 
 export function formatDate(iso: string | null | undefined, withTime = true): string {
@@ -91,13 +99,12 @@ export function formatDate(iso: string | null | undefined, withTime = true): str
   return withTime ? d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : d.toLocaleDateString(undefined, { dateStyle: 'medium', timeZone: 'UTC' })
 }
 
+/** A person or agent named inline; agents read as "(agent)" and get the square avatar. */
 export function ActorBadge({ actor }: { actor: { kind: 'human' | 'agent'; displayName: string } | null | undefined }) {
-  if (!actor) return <span className="muted">System</span>
+  if (!actor) return <span className="ui-text-muted">System</span>
   return (
     <span className={`actor actor-${actor.kind}`} title={actor.kind === 'agent' ? 'AI agent' : 'Human'}>
-      <span className="actor-kind" aria-hidden="true">
-        {actor.kind === 'agent' ? 'AI' : actor.displayName.slice(0, 1).toUpperCase()}
-      </span>
+      <Avatar name={actor.displayName} kind={actor.kind} size="sm" />
       {actor.displayName}
       {actor.kind === 'agent' && <span className="sr-only"> (agent)</span>}
     </span>

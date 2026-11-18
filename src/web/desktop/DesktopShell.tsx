@@ -4,9 +4,11 @@ import { useNavigate } from 'react-router-dom'
 import { setTransport } from '../api'
 import { ErrorMessage, Loading, TextInput } from '../components/ui'
 import { isNativeError, native, workspaceLabel, type AuthEvent, type ConnectionTest, type DesktopProfile, type ProfilesView } from './native'
-import { AgentsSection, LocalRecovery, LocalWorkspacesSection, Onboarding } from './LocalScreens'
+import { AgentsSection, LocalRecovery, LocalWorkspacesSection, Onboarding, onboardingPending, remoteOnboardingPending } from './LocalScreens'
 import { LocalWorkspaceContext } from '../workspace-mode'
+import { ShellWorkspaceContext, type ShellWorkspace } from '../shell/workspace'
 import { TauriTransport } from './transport'
+import { Button } from '../ui'
 
 type Phase =
   | { kind: 'loading' }
@@ -16,7 +18,7 @@ type Phase =
   | { kind: 'incompatible'; profile: DesktopProfile; test: ConnectionTest }
   | { kind: 'sign-in'; profile: DesktopProfile }
   | { kind: 'ready'; profile: DesktopProfile }
-  | { kind: 'onboarding' }
+  | { kind: 'onboarding'; connected?: boolean }
   | { kind: 'local-failed'; profile: DesktopProfile; message: string; code: string | null }
 
 function messageOf(err: unknown): string {
@@ -69,6 +71,8 @@ export function DesktopShell({ children }: { children: ReactNode }) {
     const active = v.profiles.find((p) => p.active)
     // ครั้งแรกที่ไม่มีอะไรเลย: Local เป็นค่าเริ่มต้น (ไม่ถาม URL หรือ sign-in)
     if (!active) return setPhase(v.localAvailable && v.profiles.length === 0 ? { kind: 'onboarding' } : { kind: 'profiles' })
+    // workspace ถูกตั้งแล้วแต่ยังไม่ถึงงานแรก (ปิดแอประหว่างทาง): กลับไปขั้นสุดท้ายของ onboarding
+    if (active.local && onboardingPending()) return setPhase({ kind: 'onboarding' })
     // เปลี่ยน workspace = เปลี่ยนข้อมูลและตัวตน: ล้าง cache และตำแหน่งหน้าเดิมก่อนแสดงข้อมูลใหม่
     qc.clear()
     const previous = lastActive.current
@@ -89,6 +93,8 @@ export function DesktopShell({ children }: { children: ReactNode }) {
       if (active.local) return setPhase({ kind: 'local-failed', profile: active, message: messageOf(err), code: isNativeError(err) ? err.code : null })
       return setPhase({ kind: 'unreachable', profile: active, message: messageOf(err) })
     }
+    // เลือก server ของทีมระหว่าง onboarding แล้ว sign in สำเร็จ: กลับเข้า onboarding ขั้นต่อไป
+    if (active.signedIn && !active.local && remoteOnboardingPending()) return setPhase({ kind: 'onboarding', connected: true })
     setPhase(active.signedIn ? { kind: 'ready', profile: active } : { kind: 'sign-in', profile: active })
   }, [qc])
 
@@ -148,9 +154,9 @@ export function DesktopShell({ children }: { children: ReactNode }) {
   const notice = linkNotice && (
     <div className="disconnected-banner" role="alert">
       {linkNotice}{' '}
-      <button type="button" className="link" onClick={() => setLinkNotice(null)}>
+      <Button variant="ghost" size="sm" onClick={() => setLinkNotice(null)}>
         Dismiss
-      </button>
+      </Button>
     </div>
   )
   if (phase.kind === 'onboarding') {
@@ -158,10 +164,12 @@ export function DesktopShell({ children }: { children: ReactNode }) {
       <Onboarding
         onBegin={() => (onboarding.current = true)}
         onFail={() => (onboarding.current = false)}
+        connected={phase.connected === true}
+        onRemote={() => setPhase({ kind: 'profiles' })}
         onFinish={() => {
           onboarding.current = false
-          // จบ onboarding ใน Task Pad ใหม่ที่โฟกัสบรรทัดแรก
-          void evaluate().then(() => navigate('/pads', { state: { capture: { id: `onboarding-${Date.now()}`, intent: 'new-pad' } } }))
+          // งานแรกใน Task Pad ใหม่ที่โฟกัสบรรทัดแรก แล้ว Pad พาไปที่ Home ที่เห็นงานนั้น
+          void evaluate().then(() => navigate('/pads', { state: { capture: { id: `onboarding-${Date.now()}`, intent: 'new-pad', onboarding: true } } }))
         }}
         applyTools={async (tools) => {
           if (tools.cli || tools.codex || tools.claude) await native.toolsApply(tools)
@@ -184,7 +192,8 @@ export function DesktopShell({ children }: { children: ReactNode }) {
   }
   return (
     <div className="desktop">
-      {profile && <ProfileBar profile={profile} onManage={() => setManaging(true)} />}
+      {/* เมื่อพร้อมใช้งาน แถบ workspace อยู่บนสุดของ sidebar ใน shell แทน */}
+      {profile && phase.kind !== 'ready' && <ProfileBar profile={profile} onManage={() => setManaging(true)} />}
       {notice}
       {phase.kind === 'loading' || phase.kind === 'checking' ? (
         <main className="page narrow">
@@ -195,12 +204,12 @@ export function DesktopShell({ children }: { children: ReactNode }) {
           <p>{phase.message}</p>
           <p className="muted">Nothing is shown until {phase.profile.server} answers. Alice Desktop keeps no offline copy.</p>
           <div className="row">
-            <button className="primary" type="button" onClick={() => void evaluate()}>
+            <Button variant="primary" onClick={() => void evaluate()}>
               Try again
-            </button>
-            <button type="button" onClick={() => setManaging(true)}>
+            </Button>
+            <Button onClick={() => setManaging(true)}>
               Choose another server
-            </button>
+            </Button>
           </div>
         </StateCard>
       ) : phase.kind === 'incompatible' ? (
@@ -215,7 +224,9 @@ export function DesktopShell({ children }: { children: ReactNode }) {
       ) : phase.kind === 'sign-in' ? (
         <SignInScreen profile={phase.profile} />
       ) : (
-        <LocalWorkspaceContext.Provider value={phase.kind === 'ready' && !!phase.profile.local}>{children}</LocalWorkspaceContext.Provider>
+        <LocalWorkspaceContext.Provider value={phase.kind === 'ready' && !!phase.profile.local}>
+          <ShellWorkspaceContext.Provider value={profile ? shellWorkspace(profile, () => setManaging(true)) : null}>{children}</ShellWorkspaceContext.Provider>
+        </LocalWorkspaceContext.Provider>
       )}
     </div>
   )
@@ -232,6 +243,12 @@ function StateCard({ title, tone, children }: { title: string; tone?: 'warning';
   )
 }
 
+function shellWorkspace(profile: DesktopProfile, onSwitch: () => void): ShellWorkspace {
+  if (profile.local) return { name: workspaceLabel(profile), kind: 'local', detail: `${profile.local.alias} · on this computer`, onSwitch }
+  const detail = profile.session ? `${profile.server} · ${profile.session.actorName}` : profile.server
+  return { name: profile.name, kind: 'remote', detail, insecure: profile.insecure, onSwitch }
+}
+
 function ProfileBar({ profile, onManage }: { profile: DesktopProfile; onManage: () => void }) {
   if (profile.local) {
     return (
@@ -239,9 +256,9 @@ function ProfileBar({ profile, onManage }: { profile: DesktopProfile; onManage: 
         <span>
           <strong>{workspaceLabel(profile)}</strong> <span className="pill">Local</span> <span className="muted small">{profile.local.alias} · on this computer</span>
         </span>
-        <button type="button" className="link" onClick={onManage}>
+        <Button variant="ghost" size="sm" onClick={onManage}>
           Switch workspace
-        </button>
+        </Button>
       </div>
     )
   }
@@ -256,9 +273,9 @@ function ProfileBar({ profile, onManage }: { profile: DesktopProfile; onManage: 
           Unencrypted HTTP — development only
         </span>
       )}
-      <button type="button" className="link" onClick={onManage}>
+      <Button variant="ghost" size="sm" onClick={onManage}>
         Switch server
-      </button>
+      </Button>
     </div>
   )
 }
@@ -303,16 +320,16 @@ function SignInScreen({ profile }: { profile: DesktopProfile }) {
             If no browser opened, visit <a href={pending.verificationUri}>{pending.verificationUri}</a>
           </p>
           <div className="row">
-            <button type="button" onClick={() => void native.loginCancel()}>
+            <Button onClick={() => void native.loginCancel()}>
               Cancel
-            </button>
+            </Button>
           </div>
         </>
       ) : (
         <div className="row">
-          <button className="primary" type="button" onClick={() => void start()}>
+          <Button variant="primary" onClick={() => void start()}>
             Sign in with browser
-          </button>
+          </Button>
         </div>
       )}
       {error && <p className="error" role="alert">{error}</p>}
@@ -365,16 +382,16 @@ function ProfilesScreen({ view, onDone, canClose, onChanged }: { view: ProfilesV
                 </div>
                 <div className="row">
                   {!p.active && (
-                    <button type="button" onClick={() => void run(() => native.useProfile(p.name))}>
+                    <Button onClick={() => void run(() => native.useProfile(p.name))}>
                       Use
-                    </button>
+                    </Button>
                   )}
-                  <button type="button" onClick={() => void test(p)}>
+                  <Button onClick={() => void test(p)}>
                     Test
-                  </button>
-                  <button type="button" onClick={() => void run(() => native.removeProfile(p.name))} aria-label={`Remove ${p.name}`}>
+                  </Button>
+                  <Button onClick={() => void run(() => native.removeProfile(p.name))} aria-label={`Remove ${p.name}`}>
                     Remove
-                  </button>
+                  </Button>
                 </div>
               </li>
             ))}
@@ -402,13 +419,13 @@ function ProfilesScreen({ view, onDone, canClose, onChanged }: { view: ProfilesV
         </label>
         <ErrorMessage error={error} />
         <div className="row">
-          <button className="primary" type="submit">
+          <Button variant="primary" type="submit">
             Add server
-          </button>
+          </Button>
           {canClose && (
-            <button type="button" onClick={onDone}>
+            <Button onClick={onDone}>
               Done
-            </button>
+            </Button>
           )}
         </div>
       </form>
@@ -437,16 +454,16 @@ function UpdateCheck() {
   return (
     <span role="status">
       {status ?? (
-        <button type="button" className="link" onClick={() => void check()}>
+        <Button variant="ghost" size="sm" onClick={() => void check()}>
           Check for updates
-        </button>
+        </Button>
       )}
       {installable && (
         <>
           {' '}
-          <button type="button" className="link" onClick={() => void native.updateInstall().catch((e) => setStatus(messageOf(e)))}>
+          <Button variant="ghost" size="sm" onClick={() => void native.updateInstall().catch((e) => setStatus(messageOf(e)))}>
             Install and restart
-          </button>
+          </Button>
         </>
       )}
     </span>

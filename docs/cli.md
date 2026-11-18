@@ -114,6 +114,7 @@ alice task claim tsk_…               # ready + unassigned → in progress, ass
 alice task comment tsk_… --body-file notes.md
 alice task complete tsk_… --summary "Flows approved"
 alice task block tsk_A --by tsk_B && alice task relations tsk_A
+alice task ask tsk_… --question "Deploy tonight?" --of mia   # someone else decides; see `task approval apr_…`
 alice doc create --title "Design notes" --body-file design.md --task tsk_…
 alice doc show doc_… --body-only > design.md      # raw Markdown, byte for byte
 alice doc restore-revision doc_… 1 --yes

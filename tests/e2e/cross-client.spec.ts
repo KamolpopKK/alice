@@ -1,3 +1,4 @@
+import { accountButton } from './fixtures'
 import fs from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
 import { startApp, type RunningApp } from '../helpers/app'
@@ -52,7 +53,7 @@ test('Web, CLI, Desktop and an MCP agent tell the same story on one board', asyn
   await page.getByLabel('Username').fill(OWNER.username)
   await page.getByLabel('Password', { exact: true }).fill(OWNER.password)
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+  await expect(accountButton(page)).toBeVisible()
   await page.goto(`${app.url}/projects`)
   await page.getByRole('button', { name: 'New project' }).click()
   await page.getByLabel('Project name').fill('Launch')

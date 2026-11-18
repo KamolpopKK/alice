@@ -1,3 +1,4 @@
+import { markWhatsNewSeen } from '../whats-new'
 import { useState, type FormEvent } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -98,6 +99,8 @@ export function SetupPage() {
   const { submit, error, busy } = useSubmit(
     () => client.auth.bootstrap({ bootstrapToken, username, displayName, password }),
     async () => {
+      // บัญชีใหม่บนอุปกรณ์นี้: ไม่ต้องบอกว่าอะไรเปลี่ยนไป
+      markWhatsNewSeen()
       await refresh()
       navigate('/')
     },
@@ -134,6 +137,8 @@ export function InvitePage() {
   const { submit, error, busy } = useSubmit(
     () => client.invites.accept({ token, username, displayName, password }),
     async () => {
+      // บัญชีใหม่บนอุปกรณ์นี้: ไม่ต้องบอกว่าอะไรเปลี่ยนไป
+      markWhatsNewSeen()
       await refresh()
       navigate('/')
     },

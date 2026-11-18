@@ -2,7 +2,7 @@
 
 Each agent gets its own identity and token so every change it makes is attributed to it.
 
-The quickest way is the **For agent** page in the Alice dashboard (`/for-agent`, visible to every signed-in person).
+The quickest way is the **Agents** page in the Alice dashboard (`/agents`, visible to every signed-in person; the old `/for-agent` link still opens it).
 Pick Claude Code or Codex and either follow the steps, which already contain your server URL, or copy the setup
 prompt into your agent. The agent downloads and checks the tools, installs the skills and the MCP connection, then
 stops so that you place the token yourself with a command that reads it without echoing it
@@ -12,7 +12,7 @@ The page and the prompt never ask for, show or store a token. Their text comes f
 
 To do it by hand:
 
-1. In Alice, open **Admin → Agents**, create an agent and copy its token (shown once).
+1. In Alice, open **Settings › Administration** (workspace owner), create an agent and copy its token (shown once).
 2. Store the token outside your repository: an environment variable (`ALICE_TOKEN`) or a private
    file (`ALICE_TOKEN_FILE`, mode `0600`). Never commit it.
 3. Install the skills and configure MCP for your client as below.
@@ -54,7 +54,7 @@ chmod +x ~/.local/bin/alice ~/.local/bin/alice-mcp-stdio
 
 ## Claude Code
 
-The recommended setup (the one the For agent page uses) runs the stdio adapter, which reads the token
+The recommended setup (the one the Agents page uses) runs the stdio adapter, which reads the token
 from a file every time it connects:
 
 ```bash
@@ -103,7 +103,7 @@ mismatch it exits with code 2 and a message explaining what to fix. Tokens are n
 
 ## Updating after a server upgrade
 
-The **Keep it up to date** section of the For agent page has an update prompt and the same steps by hand:
+The **Keep it up to date** section of the Agents page has an update prompt and the same steps by hand:
 
 ```bash
 alice version                                                   # installed CLI, adapter and skills
@@ -171,4 +171,4 @@ The skills then call `alice --as codex …` with `--json`:
 Updating Alice Desktop refreshes the skills of enabled agents and leaves disabled ones alone.
 `alice doctor --repair` reinstalls missing or outdated skill files.
 
-The Remote setup on the **For agent** page (MCP, the stdio adapter and downloads) is unchanged.
+The Remote setup on the **Agents** page (MCP, the stdio adapter and downloads) is unchanged.

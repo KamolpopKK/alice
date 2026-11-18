@@ -19,7 +19,7 @@ validation, actor attribution, activity history and live invalidation are identi
   "serverVersion": "0.2.0",
   "publicUrl": "https://alice.example.com",
   "clientApi": { "current": 1, "minimum": 1, "prefix": "/client/v1" },
-  "capabilities": ["projects", "tasks", "documents", "comments", "relationships", "activity", "search", "admin", "idempotency", "events.resume", "device-auth", "client-sessions", "task-pads"],
+  "capabilities": ["projects", "tasks", "documents", "comments", "relationships", "activity", "search", "admin", "idempotency", "events.resume", "device-auth", "client-sessions", "task-pads", "saved-views", "project-planning", "approvals"],
   "events": { "retentionHours": 24, "maxReplay": 1000 }
 }
 ```
@@ -54,12 +54,15 @@ All routes are below `/client/v1`. Bodies and queries use the shared zod schemas
 | Invites (owner) | `GET/POST /invites`, `POST /invites/:id/revoke`, `POST /invites/check`, `POST /invites/accept` |
 | Actors and agents | `GET /actors`; owner only: `GET/POST /agents`, `POST /agents/:id/tokens`, `POST /agents/:id/deactivate`, `POST /agent-tokens/:id/rotate`, `POST /agent-tokens/:id/revoke` |
 | Projects | `GET/POST /projects`, `GET/PATCH /projects/:id`, `POST /projects/:id/archive`, `POST /projects/:id/restore` |
+| Approvals | `GET /approvals?status=&taskId=&for=me`, `GET /approvals/:id`, `POST /tasks/:id/approvals`, `POST /approvals/:id/approve\|reject\|cancel`; see [Approval requests](#approval-requests) |
+| Project planning | `GET /projects/:id/members`, `PUT/DELETE /projects/:id/members/:actorId`, `GET/POST /projects/:id/milestones`, `PATCH/DELETE /milestones/:id`, `GET /projects/:id/progress`; see [Project planning](#project-planning) |
 | Tasks | `GET/POST /tasks`, `GET/PATCH /tasks/:id`, `POST /tasks/:id/claim`, `POST /tasks/:id/archive`, `POST /tasks/:id/restore`, `GET /tasks/:id/activity` |
 | Discussion | `GET/POST /tasks/:id/comments`, `POST /tasks/:id/complete`, `GET /tasks/:id/context` |
 | Relationships | `GET /tasks/:id/relations`, `PUT /tasks/:id/parent`, `POST /tasks/:id/blockers`, `DELETE /tasks/:id/blockers/:blockerId` |
 | Documents | `GET/POST /documents`, `GET/PATCH /documents/:id`, `POST /documents/:id/archive`, `POST /documents/:id/restore`, `GET /documents/:id/revisions`, `POST /documents/:id/revisions/:n/restore`, `POST/DELETE /documents/:id/links`, `GET /documents/:id/activity` |
 | Workspace | `GET /board`, `GET /search`, `GET /activity`, `GET /events` |
 | Task Pads (owner only) | See [Task Pads](#task-pads) |
+| Saved views (owner only) | `GET/POST /saved-views`, `DELETE /saved-views/:id`; see [Saved views](#saved-views) |
 
 Lists use keyset pagination: `{ items, nextCursor }`. Pass `cursor=<nextCursor>` until it is `null`. `limit`
 is between 1 and 200. Resource ids are opaque server-generated strings; client-supplied ids are never accepted.
@@ -108,6 +111,63 @@ Other actors never see these positions; their streams simply skip them.
 Resume with `Last-Event-ID: <position>` (EventSource sends this automatically) or `?after=<position>`. The
 header wins when both are present. Positions are kept for `ALICE_CLIENT_EVENT_RETENTION_HOURS` (default 24).
 They live in the database, so they survive a server restart.
+
+## Approval requests
+
+Capability `approvals`. Before going on with a task, someone (usually an agent) can ask a person to approve
+something.
+
+- **Asking.** `POST /tasks/:id/approvals` takes `{ question, requestedOfId? }`.
+  - `requestedOfId` names one active person.
+  - Without it, anyone may decide.
+  - Archived tasks answer `INVALID_STATE`.
+- **Deciding.** `POST /approvals/:id/approve` and `POST /approvals/:id/reject` take an optional `{ note }`.
+  - Only people decide.
+  - The one who asked never decides.
+  - A request that names a person can be decided by that person or the workspace owner.
+- **Withdrawing.** `POST /approvals/:id/cancel` withdraws a pending request; only the one who asked can do this.
+- **After a decision.** A decided request cannot change again (`INVALID_STATE`).
+- **What waits for you.** `GET /approvals?for=me` lists the pending requests the signed-in person may decide.
+  This is what Home shows under **Waiting for you**.
+- **Activity.** Each step is recorded in the task's activity (`approval.requested`, `approval.approved`, …)
+  under whoever took it.
+
+## Project planning
+
+Capability `project-planning`. These routes add planning to projects without changing access.
+
+- **Dates.** `PATCH /projects/:id` also accepts `startDate` and `targetDate` as `YYYY-MM-DD`; `null` clears a
+  date. The target cannot be before the start (`VALIDATION_ERROR`).
+- **Members.** `PUT` and `DELETE /projects/:id/members/:actorId` add or remove a person or an agent. Membership
+  is informational: every workspace member can still see and change every project. Both answer `{ members,
+  changed }`, with `changed: false` when nothing needed to change. A deactivated account cannot be added.
+- **Milestones.**
+  - `POST /projects/:id/milestones` takes `{ title, dueDate? }`.
+  - `PATCH /milestones/:id` takes `{ title?, dueDate?, completed? }`; `completed: false` reopens.
+  - Lists come in date order, with undated milestones last.
+- **Progress.** `GET /projects/:id/progress` returns `{ total, done, canceled, open }` for tasks that are not
+  archived.
+- **Archived projects.** Changes to the members or milestones of an archived project answer `INVALID_STATE`.
+
+Every change is recorded in activity on the project (`project.member_added`, `project.milestone_completed`, …)
+with the person or agent who made it. Agents read the plan with the MCP tool `get_project_plan` and set
+dates with `update_project`.
+
+## Saved views
+
+Capability `saved-views`. A saved view is one person's named Tasks view: the view (`my-work`, `board` or
+`list`) and the rest of the Tasks query string (filters, search, sort). Views are private to the human who
+saved them and exist only under `/client/v1`; agents cannot use them, and they never appear in activity or
+search. Changes notify only the owner's own sessions (`saved_view` events).
+
+| Route | Purpose |
+|---|---|
+| `GET /saved-views` | The signed-in person's views, sorted by name. |
+| `POST /saved-views` | `{ name, view, query? }`. A view with the same name is replaced, so a name always means one view. |
+| `DELETE /saved-views/:id` | Removes one of your views. Another person's id answers exactly like an unknown id (`404 NOT_FOUND`). |
+
+Older servers without the capability keep saved views in the browser instead; the web app moves them to the
+server the first time it connects to one that supports them.
 
 ## Task Pads
 

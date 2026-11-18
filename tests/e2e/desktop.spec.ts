@@ -1,6 +1,6 @@
 import http from 'node:http'
 import { FakeNativeCore } from './desktop-bridge'
-import { expect, test } from './fixtures'
+import { expect, test, accountButton } from './fixtures'
 
 test.describe('Alice Desktop UI (production build in a native-bridge harness)', () => {
   test('adds a profile, signs in through the browser and keeps credentials out of the WebView', async ({ app, owner, page }) => {
@@ -26,7 +26,7 @@ test.describe('Alice Desktop UI (production build in a native-bridge harness)', 
     const approved = await owner.post('/client/v1/device/approve', { userCode: native.pendingUserCode })
     expect(approved.status).toBe(200)
 
-    await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+    await expect(accountButton(page)).toBeVisible()
     await page.goto(`${app.url}/tasks/new`)
     await page.getByLabel('Title').fill('Made in Desktop')
     await page.getByRole('button', { name: 'Create task' }).click()
@@ -81,7 +81,7 @@ test('external links open through the native opener and revocation returns to si
   await page.getByRole('button', { name: 'Sign in with browser' }).click()
   await expect(page.getByLabel('Sign-in code')).toBeVisible()
   await owner.post('/client/v1/device/approve', { userCode: native.pendingUserCode })
-  await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+  await expect(accountButton(page)).toBeVisible()
 
   await page.goto(`${app.url}/documents/${doc.id}`)
   await page.getByRole('link', { name: 'the spec' }).click()
@@ -103,7 +103,7 @@ async function signedInDesktop(app: { url: string }, owner: import('../helpers/c
   await page.getByRole('button', { name: 'Sign in with browser' }).click()
   await expect(page.getByLabel('Sign-in code')).toBeVisible()
   await owner.post('/client/v1/device/approve', { userCode: native.pendingUserCode })
-  await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+  await expect(accountButton(page)).toBeVisible()
   return native
 }
 
@@ -111,7 +111,7 @@ test('Desktop runs the human workflow and sees agent and other-client changes li
   const { createAgent } = await import('../helpers/client')
   const { connectMcp } = await import('../helpers/mcp')
   await signedInDesktop(app, owner, page)
-  await expect(page.getByText('Live updates on')).toBeAttached()
+  await expect(page.locator('[data-live="live"]')).toContainText('Connected')
 
   await page.goto(`${app.url}/projects`)
   await page.getByRole('button', { name: 'New project' }).click()

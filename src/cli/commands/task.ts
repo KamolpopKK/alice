@@ -21,6 +21,8 @@ export const TASK_HELP = `Usage: alice task <command>
   archive ID [--yes]               restore ID
   parent ID PARENT_ID|none         block ID --by BLOCKER_ID     unblock ID --by BLOCKER_ID
   relations ID                     activity ID [--limit N | --all]
+  ask ID --question TEXT [--of PERSON]   ask a person to approve before you go on
+  approvals ID                     approval APPROVAL_ID          withdraw APPROVAL_ID
 
 Statuses: ${TASK_STATUSES.join(', ')}. Priorities: ${TASK_PRIORITIES.join(', ')}.`
 
@@ -230,6 +232,40 @@ export async function taskCommand(ctx: CliContext, args: string[]): Promise<numb
       if (body === undefined) throw new CliError('--body or --body-file is required')
       const res = await client().tasks.comment(requireId(positionals[0], 'Task'), body)
       out.value(res.comment, () => out.line(`Commented on ${res.comment.taskId} (${res.comment.id})`))
+      return 0
+    }
+    case 'ask': {
+      const { values, positionals } = parseCommand(rest, { question: { type: 'string' }, of: { type: 'string' } }, 1)
+      if (!values.question?.trim()) throw new CliError('--question is required')
+      const c = client()
+      const requestedOfId = values.of ? await resolveActor(c, values.of) : undefined
+      const res = await c.approvals.request(requireId(positionals[0], 'Task'), { question: values.question, ...(requestedOfId ? { requestedOfId } : {}) })
+      out.value(res.approval, () => out.line(`Asked for approval (${res.approval.id}); waiting for ${res.approval.requestedOf?.displayName ?? 'anyone'} to decide`))
+      return 0
+    }
+    case 'approvals': {
+      const { positionals } = parseCommand(rest, {}, 1)
+      const items = await client().approvals.list({ taskId: requireId(positionals[0], 'Task') })
+      out.list(items, [
+        { header: 'ID', value: (a) => a.id },
+        { header: 'STATUS', value: (a) => a.status },
+        { header: 'ASKED BY', value: (a) => a.requestedBy?.displayName ?? '', max: 20 },
+        { header: 'DECIDED BY', value: (a) => a.decidedBy?.displayName ?? '', max: 20 },
+        { header: 'QUESTION', value: (a) => a.question, max: 50 },
+        { header: 'NOTE', value: (a) => a.note ?? '', max: 40 },
+      ], 'No approval requests.')
+      return 0
+    }
+    case 'approval': {
+      const { positionals } = parseCommand(rest, {}, 1)
+      const found = await client().approvals.get(requireId(positionals[0], 'Approval request'))
+      out.value(found, () => out.line(`${found.id}: ${found.status}${found.decidedBy ? ` by ${found.decidedBy.displayName}` : ''}${found.note ? ` — ${found.note}` : ''}`))
+      return 0
+    }
+    case 'withdraw': {
+      const { positionals } = parseCommand(rest, {}, 1)
+      const res = await client().approvals.cancel(requireId(positionals[0], 'Approval request'))
+      out.value(res.approval, () => out.line(`Withdrew ${res.approval.id}`))
       return 0
     }
     case 'comments': {

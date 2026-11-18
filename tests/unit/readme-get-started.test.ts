@@ -21,7 +21,7 @@ describe('README Get started', () => {
     expect(readme.indexOf('## Project documentation')).toBeGreaterThan(start)
     const paths = [...readme.slice(start).matchAll(/^### (\d)\. (.+)$/gm)].map((m) => m[1])
     expect(paths.slice(0, 3)).toEqual(['1', '2', '3'])
-    for (const text of ['Apple Silicon', 'not notarized', 'Open Anyway', 'SmartScreen', 'For agent']) expect(readme).toContain(text)
+    for (const text of ['Apple Silicon', 'not notarized', 'Open Anyway', 'SmartScreen', 'Agents']) expect(readme).toContain(text)
   })
 
   it('downloads only fixed-name assets that the release workflow publishes', () => {

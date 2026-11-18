@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { STATUS_LABELS, type ActivityEvent, type TaskStatus } from '../../shared/contracts'
-import { ActorBadge, formatDate } from './ui'
+import { formatDate } from './ui'
+import { Avatar, Badge } from '../ui'
 
 const FIELD_LABELS: Record<string, string> = {
   title: 'title',
@@ -15,6 +16,8 @@ const FIELD_LABELS: Record<string, string> = {
   body: 'body',
   sourceUrl: 'source URL',
   parentId: 'parent',
+  startDate: 'start date',
+  targetDate: 'target date',
 }
 
 function describeValue(field: string, value: unknown): string {
@@ -26,7 +29,23 @@ function describeValue(field: string, value: unknown): string {
   return text.length > 60 ? `${text.slice(0, 57)}…` : text
 }
 
+const PLAN_VERBS: Record<string, (d: Record<string, unknown>) => string> = {
+  'project.member_added': (d) => `added ${String(d.memberName)} to the project`,
+  'project.member_removed': (d) => `removed ${String(d.memberName)} from the project`,
+  'project.milestone_added': (d) => `added milestone “${String(d.title)}”`,
+  'project.milestone_updated': (d) => `changed milestone “${String(d.title)}”`,
+  'project.milestone_completed': (d) => `completed milestone “${String(d.title)}”`,
+  'project.milestone_reopened': (d) => `reopened milestone “${String(d.title)}”`,
+  'project.milestone_removed': (d) => `removed milestone “${String(d.title)}”`,
+  'approval.requested': (d) => `asked for approval: “${String(d.question)}”`,
+  'approval.approved': (d) => `approved “${String(d.question)}”${d.note ? ` (${String(d.note)})` : ''}`,
+  'approval.rejected': (d) => `rejected “${String(d.question)}”${d.note ? ` (${String(d.note)})` : ''}`,
+  'approval.canceled': (d) => `withdrew the approval request “${String(d.question)}”`,
+}
+
 export function describeActivity(event: ActivityEvent): string {
+  const plan = PLAN_VERBS[event.verb]
+  if (plan) return plan(event.data)
   const changes = event.data.changes as Record<string, { from: unknown; to: unknown }> | undefined
   if (changes && Object.keys(changes).length) {
     const parts = Object.entries(changes).map(([field, c]) => {
@@ -59,26 +78,43 @@ export function resourceLink(event: ActivityEvent): string | null {
   }
 }
 
+const RESOURCE_LABEL: Record<string, string> = { task: 'task', project: 'project', document: 'document' }
+
+/**
+ * Who did what, newest first. People and agents are told apart by text ("Agent") and avatar shape,
+ * never by colour alone; each event links to what it changed when that still exists.
+ */
 export function ActivityList({ events, showResource = false }: { events: ActivityEvent[]; showResource?: boolean }) {
-  if (events.length === 0) return <p className="muted">No activity yet.</p>
+  if (events.length === 0) return <p className="ui-text-muted">No activity yet.</p>
   return (
-    <ol className="activity">
+    <ol className="activity-list">
       {events.map((e) => {
         const link = showResource ? resourceLink(e) : null
+        const agent = e.actor?.kind === 'agent'
         return (
-          <li key={e.id}>
-            <ActorBadge actor={e.actor} /> <span>{describeActivity(e)}</span>
-            {link && (
-              <>
-                {' '}
-                <Link to={link} className="small">
-                  open {e.resourceType}
-                </Link>
-              </>
-            )}
-            <time className="muted small" dateTime={e.createdAt}>
-              {formatDate(e.createdAt)}
-            </time>
+          <li key={e.id} className="activity-item">
+            <Avatar name={e.actor?.displayName ?? 'System'} kind={agent ? 'agent' : 'human'} size="sm" />
+            <div className="activity-body">
+              <p className="activity-text">
+                <strong>{e.actor?.displayName ?? 'System'}</strong>
+                {agent && (
+                  <>
+                    {' '}
+                    <Badge tone="agent">Agent</Badge>
+                  </>
+                )}{' '}
+                {describeActivity(e)}
+                {link && (
+                  <>
+                    {' '}
+                    <Link to={link}>Open {RESOURCE_LABEL[e.resourceType] ?? e.resourceType}</Link>
+                  </>
+                )}
+              </p>
+              <time className="activity-time" dateTime={e.createdAt}>
+                {formatDate(e.createdAt)}
+              </time>
+            </div>
           </li>
         )
       })}

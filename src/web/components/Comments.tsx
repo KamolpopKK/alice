@@ -3,7 +3,8 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import type { Comment, Page, Task } from '../../shared/contracts'
 import { client } from '../api'
 import { Markdown } from './Markdown'
-import { ActorBadge, ErrorMessage, Field, Loading, formatDate } from './ui'
+import { ActorBadge, ErrorMessage, formatDate } from './ui'
+import { Badge, Button, Skeleton, TextArea } from '../ui'
 
 export function Comments({ task }: { task: Task }) {
   const qc = useQueryClient()
@@ -23,16 +24,18 @@ export function Comments({ task }: { task: Task }) {
   })
   const comments = query.data?.pages.flatMap((p) => p.items) ?? []
   return (
-    <section className="section" aria-labelledby="comments-heading">
-      <h2 id="comments-heading">Comments</h2>
-      {query.isLoading && <Loading />}
-      {comments.length === 0 && !query.isLoading && <p className="muted">No comments yet.</p>}
+    <section className="task-section" aria-labelledby={`comments-${task.id}`}>
+      <h2 id={`comments-${task.id}`} className="task-section-title">
+        Comments
+      </h2>
+      {query.isLoading && <Skeleton lines={2} />}
+      {comments.length === 0 && !query.isLoading && <p className="ui-text-muted">No comments yet.</p>}
       <ol className="comments">
         {comments.map((c) => (
           <li key={c.id} id={`comment-${c.id}`} className={c.kind === 'completion_summary' ? 'comment completion' : 'comment'}>
             <div className="comment-head small">
               <ActorBadge actor={c.author} />
-              {c.kind === 'completion_summary' && <span className="pill pill-done">completion summary</span>}
+              {c.kind === 'completion_summary' && <Badge tone="success">completion summary</Badge>}
               <time className="muted" dateTime={c.createdAt}>
                 {formatDate(c.createdAt)}
               </time>
@@ -42,12 +45,12 @@ export function Comments({ task }: { task: Task }) {
         ))}
       </ol>
       {query.hasNextPage && (
-        <button type="button" onClick={() => void query.fetchNextPage()}>
+        <Button size="sm" loading={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
           Load more comments
-        </button>
+        </Button>
       )}
       {task.archivedAt ? (
-        <p className="muted small">Restore the task to comment.</p>
+        <p className="ui-text-muted">Restore the task to comment.</p>
       ) : (
         <form
           className="stack"
@@ -56,25 +59,21 @@ export function Comments({ task }: { task: Task }) {
             if (body.trim()) add.mutate()
           }}
         >
-          <Field label="Add a comment">
-            {(id) => (
-              <textarea
-                id={id}
-                value={body}
-                rows={3}
-                onChange={(e) => setBody(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && body.trim()) add.mutate()
-                }}
-              />
-            )}
-          </Field>
+          <TextArea
+            label="Add a comment"
+            hint="Markdown supported · Ctrl/⌘+Enter to send"
+            value={body}
+            rows={3}
+            onChange={(e) => setBody(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && body.trim()) add.mutate()
+            }}
+          />
           <ErrorMessage error={add.error} />
-          <div className="row">
-            <button className="primary" type="submit" disabled={add.isPending || !body.trim()}>
+          <div className="task-edit-actions">
+            <Button variant="primary" type="submit" loading={add.isPending} disabled={!body.trim()}>
               Comment
-            </button>
-            <span className="muted small">Markdown supported · Ctrl/⌘+Enter to send</span>
+            </Button>
           </div>
         </form>
       )}
@@ -100,9 +99,9 @@ export function CompleteTask({ task }: { task: Task }) {
   return (
     <div className="stack">
       {!open ? (
-        <button type="button" className="primary" onClick={() => setOpen(true)}>
+        <Button variant="primary" onClick={() => setOpen(true)}>
           Complete task…
-        </button>
+        </Button>
       ) : (
         <form
           className="stack"
@@ -111,15 +110,13 @@ export function CompleteTask({ task }: { task: Task }) {
             complete.mutate()
           }}
         >
-          <Field label="Completion summary (optional)">{(id) => <textarea id={id} rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} autoFocus />}</Field>
+          <TextArea label="Completion summary (optional)" rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} autoFocus />
           <ErrorMessage error={complete.error} />
-          <div className="row">
-            <button className="primary" type="submit" disabled={complete.isPending}>
+          <div className="task-edit-actions">
+            <Button variant="primary" type="submit" loading={complete.isPending}>
               Mark done
-            </button>
-            <button type="button" onClick={() => setOpen(false)}>
-              Cancel
-            </button>
+            </Button>
+            <Button onClick={() => setOpen(false)}>Cancel</Button>
           </div>
         </form>
       )}

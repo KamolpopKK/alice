@@ -1,8 +1,9 @@
 import type { FastifyInstance } from 'fastify'
 import * as z from 'zod'
-import { archiveFilterSchema, createProjectInput, idSchema, updateProjectInput } from '../../shared/contracts'
+import { archiveFilterSchema, createMilestoneInput, createProjectInput, idSchema, updateMilestoneInput, updateProjectInput } from '../../shared/contracts'
 import type { AppContext } from '../context'
 import { createProject, getProject, listProjects, setProjectArchived, updateProject } from '../domain/projects'
+import { createMilestone, deleteMilestone, listMilestones, listProjectMembers, projectProgress, setProjectMember, updateMilestone } from '../domain/project-planning'
 import { requireAuth } from './auth'
 import { parse } from './validate'
 
@@ -33,5 +34,34 @@ export function registerProjectRoutes(app: FastifyInstance, ctx: AppContext): vo
   app.post('/projects/:id/restore', async (req) => {
     const actor = requireAuth(req)
     return setProjectArchived(ctx, actor, parse(idParam, req.params).id, false)
+  })
+
+  // ---- planning (capability `project-planning`) ----
+  const memberParam = z.object({ id: idSchema, actorId: idSchema })
+  app.get('/projects/:id/members', async (req) => {
+    requireAuth(req)
+    return { items: listProjectMembers(ctx, parse(idParam, req.params).id) }
+  })
+  app.put('/projects/:id/members/:actorId', async (req) => {
+    const { id, actorId } = parse(memberParam, req.params)
+    return setProjectMember(ctx, requireAuth(req), id, actorId, true)
+  })
+  app.delete('/projects/:id/members/:actorId', async (req) => {
+    const { id, actorId } = parse(memberParam, req.params)
+    return setProjectMember(ctx, requireAuth(req), id, actorId, false)
+  })
+  app.get('/projects/:id/milestones', async (req) => {
+    requireAuth(req)
+    return { items: listMilestones(ctx, parse(idParam, req.params).id) }
+  })
+  app.post('/projects/:id/milestones', async (req, reply) => {
+    const actor = requireAuth(req)
+    return reply.status(201).send(createMilestone(ctx, actor, parse(idParam, req.params).id, parse(createMilestoneInput, req.body)))
+  })
+  app.patch('/milestones/:id', async (req) => updateMilestone(ctx, requireAuth(req), parse(idParam, req.params).id, parse(updateMilestoneInput, req.body)))
+  app.delete('/milestones/:id', async (req) => deleteMilestone(ctx, requireAuth(req), parse(idParam, req.params).id))
+  app.get('/projects/:id/progress', async (req) => {
+    requireAuth(req)
+    return { progress: projectProgress(ctx, parse(idParam, req.params).id) }
   })
 }

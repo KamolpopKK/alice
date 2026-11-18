@@ -1,5 +1,62 @@
 # Changelog
 
+## Unreleased
+
+A new interface for the Web dashboard and Alice Desktop. Domain behaviour, the Client API, MCP and
+the CLI are unchanged.
+
+### Navigation and look
+
+- **Sidebar.** Home, Task Pads, Tasks, Projects, Documents and Search come first. Agents, Activity
+  and Settings are below them. Wide screens can collapse the sidebar to icons, tablets get an icon
+  rail, and phones get a top bar with a navigation sheet.
+- **New and Ctrl K.** New creates a task, pad, project or document from any page. Ctrl K (⌘K on a Mac)
+  finds pages, tasks, documents and commands.
+- **Light, Dark or System,** chosen in Settings › Appearance and saved on each device.
+- **Old links still work.** `/list`, `/my-tasks` and `/?filters` open the matching Tasks view.
+  `/admin`, `/devices` and `/for-agent` open Settings › Administration, Settings › Devices &
+  Sessions and Agents.
+
+### Work
+
+- **Home** shows your work by due date, in progress and blocked, plus recent agent activity, and has a
+  one-line summary from Alice that you can hide.
+- **Tasks.** My Work, Board and List are views of the same tasks. They share search, filters, sort and
+  saved views (kept on your device). Rows and cards show only what helps you scan.
+- **Task Detail** opens beside the view on wide screens, as a full-height sheet on phones and next to a
+  Task Pad, and as a full page. Each field says "Saved", or why it failed, next to it. If someone
+  changes the task while you edit it, Alice tells you and lets you choose which version to keep.
+- **Task Pads** keep every capture, sync and recovery behaviour, with the new controls and dialogs.
+- **Projects** have Overview, Tasks, Documents and Activity tabs. **Documents** and **Search** share
+  one result style, and quick search now finds documents too.
+
+- **Select and drag.** In List, select several tasks to change their status, assignee or archive them
+  together. On the Board, drag a card to another column to change its status.
+- **Saved views follow you.** On servers that support it, saved Tasks views are kept on the server and
+  appear on all your devices, visible only to you.
+- **Project plans.** Projects can have start and target dates, members (informational, no access change),
+  milestones you complete by hand, and a progress bar from their tasks.
+
+### Approvals
+
+- **Agents ask before risky steps.** An agent (or a person) can ask for approval on a task, naming one
+  person or anyone. It appears under **Waiting for you** on Home with Approve and Reject and an optional
+  note. Only people decide, never the one who asked. Agents use `request_approval` over MCP or
+  `alice task ask` in Local workspaces.
+
+### Agents, Activity and Settings
+
+- **Agents** lists the agents in the workspace and links to what each one did, above the setup guide.
+- **Activity** filters by person or agent and by tasks, projects or documents. Agents are labelled,
+  not only coloured.
+- **Settings** is organised into categories. Administration (owners on a server) and Devices &
+  Sessions (servers) are categories in it. Revoking an agent token or deactivating an agent now asks
+  first.
+- **First run in Desktop** has four steps (welcome, workspace, agents, first task) and picks up where
+  you left off. Choosing a team server continues the steps after you sign in, and the first run ends on
+  Home with the tasks you just wrote down.
+- **Guided tour.** Take a short tour from Help in the account menu, or "Help: take the tour" in Ctrl K.
+
 ## 0.2.0 — 2026-11-17
 
 The first public release. Alice Desktop, the `alice` CLI and the server image are published from

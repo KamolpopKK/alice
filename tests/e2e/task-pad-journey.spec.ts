@@ -8,6 +8,8 @@ import { expect, openNewPad, signIn, test } from './fixtures'
 const V1 = '/client/v1'
 
 async function audit(page: Page, label: string) {
+  // overlay ที่กำลัง fade/slide เข้ามาทำให้วัด contrast ผิด: รอ animation จบก่อน
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity))
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze()
   expect(result.violations.map((v) => `${label}: ${v.id} — ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([])
 }
@@ -77,7 +79,7 @@ test('primary journey: private capture becomes authoritative shared work across 
   } finally {
     await mcp.close()
   }
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Board' }).click()
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Tasks' }).click()
   await expect(page.getByRole('link', { name: /Share notes with legal/ }).first()).toBeVisible()
   await page.goBack()
 
@@ -159,15 +161,17 @@ test.describe('Task Pads accessibility, reflow, motion and compatibility', () =>
     const h2 = (await owner.post(`${V1}/pads/${pad.id}/blocks`, { type: 'heading', parentId: h.id, content: [{ type: 'text', text: 'Deeper' }] })).body.block
     const h3 = (await owner.post(`${V1}/pads/${pad.id}/blocks`, { type: 'text', parentId: h2.id, content: [{ type: 'text', text: 'Third level with a fairly long sentence that wraps' }] })).body.block
     await owner.post(`${V1}/pads/${pad.id}/blocks`, { type: 'task', parentId: h3.id, title: 'Fourth level task with a long title that must wrap nicely' })
+    // ตัวเลือกยาว ๆ ใน select ของค่าเริ่มต้น (ชื่อ agent ยาว) ต้องไม่ดันหน้ากว้างเกินจอ
+    await owner.post(`${V1}/agents`, { displayName: 'An agent with a really quite long display name' })
     const ctx = await browser.newContext({ viewport: { width: 320, height: 640 }, reducedMotion: 'reduce' })
     const page = await ctx.newPage()
     await signIn(page, app)
     await page.goto(`${app.url}/pads/${pad.id}`)
     await expect(page.locator('input[value^="Fourth level task"]')).toBeVisible()
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
-    expect(overflow).toBeLessThanOrEqual(0)
+    // shell สลับเป็นแบบมือถือหลังโหลด: รอให้ layout นิ่งก่อนวัด
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
     await page.getByRole('button', { name: /Open task details: Fourth level/ }).click()
-    const animation = await page.locator('dialog.side-peek').evaluate((el) => getComputedStyle(el).animationName)
+    const animation = await page.locator('.ui-sheet').evaluate((el) => getComputedStyle(el).animationName)
     expect(animation).toBe('none')
     await ctx.close()
   })
@@ -181,7 +185,7 @@ test.describe('Task Pads accessibility, reflow, motion and compatibility', () =>
       await route.fulfill({ response: res, json: body })
     })
     await signIn(page, app)
-    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Board' })).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Tasks' })).toBeVisible()
     await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Task Pads' })).toHaveCount(0)
     await page.goto(`${app.url}/pads`)
     await expect(page.getByText('does not offer Task Pads yet')).toBeVisible()

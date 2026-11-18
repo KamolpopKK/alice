@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { Pad } from '../../shared/pads'
 import { client } from '../api'
-import { ConfirmDialog, Dialog } from '../components/Dialog'
+import { Archive, Download, Keyboard, MoreHorizontal, Plus } from 'lucide-react'
 import { Highlight } from '../components/Highlight'
-import { MenuButton } from '../components/Menu'
-import { ErrorMessage, Loading, formatDate } from '../components/ui'
+import { ErrorMessage, formatDate } from '../components/ui'
+import { Button, ConfirmDialog, Dialog, EmptyState, IconButton, Menu, Skeleton, TextField } from '../ui'
 import { defaultPadName, usePadMutations, usePadSearch, usePads } from './hooks'
 import { ShortcutSettingsDialog } from './ShortcutSettings'
 
@@ -59,13 +59,14 @@ export function PadSidebar({ selectedId }: { selectedId?: string }) {
     <aside className="pad-sidebar" aria-label="Task pads">
       <div className="pad-sidebar-head">
         <h1 className="pad-sidebar-title">Task Pads</h1>
-        <MenuButton
-          label="More pad options"
+        <Menu
+          trigger={<IconButton icon={MoreHorizontal} label="More pad options" size="sm" />}
           items={[
-            { label: 'Archived pads', onSelect: () => setArchivedOpen(true) },
-            { label: 'Capture shortcuts…', onSelect: () => setShortcutsOpen(true) },
+            { label: 'Archived pads', icon: Archive, onSelect: () => setArchivedOpen(true) },
+            { label: 'Capture shortcuts…', icon: Keyboard, onSelect: () => setShortcutsOpen(true) },
             {
               label: 'Export my pads',
+              icon: Download,
               onSelect: () => {
                 setExportError(null)
                 downloadExport().catch(setExportError)
@@ -74,25 +75,22 @@ export function PadSidebar({ selectedId }: { selectedId?: string }) {
           ]}
         />
       </div>
-      <button type="button" className="primary pad-new" onClick={newPad.start} disabled={newPad.pending}>
-        <span aria-hidden="true">+</span> New Pad
-      </button>
+      <Button variant="primary" icon={Plus} className="pad-new" onClick={newPad.start} loading={newPad.pending}>
+        New Pad
+      </Button>
       <ErrorMessage error={newPad.error ?? exportError} />
       <div className="pad-search">
-        <label htmlFor="pad-search-input" className="sr-only">
-          Search pads
-        </label>
-        <input id="pad-search-input" type="search" placeholder="Search pads" value={q} onChange={(e) => setQ(e.target.value)} />
+        <TextField label="Search pads" hideLabel id="pad-search-input" type="search" placeholder="Search pads" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       {q.trim() ? (
         <SearchResults q={q} onNavigate={() => setQ('')} />
       ) : (
         <>
-          {pads.isLoading && <Loading />}
+          {pads.isLoading && <Skeleton lines={4} />}
           <ErrorMessage error={pads.error} />
           {pinned.length > 0 && <PadList title="Pinned" pads={pinned} selectedId={selectedId} />}
           {recent.length > 0 && <PadList title="Recent" pads={recent} selectedId={selectedId} />}
-          {!pads.isLoading && items.length === 0 && <p className="muted small pad-empty-hint">No pads yet. New Pad starts one named with today’s date and time.</p>}
+          {!pads.isLoading && items.length === 0 && <p className="ui-text-muted pad-empty-hint">No pads yet. New Pad starts one named with today’s date and time.</p>}
         </>
       )}
       <ArchivedPadsDialog open={archivedOpen} onClose={() => setArchivedOpen(false)} />
@@ -135,7 +133,7 @@ function SearchResults({ q, onNavigate }: { q: string; onNavigate: () => void })
         {results.isFetching ? 'Searching' : `${items.length} result${items.length === 1 ? '' : 's'}`}
       </p>
       <ErrorMessage error={results.error} />
-      {!results.isFetching && results.data && items.length === 0 && <p className="muted small">No matches in your pads.</p>}
+      {!results.isFetching && results.data && items.length === 0 && <p className="ui-text-muted pad-empty-hint">No matches in your pads.</p>}
       <ul className="pad-list">
         {items.map((r) => (
           <li key={`${r.padId}:${r.blockId ?? 'name'}`}>
@@ -167,33 +165,39 @@ function ArchivedPadsDialog({ open, onClose }: { open: boolean; onClose: () => v
   const navigate = useNavigate()
   return (
     <>
-      <Dialog open={open && !confirm} onClose={onClose} title="Archived pads" description="Archived pads stay out of the sidebar. Restore one to keep writing in it.">
-        {archived.isLoading && <Loading />}
+      <Dialog
+        open={open && !confirm}
+        onOpenChange={(o) => !o && onClose()}
+        title="Archived pads"
+        description="Archived pads stay out of the sidebar. Restore one to keep writing in it."
+        size="lg"
+      >
+        {archived.isLoading && <Skeleton lines={3} />}
         <ErrorMessage error={archived.error ?? restore.error} />
-        {archived.data && archived.data.length === 0 && <p className="muted">No archived pads.</p>}
-        <ul className="plain-list archived-pads">
+        {archived.data && archived.data.length === 0 && <EmptyState title="No archived pads" />}
+        <ul className="archived-pads">
           {(archived.data ?? []).map((pad) => (
-            <li key={pad.id} className="row spread">
+            <li key={pad.id}>
               <span>
                 <strong>{pad.name}</strong>
-                <span className="muted small"> · archived {formatDate(pad.archivedAt)}</span>
+                <span className="ui-text-muted"> · archived {formatDate(pad.archivedAt)}</span>
               </span>
-              <span className="row">
-                <button
-                  type="button"
+              <span className="archived-pad-actions">
+                <Button
+                  size="sm"
                   onClick={() => {
                     onClose()
                     navigate(`/pads/${pad.id}`)
                   }}
                 >
                   Open<span className="sr-only"> {pad.name}</span>
-                </button>
-                <button type="button" onClick={() => restore.mutate(pad.id)}>
+                </Button>
+                <Button size="sm" onClick={() => restore.mutate(pad.id)}>
                   Restore<span className="sr-only"> {pad.name}</span>
-                </button>
-                <button type="button" className="danger" onClick={() => setConfirm(pad)}>
+                </Button>
+                <Button size="sm" variant="danger" onClick={() => setConfirm(pad)}>
                   Delete permanently<span className="sr-only"> {pad.name}</span>
-                </button>
+                </Button>
               </span>
             </li>
           ))}
@@ -226,18 +230,15 @@ export function DeletePadDialog({
   return (
     <ConfirmDialog
       open={pad !== null}
+      onOpenChange={(o) => !o && onCancel()}
       title="Delete pad permanently?"
-      message={
-        <>
-          “{pad?.name}” and all of its notes will be removed for good. Tasks created from it stay on the Board unchanged. Archive keeps the pad recoverable instead.
-        </>
-      }
       confirmLabel="Delete pad permanently"
-      danger
+      destructive
       busy={busy}
       error={<ErrorMessage error={error} />}
-      onCancel={onCancel}
       onConfirm={() => pad && onConfirm(pad)}
-    />
+    >
+      “{pad?.name}” and all of its notes will be removed for good. Tasks created from it stay on the Board unchanged. Archive keeps the pad recoverable instead.
+    </ConfirmDialog>
   )
 }

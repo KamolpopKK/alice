@@ -23,7 +23,7 @@ test('member creates, edits, archives and restores a project', async ({ app, own
   await expect(page.getByText('archived', { exact: true })).toBeVisible()
   await page.getByRole('link', { name: 'Projects' }).click()
   await expect(page.getByRole('link', { name: 'Launch website' })).toHaveCount(0)
-  await page.getByRole('button', { name: 'Show archived' }).click()
+  await page.getByRole('radio', { name: 'Archived' }).click()
   await page.getByRole('link', { name: 'Launch website' }).click()
   await page.getByRole('button', { name: 'Restore' }).click()
   await expect(page.getByRole('button', { name: 'Archive' })).toBeVisible()

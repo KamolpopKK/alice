@@ -1,6 +1,8 @@
 import * as z from 'zod'
+import type { SavedView, createSavedViewInput } from '../shared/saved-views'
 import type {
   ActivityEvent,
+  ApprovalRequest,
   ClientCredentials,
   ClientSessionInfo,
   DeviceAuthorization,
@@ -14,7 +16,10 @@ import type {
   InviteInfo,
   ListTasksInput,
   Page,
+  Milestone,
   Project,
+  ProjectMember,
+  ProjectProgress,
   PublicActor,
   SearchResult,
   ServerInfo,
@@ -26,12 +31,16 @@ import type {
   bootstrapInput,
   createInviteInput,
   createDocumentInput,
+  createMilestoneInput,
+  listApprovalsInput,
+  requestApprovalInput,
   createProjectInput,
   createTaskInput,
   listDocumentsInput,
   loginInput,
   searchInput,
   updateDocumentInput,
+  updateMilestoneInput,
   updateProjectInput,
   updateTaskInput,
 } from '../shared/contracts'
@@ -206,6 +215,14 @@ export class AliceClient {
     update: (id: string, patch: In<typeof updateProjectInput>) => this.call<ProjectResult>('PATCH', `/projects/${enc(id)}`, { body: patch }),
     archive: (id: string) => this.call<ProjectResult>('POST', `/projects/${enc(id)}/archive`, { body: {}, idempotent: true }),
     restore: (id: string) => this.call<ProjectResult>('POST', `/projects/${enc(id)}/restore`, { body: {}, idempotent: true }),
+    members: (id: string) => this.get<{ items: ProjectMember[] }>(`/projects/${enc(id)}/members`).then((r) => r.items),
+    addMember: (id: string, actorId: string) => this.call<{ members: ProjectMember[]; changed: boolean }>('PUT', `/projects/${enc(id)}/members/${enc(actorId)}`, { body: {} }),
+    removeMember: (id: string, actorId: string) => this.call<{ members: ProjectMember[]; changed: boolean }>('DELETE', `/projects/${enc(id)}/members/${enc(actorId)}`, { body: {} }),
+    milestones: (id: string) => this.get<{ items: Milestone[] }>(`/projects/${enc(id)}/milestones`).then((r) => r.items),
+    addMilestone: (id: string, input: In<typeof createMilestoneInput>) => this.call<{ milestone: Milestone }>('POST', `/projects/${enc(id)}/milestones`, { body: input }),
+    updateMilestone: (milestoneId: string, patch: In<typeof updateMilestoneInput>) => this.call<{ milestone: Milestone }>('PATCH', `/milestones/${enc(milestoneId)}`, { body: patch }),
+    removeMilestone: (milestoneId: string) => this.call<{ deleted: true; id: string }>('DELETE', `/milestones/${enc(milestoneId)}`, { body: {} }),
+    progress: (id: string) => this.get<{ progress: ProjectProgress }>(`/projects/${enc(id)}/progress`).then((r) => r.progress),
   }
 
   readonly tasks = {
@@ -240,6 +257,23 @@ export class AliceClient {
     link: (id: string, target: { taskId?: string; projectId?: string }) => this.call<LinkResult>('POST', `/documents/${enc(id)}/links`, { body: target, idempotent: true }),
     unlink: (id: string, target: { taskId?: string; projectId?: string }) => this.call<LinkResult>('DELETE', `/documents/${enc(id)}/links`, { body: target }),
     activity: (id: string, page: { cursor?: string | null; limit?: number } = {}) => this.get<Page<ActivityEvent>>(`/documents/${enc(id)}/activity`, page),
+  }
+
+  /** Approval requests on tasks (capability `approvals`). */
+  readonly approvals = {
+    list: (input: In<typeof listApprovalsInput> = {}) => this.get<{ items: ApprovalRequest[] }>('/approvals', input as Record<string, QueryValue>).then((r) => r.items),
+    get: (id: string) => this.get<{ approval: ApprovalRequest }>(`/approvals/${enc(id)}`).then((r) => r.approval),
+    request: (taskId: string, input: In<typeof requestApprovalInput>) => this.call<{ approval: ApprovalRequest }>('POST', `/tasks/${enc(taskId)}/approvals`, { body: input }),
+    approve: (id: string, note?: string) => this.call<{ approval: ApprovalRequest }>('POST', `/approvals/${enc(id)}/approve`, { body: note ? { note } : {} }),
+    reject: (id: string, note?: string) => this.call<{ approval: ApprovalRequest }>('POST', `/approvals/${enc(id)}/reject`, { body: note ? { note } : {} }),
+    cancel: (id: string) => this.call<{ approval: ApprovalRequest }>('POST', `/approvals/${enc(id)}/cancel`, { body: {} }),
+  }
+
+  /** Saved Tasks views (capability `saved-views`); private to the signed-in human. */
+  readonly savedViews = {
+    list: () => this.get<{ items: SavedView[] }>('/saved-views').then((r) => r.items),
+    save: (input: In<typeof createSavedViewInput>) => this.call<{ view: SavedView }>('POST', '/saved-views', { body: input }).then((r) => r.view),
+    remove: (id: string) => this.call<{ deleted: true; id: string }>('DELETE', `/saved-views/${enc(id)}`, { body: {} }),
   }
 
   /** Personal Task Pads (capability `task-pads`); every call is scoped to the signed-in human. */

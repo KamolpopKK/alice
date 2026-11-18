@@ -1,3 +1,4 @@
+import { accountButton } from './fixtures'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { startApp, type RunningApp } from '../helpers/app'
 import { OWNER, bootstrapOwner } from '../helpers/client'
@@ -83,7 +84,7 @@ test('Sign in: labels, autocomplete, keyboard order, password reveal, busy state
 
   await password.fill(OWNER.password)
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+  await expect(accountButton(page)).toBeVisible()
 })
 
 test('Setup and invite keep new-password semantics, their own fields and reveal controls', async ({ page }) => {
@@ -107,7 +108,7 @@ test('Setup and invite keep new-password semantics, their own fields and reveal 
   await page.getByLabel('Username').fill('ivy')
   await ipw.fill('ivy-password-123')
   await page.getByRole('button', { name: 'Create account' }).click()
-  await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+  await expect(accountButton(page)).toBeVisible()
 })
 
 for (const scheme of ['light', 'dark'] as const) {

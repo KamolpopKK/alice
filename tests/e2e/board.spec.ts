@@ -7,9 +7,10 @@ test('board shows work by status and updates live after an agent mutation', asyn
   const task = (await owner.post('/api/tasks', { title: 'Wire up websockets', projectId: project.id, status: 'ready' })).body.task
 
   await signIn(page, app)
+  await page.goto(`${app.url}/tasks?view=board`)
   const ready = page.getByRole('region', { name: 'Ready' })
   await expect(ready.getByRole('link', { name: 'Wire up websockets' })).toBeVisible()
-  await expect(page.locator('.live-live')).toBeAttached()
+  await expect(page.locator('[data-live="live"]')).toContainText('Connected')
 
   // agent เปลี่ยนสถานะผ่าน API — หน้าบอร์ดที่เปิดอยู่ต้องย้ายการ์ดเองโดยไม่ reload
   await agentClient(app, agent).patch(`/api/tasks/${task.id}`, { status: 'in_progress', assigneeId: agent.id })
@@ -29,13 +30,16 @@ test('list filters, my tasks, search and activity views', async ({ app, owner, p
   await owner.post('/api/tasks', { title: 'Filterable beta', priority: 'low' })
   await signIn(page, app)
 
-  await page.getByRole('link', { name: 'List' }).click()
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Tasks' }).click()
+  await page.getByRole('radio', { name: 'List' }).click()
+  await page.getByRole('button', { name: 'Filters' }).click()
   await page.getByLabel('Priority').selectOption('urgent')
+  await page.keyboard.press('Escape')
   await expect(page.getByRole('link', { name: 'Filterable alpha' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Filterable beta' })).toHaveCount(0)
   await expect(page).toHaveURL(/priority=urgent/)
 
-  await page.getByRole('link', { name: 'My tasks' }).click()
+  await page.getByRole('radio', { name: 'My Work' }).click()
   await expect(page.getByRole('link', { name: 'Filterable alpha' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Filterable beta' })).toHaveCount(0)
 
@@ -52,10 +56,13 @@ test('list filters, my tasks, search and activity views', async ({ app, owner, p
 test('mobile: inspect a task and change its status @mobile', async ({ app, owner, page }) => {
   const task = (await owner.post('/api/tasks', { title: 'Phone-sized work', status: 'ready' })).body.task
   await signIn(page, app)
+  await page.goto(`${app.url}/tasks?view=board`)
   await page.getByRole('link', { name: 'Phone-sized work' }).click()
-  await expect(page.getByRole('heading', { name: 'Phone-sized work' })).toBeVisible()
-  await page.getByLabel('Status').selectOption('done')
-  await expect(page.getByText('changed status from Ready to Done')).toBeVisible()
+  // จอแคบ: Task Detail เป็น sheet เต็มความสูง; จอกว้าง: panel ข้างบอร์ด
+  const detail = page.getByRole('dialog', { name: 'Task details' }).or(page.getByRole('complementary', { name: 'Task details' }))
+  await expect(detail.getByRole('heading', { name: 'Phone-sized work' })).toBeVisible()
+  await detail.getByLabel('Status', { exact: true }).selectOption('done')
+  await expect(detail.getByText('changed status from Ready to Done')).toBeVisible()
   const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth)
   const clientWidth = await page.evaluate(() => document.documentElement.clientWidth)
   expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1)

@@ -50,7 +50,7 @@ and Agent tokens do not work on the Client API.
 Each approval creates a separately named session, for example "Alice CLI on build-box". The approval is
 recorded in the activity log as performed by you.
 
-- **Devices** page (`/devices`): every human sees their own sessions and can revoke them.
+- **Settings › Devices & Sessions** (`/settings/devices`; `/devices` still opens it): every human sees their own sessions and can revoke them.
 - **Admin**: the owner sees everyone's sessions and can revoke any of them.
 - `POST /client/v1/auth/logout` with a bearer credential ends only that session.
 - `POST /client/v1/auth/revoke { refreshToken }` ends a session when the access credential has already

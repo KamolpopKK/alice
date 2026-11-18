@@ -11,3 +11,4 @@ playwright-report/
 .env
 src-tauri/tauri.release.conf.json
 src-tauri/binaries/
+storybook-static/

@@ -44,7 +44,10 @@ Ordering is deterministic.
 
 ### Projects
 - `list_projects { archived? }`, `get_project { id }`
-- `create_project { name, description?, labels? }`, `update_project { id, name?, description?, labels? }`
+- `get_project_plan { id }` — start and target dates, members, milestones (date order) and task progress
+  counts `{ total, done, canceled, open }`. Members are informational and grant no access.
+- `create_project { name, description?, labels? }`, `update_project { id, name?, description?, labels?, startDate?, targetDate? }`
+  — dates are `YYYY-MM-DD`; `null` clears; the target cannot be before the start.
 - `archive_project { id }`, `restore_project { id }`
 
 ### Tasks
@@ -79,6 +82,12 @@ Ordering is deterministic.
 - `list_comments { taskId, order?, cursor?, limit? }`
 - `complete_task { id, summary }` — summary required for agents; becomes a `completion_summary` comment referenced by
   the `task.completed` activity event. Status, completion time, comment and activity commit atomically.
+- `request_approval { taskId, question, requestedOfId? }` — ask a person to approve before going on (a risky
+  change, a spend, a decision not yours to make). Without `requestedOfId` anyone may decide. It shows under
+  **Waiting for you** on Home. Only people decide, never the one who asked.
+- `get_approval { id }`, `list_approvals { taskId?, status?, limit? }` — check the status (`pending`, `approved`,
+  `rejected`, `canceled`), who decided and their `note`, and follow it.
+- `cancel_approval { id }` — withdraw your own pending request.
 
 ### Relationships
 - `get_task_relations { id }` — parent, children, blockers, blocking (archived tasks included with `archivedAt`).

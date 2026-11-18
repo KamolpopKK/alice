@@ -1,6 +1,9 @@
 // หน้าของ Local workspaces ใน Desktop: onboarding ครั้งแรก, จัดการ workspace และหน้ากู้คืน
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { ErrorMessage, TextInput } from '../components/ui'
+import { MascotImage } from '../brand'
+import { markWhatsNewSeen } from '../whats-new'
+import { Button, Checkbox, FieldMessage, RadioGroup, TextField } from '../ui'
 import { native, workspaceLabel, type AgentIntegration, type DesktopProfile, type ProfilesView } from './native'
 
 function messageOf(err: unknown): string {
@@ -12,33 +15,98 @@ export interface OnboardingResult {
   tools: { cli: boolean; codex: boolean; claude: boolean }
 }
 
+// 'remote' = เลือก server ของทีมแล้วออกไปตั้งค่า/sign in; กลับมาที่ขั้นที่ 3 เมื่อเชื่อมต่อแล้ว
+type Stage = 'welcome' | 'workspace' | 'agents' | 'remote' | 'first-task'
+const STAGES: Stage[] = ['welcome', 'workspace', 'agents', 'remote', 'first-task']
+const STEP: Record<Stage, number> = { welcome: 1, workspace: 2, agents: 3, remote: 3, 'first-task': 4 }
+const PROGRESS_KEY = 'alice.onboarding'
+interface Progress {
+  stage: Stage
+  workspaceName: string
+  ownerName: string
+  tools: OnboardingResult['tools']
+}
+
+function readProgress(): Progress | null {
+  try {
+    const raw = localStorage.getItem(PROGRESS_KEY)
+    const value = raw ? (JSON.parse(raw) as Progress) : null
+    return value && STAGES.includes(value.stage) ? value : null
+  } catch {
+    return null
+  }
+}
+function saveProgress(p: Progress | null) {
+  try {
+    if (p) localStorage.setItem(PROGRESS_KEY, JSON.stringify(p))
+    else localStorage.removeItem(PROGRESS_KEY)
+  } catch {
+    /* progress lasts for this window only */
+  }
+}
+
 /**
- * Three decisions only: names, opt-in tools, then straight into a Task Pad. No URL, port, database
- * path, password or MCP configuration is ever asked for.
+ * True after the workspace was set up but before the first capture: Desktop resumes onboarding at
+ * its last stage instead of skipping it (nothing is created twice).
+ */
+export function onboardingPending(): boolean {
+  return readProgress()?.stage === 'first-task'
+}
+
+/** True after someone chose a team server during first run: once signed in, onboarding continues. */
+export function remoteOnboardingPending(): boolean {
+  const stage = readProgress()?.stage
+  return stage === 'remote' || (stage === 'first-task' && readProgress()?.workspaceName === '')
+}
+
+/**
+ * Alice-guided first run in four stages: Welcome, Workspace (Local, or Remote through the server
+ * switcher), Agents (optional) and First task in a real Task Pad. Progress survives a restart.
+ * No URL, port, database path, password or MCP configuration is asked for on the Local path.
  */
 export function Onboarding({
   onBegin,
   onFinish,
   onFail,
+  onRemote,
   applyTools,
+  connected = false,
 }: {
   /** Called before the first native change, so profile events do not leave onboarding half-way. */
   onBegin: () => void
   onFinish: (result: OnboardingResult) => void
   onFail: () => void
+  /** Leaves onboarding for the Remote server setup (add a server and sign in through the browser). */
+  onRemote?: () => void
   applyTools?: (tools: OnboardingResult['tools']) => Promise<void>
+  /** Signed in to a team server chosen during this first run: continue from the Remote stage. */
+  connected?: boolean
 }) {
-  const [step, setStep] = useState<1 | 2>(1)
-  const [workspaceName, setWorkspaceName] = useState('Personal')
+  const saved = useRef(readProgress()).current
+  // เลือก Remote ไว้แต่ยังไม่ได้เชื่อมต่อ (เช่น ปิดหน้าตั้งค่า server): กลับไปเลือกที่เก็บงานใหม่
+  const [stage, setStage] = useState<Stage>(saved?.stage === 'remote' && !connected ? 'workspace' : (saved?.stage ?? 'welcome'))
+  const [where, setWhere] = useState<'local' | 'remote'>(saved?.stage === 'remote' ? 'remote' : 'local')
+  const [workspaceName, setWorkspaceName] = useState(saved?.workspaceName ?? 'Personal')
   // ไม่ดึงชื่อบัญชีของ OS มาใส่เอง: ค่าเริ่มต้นเป็นชื่อกลาง ๆ ที่แก้ได้
-  const [ownerName, setOwnerName] = useState('Local Owner')
-  const [tools, setTools] = useState({ cli: true, codex: true, claude: true })
+  const [ownerName, setOwnerName] = useState(saved?.ownerName ?? 'Local Owner')
+  const [tools, setTools] = useState(saved?.tools ?? { cli: true, codex: true, claude: true })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const heading = useRef<HTMLHeadingElement>(null)
-  useEffect(() => heading.current?.focus(), [step])
+  useEffect(() => heading.current?.focus(), [stage])
+  useEffect(() => {
+    // กลับมาที่ขั้นสุดท้ายหลังเปิดแอปใหม่: workspace มีอยู่แล้ว ให้ shell ข้าม evaluate จนกว่าจะจบ
+    if (saved?.stage === 'first-task' || (saved?.stage === 'remote' && connected)) onBegin()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const go = (next: Stage) => {
+    setError(null)
+    setStage(next)
+    saveProgress({ stage: next, workspaceName, ownerName, tools })
+  }
 
-  const finish = async () => {
+  /** Creates (or reuses) the Local workspace, applies names and the chosen tools. Idempotent. */
+  const setUp = async (chosen: OnboardingResult['tools']) => {
     setBusy(true)
     setError(null)
     onBegin()
@@ -48,81 +116,156 @@ export function Onboarding({
       if (workspaceName.trim() && workspaceName.trim() !== 'Personal') await native.workspaceRename(id, workspaceName.trim())
       await native.testProfile(id)
       if (ownerName.trim() && ownerName.trim() !== 'Local Owner') await native.ownerRename(ownerName.trim())
-      if (applyTools) await applyTools(tools)
-      onFinish({ ownerName: ownerName.trim(), tools })
+      if (applyTools) await applyTools(chosen)
+      setTools(chosen)
+      setBusy(false)
+      setStage('first-task')
+      saveProgress({ stage: 'first-task', workspaceName, ownerName, tools: chosen })
     } catch (err) {
       setError(messageOf(err))
       setBusy(false)
       onFail()
     }
   }
+  const index = STEP[stage]
+  const submit = (fn: () => void) => (e: FormEvent) => {
+    e.preventDefault()
+    fn()
+  }
 
   return (
-    <main className="page narrow onboarding">
-      <section className="panel stack" aria-labelledby="onboarding-heading">
-        <p className="muted small">Step {step} of 3</p>
-        {step === 1 ? (
-          <form
-            className="stack"
-            onSubmit={(e: FormEvent) => {
-              e.preventDefault()
-              setStep(2)
-            }}
-          >
-            <h1 id="onboarding-heading" tabIndex={-1} ref={heading}>
-              Welcome to Alice
-            </h1>
-            <p>Your tasks stay on this computer in a private Local workspace. There is no server to set up and nothing to sign in to.</p>
-            <TextInput label="Workspace name" value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)} maxLength={80} required />
-            <TextInput label="Your name" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} maxLength={80} required hint="Shown on what you create; agents get their own names." />
-            <div className="row">
-              <button className="primary" type="submit">
-                Continue
-              </button>
-            </div>
-          </form>
-        ) : (
-          <form
-            className="stack"
-            onSubmit={(e: FormEvent) => {
-              e.preventDefault()
-              void finish()
-            }}
-          >
-            <h1 id="onboarding-heading" tabIndex={-1} ref={heading}>
-              Work with your terminal and agents
-            </h1>
-            <p>
-              Alice can install its command-line tool and teach Codex and Claude to use this workspace. Each agent works under its own name, so you
-              can always see who changed what. You can change this later in Settings.
-            </p>
-            <fieldset className="stack">
-              <legend>Install</legend>
-              <label className="checkbox">
-                <input type="checkbox" checked={tools.cli} onChange={(e) => setTools({ ...tools, cli: e.target.checked })} /> The <code>alice</code> command for your terminal
-              </label>
-              <label className="checkbox">
-                <input type="checkbox" checked={tools.codex} onChange={(e) => setTools({ ...tools, codex: e.target.checked })} /> Codex (adds Alice skills to ~/.codex)
-              </label>
-              <label className="checkbox">
-                <input type="checkbox" checked={tools.claude} onChange={(e) => setTools({ ...tools, claude: e.target.checked })} /> Claude Code (adds Alice skills to ~/.claude)
-              </label>
-            </fieldset>
-            {error && (
-              <p className="error" role="alert">
-                {error}
+    <main className="onboarding-page">
+      <section className="onboarding-card" aria-labelledby="onboarding-heading">
+        <div className="onboarding-content">
+          <p className="ui-text-muted onboarding-step">
+            Step {index} of 4
+          </p>
+          {stage === 'welcome' && (
+            <form className="onboarding-form" onSubmit={submit(() => go('workspace'))}>
+              <h1 id="onboarding-heading" tabIndex={-1} ref={heading}>
+                Welcome to Alice
+              </h1>
+              <p className="onboarding-alice">I keep your tasks in one place, for you and the agents you work with.</p>
+              <p className="ui-text-muted">Setup takes a minute: choose where your work lives, connect agents if you like, then capture your first task.</p>
+              <div className="onboarding-actions">
+                <Button variant="primary" type="submit">
+                  Get started
+                </Button>
+              </div>
+            </form>
+          )}
+          {stage === 'workspace' && (
+            <form
+              className="onboarding-form"
+              onSubmit={submit(() => {
+                if (where !== 'remote') return go('agents')
+                saveProgress({ stage: 'remote', workspaceName: '', ownerName, tools })
+                onRemote?.()
+              })}
+            >
+              <h1 id="onboarding-heading" tabIndex={-1} ref={heading}>
+                Where should your work live?
+              </h1>
+              <RadioGroup
+                legend="Workspace"
+                name="where"
+                value={where}
+                onChange={(v) => setWhere(v as 'local' | 'remote')}
+                options={[
+                  { value: 'local', label: 'On this computer', hint: 'A private Local workspace. No server, nothing to sign in to.' },
+                  ...(onRemote ? [{ value: 'remote', label: 'On a team server', hint: 'Connect to an Alice server and sign in through your browser.' }] : []),
+                ]}
+              />
+              {where === 'local' && (
+                <>
+                  <TextField label="Workspace name" value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)} maxLength={80} required />
+                  <TextField label="Your name" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} maxLength={80} required hint="Shown on what you create; agents get their own names." />
+                </>
+              )}
+              <div className="onboarding-actions">
+                <Button variant="primary" type="submit">
+                  {where === 'remote' ? 'Connect to a server' : 'Continue'}
+                </Button>
+                <Button onClick={() => go('welcome')}>Back</Button>
+              </div>
+            </form>
+          )}
+          {stage === 'agents' && (
+            <form className="onboarding-form" onSubmit={submit(() => void setUp(tools))}>
+              <h1 id="onboarding-heading" tabIndex={-1} ref={heading}>
+                Work with your terminal and agents
+              </h1>
+              <p className="ui-text-muted">
+                Alice can install its command-line tool and teach Codex and Claude to use this workspace. Each agent works under its own name, so you can always see who changed
+                what. You can change this later in Settings.
               </p>
-            )}
-            <div className="row">
-              <button className="primary" type="submit" disabled={busy}>
-                {busy ? 'Setting up…' : 'Open my Task Pad'}
-              </button>
-              <button type="button" onClick={() => setStep(1)} disabled={busy}>
-                Back
-              </button>
-            </div>
-          </form>
-        )}
+              <fieldset className="onboarding-fieldset">
+                <legend className="ui-field-label">Install</legend>
+                <Checkbox label={<>The <code>alice</code> command for your terminal</>} checked={tools.cli} onChange={(e) => setTools({ ...tools, cli: e.target.checked })} />
+                <Checkbox label="Codex (adds Alice skills to ~/.codex)" checked={tools.codex} onChange={(e) => setTools({ ...tools, codex: e.target.checked })} />
+                <Checkbox label="Claude Code (adds Alice skills to ~/.claude)" checked={tools.claude} onChange={(e) => setTools({ ...tools, claude: e.target.checked })} />
+              </fieldset>
+              {error && <FieldMessage tone="error">{error}</FieldMessage>}
+              <div className="onboarding-actions">
+                <Button variant="primary" type="submit" loading={busy}>
+                  {busy ? 'Setting up…' : 'Continue'}
+                </Button>
+                <Button variant="ghost" disabled={busy} onClick={() => void setUp({ cli: false, codex: false, claude: false })}>
+                  Skip for now
+                </Button>
+                <Button disabled={busy} onClick={() => go('workspace')}>
+                  Back
+                </Button>
+              </div>
+            </form>
+          )}
+          {stage === 'remote' && (
+            <form
+              className="onboarding-form"
+              onSubmit={submit(() => {
+                setStage('first-task')
+                saveProgress({ stage: 'first-task', workspaceName: '', ownerName, tools })
+              })}
+            >
+              <h1 id="onboarding-heading" tabIndex={-1} ref={heading}>
+                You’re connected
+              </h1>
+              <p className="onboarding-alice">You’re signed in to your team’s server. Everyone there sees the same board.</p>
+              <p className="ui-text-muted">
+                Agents connect to a team server with their own token. When you want one, open Agents: it has a setup prompt you can paste into Claude Code or Codex.
+              </p>
+              <div className="onboarding-actions">
+                <Button variant="primary" type="submit">
+                  Continue
+                </Button>
+              </div>
+            </form>
+          )}
+          {stage === 'first-task' && (
+            <form
+              className="onboarding-form"
+              onSubmit={submit(() => {
+                saveProgress(null)
+                markWhatsNewSeen()
+                onFinish({ ownerName: ownerName.trim(), tools })
+              })}
+            >
+              <h1 id="onboarding-heading" tabIndex={-1} ref={heading}>
+                Capture your first task
+              </h1>
+              <p className="onboarding-alice">Your workspace is ready. Let’s write down the first thing on your mind.</p>
+              <p className="ui-text-muted">A Task Pad opens with its first line ready: type a task and press Enter. It becomes a real task right away.</p>
+              <div className="onboarding-actions">
+                <Button variant="primary" type="submit">
+                  Open my Task Pad
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
+        <div className="onboarding-art" aria-hidden="true">
+          <MascotImage pose={stage === 'first-task' ? 'friendly' : stage === 'agents' ? 'focused' : 'curious'} width={200} loading="eager" />
+        </div>
       </section>
     </main>
   )
@@ -182,22 +325,22 @@ export function LocalRecovery({
         </h1>
         <p>{code === 'RUNTIME_MISMATCH' ? 'This workspace needs the same Alice version as Desktop. Repair or update Alice.' : code === 'WORKSPACE_DAMAGED' ? 'The database failed its integrity check. Restore the latest backup; the damaged copy is kept.' : code === 'MIGRATION_FAILED' ? 'The update could not upgrade this workspace. Its data was backed up before the upgrade; restore the latest backup or repair Alice.' : 'Your data is safe on this computer. Try again, or use one of the recovery options below.'}</p>
         <div className="row wrap">
-          <button className="primary" type="button" onClick={onRetry}>
+          <Button variant="primary" onClick={onRetry}>
             Try again
-          </button>
+          </Button>
           {extraActions}
-          <button type="button" onClick={() => void diagnose()} disabled={!!busy}>
+          <Button onClick={() => void diagnose()} disabled={!!busy}>
             Diagnostics
-          </button>
-          <button type="button" onClick={() => setConfirming(true)} disabled={!!busy} aria-expanded={confirming}>
+          </Button>
+          <Button onClick={() => setConfirming(true)} disabled={!!busy} aria-expanded={confirming}>
             Restore latest backup
-          </button>
-          <button type="button" onClick={() => void native.localOpenFolder(profile.name)}>
+          </Button>
+          <Button onClick={() => void native.localOpenFolder(profile.name)}>
             Open data folder
-          </button>
-          <button type="button" onClick={onSwitch}>
+          </Button>
+          <Button onClick={onSwitch}>
             Switch workspace
-          </button>
+          </Button>
         </div>
         {confirming && (
           <div className="stack" role="group" aria-labelledby="restore-confirm">
@@ -205,12 +348,12 @@ export function LocalRecovery({
               Replace <strong>{workspaceLabel(profile)}</strong> with its newest backup? Its current data is backed up first and kept, so you can go back.
             </p>
             <div className="row">
-              <button className="primary" type="button" onClick={() => void restore()} disabled={!!busy}>
+              <Button variant="primary" onClick={() => void restore()} disabled={!!busy}>
                 Replace with latest backup
-              </button>
-              <button type="button" onClick={() => setConfirming(false)} disabled={!!busy}>
+              </Button>
+              <Button onClick={() => setConfirming(false)} disabled={!!busy}>
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -284,25 +427,25 @@ export function LocalWorkspacesSection({ view, onChanged }: { view: ProfilesView
                     }}
                   >
                     <TextInput label={editing.field === 'name' ? `New name for ${p.local!.displayName}` : `New alias for ${p.local!.displayName}`} value={editing.value} onChange={(e) => setEditing({ ...editing, value: e.target.value })} required />
-                    <button type="submit">Save</button>
-                    <button type="button" onClick={() => setEditing(null)}>
+                    <Button type="submit">Save</Button>
+                    <Button onClick={() => setEditing(null)}>
                       Cancel
-                    </button>
+                    </Button>
                   </form>
                 )}
               </div>
               <div className="row">
                 {!p.active && (
-                  <button type="button" onClick={() => void run(() => native.useProfile(p.name))} aria-label={`Use ${p.local!.displayName} (${p.local!.alias})`}>
+                  <Button onClick={() => void run(() => native.useProfile(p.name))} aria-label={`Use ${p.local!.displayName} (${p.local!.alias})`}>
                     Use
-                  </button>
+                  </Button>
                 )}
-                <button type="button" onClick={() => setEditing({ id: p.name, field: 'name', value: p.local!.displayName })} aria-label={`Rename ${p.local!.alias}`}>
+                <Button onClick={() => setEditing({ id: p.name, field: 'name', value: p.local!.displayName })} aria-label={`Rename ${p.local!.alias}`}>
                   Rename
-                </button>
-                <button type="button" onClick={() => setEditing({ id: p.name, field: 'alias', value: p.local!.alias })} aria-label={`Change alias of ${p.local!.alias}`}>
+                </Button>
+                <Button onClick={() => setEditing({ id: p.name, field: 'alias', value: p.local!.alias })} aria-label={`Change alias of ${p.local!.alias}`}>
                   Alias
-                </button>
+                </Button>
               </div>
             </li>
           ))}
@@ -316,7 +459,7 @@ export function LocalWorkspacesSection({ view, onChanged }: { view: ProfilesView
         }}
       >
         <TextInput label="New Local workspace" value={name} onChange={(e) => setName(e.target.value)} placeholder="Workspace" maxLength={80} />
-        <button type="submit">Create</button>
+        <Button type="submit">Create</Button>
       </form>
       <ErrorMessage error={error} />
     </section>
@@ -368,12 +511,12 @@ export function AgentsSection() {
                   {a.optedIn ? (
                     <>
                       {outdated && (
-                        <button type="button" disabled={!!busy} onClick={() => void act('repair', async () => void (await native.integrationSet(a.client, true)))}>
+                        <Button disabled={!!busy} onClick={() => void act('repair', async () => void (await native.integrationSet(a.client, true)))}>
                           Repair {a.label}
-                        </button>
+                        </Button>
                       )}
-                      <button
-                        type="button"
+                      <Button
+                       
                         disabled={!!busy}
                         onClick={() =>
                           void act('disable', async () => {
@@ -383,12 +526,12 @@ export function AgentsSection() {
                         }
                       >
                         Disable {a.label}
-                      </button>
+                      </Button>
                     </>
                   ) : (
-                    <button type="button" disabled={!!busy} onClick={() => void act('enable', async () => void (await native.integrationSet(a.client, true)))}>
+                    <Button disabled={!!busy} onClick={() => void act('enable', async () => void (await native.integrationSet(a.client, true)))}>
                       Enable {a.label}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </li>
@@ -403,8 +546,8 @@ export function AgentsSection() {
             them.
           </p>
           <div className="row">
-            <button
-              type="button"
+            <Button
+             
               onClick={() =>
                 void act('unassign', async () => {
                   const ws = (await native.profiles()).profiles.find((p) => p.local?.alias === x.workspace)
@@ -414,7 +557,7 @@ export function AgentsSection() {
               }
             >
               Unassign them in {x.workspace}
-            </button>
+            </Button>
           </div>
         </div>
       ))}

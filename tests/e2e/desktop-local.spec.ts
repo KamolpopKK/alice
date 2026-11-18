@@ -13,12 +13,20 @@ test.describe('Alice Desktop with Local workspaces', () => {
     const native = await FakeNativeCore.attach(page, { localHome: home })
     await page.goto(app.url)
     await expect(page.getByRole('heading', { name: 'Welcome to Alice' })).toBeFocused()
-    await expect(page.getByLabel(/URL|password|port|database|server/i)).toHaveCount(0)
+    await expect(page.getByText('Step 1 of 4')).toBeVisible()
+    await page.getByRole('button', { name: 'Get started' }).click()
+    await expect(page.getByRole('heading', { name: 'Where should your work live?' })).toBeFocused()
+    // ทาง Local ไม่ถาม URL, password, port หรือ database
+    await expect(page.getByLabel(/URL|password|port|database/i)).toHaveCount(0)
+    await expect(page.getByRole('radio', { name: /On this computer/ })).toBeChecked()
     await expect(page.getByLabel('Your name')).toHaveValue('Local Owner')
     await page.getByLabel('Your name').fill('Kim')
     await page.keyboard.press('Enter')
     await expect(page.getByRole('heading', { name: 'Work with your terminal and agents' })).toBeFocused()
     for (const box of await page.getByRole('checkbox').all()) await expect(box).toBeChecked()
+    await page.getByRole('button', { name: 'Continue' }).click()
+    // onboarding ติดตั้ง CLI + skill ของ Codex/Claude (bridge รัน CLI จริงแบบ sync): บน CI ใช้เกิน 5 วินาทีได้
+    await expect(page.getByRole('heading', { name: 'Capture your first task' })).toBeFocused({ timeout: 20_000 })
     await page.getByRole('button', { name: 'Open my Task Pad' }).click()
 
     // onboarding ติดตั้ง CLI + skill ของ Codex/Claude ก่อนเปิด (bridge รัน CLI จริง 3 ครั้งแบบ sync): บน CI ใช้เกิน 5 วินาทีได้
@@ -38,6 +46,9 @@ test.describe('Alice Desktop with Local workspaces', () => {
         return ((await res.json()) as { items: Array<{ createdBy: { displayName: string } }> }).items[0]?.createdBy.displayName
       })
       .toBe('Kim')
+    // จบ onboarding ที่ Home และเห็นงานจริงที่เพิ่งจด
+    await page.getByRole('button', { name: 'Done, show me Home' }).click()
+    await expect(page.getByRole('region', { name: 'Just captured' }).getByRole('link', { name: 'First local task' })).toBeVisible()
 
     // เปิดใหม่: ไม่ onboarding ซ้ำ และไม่สร้าง Personal ซ้ำ
     await page.reload()
@@ -198,18 +209,26 @@ test.describe('Alice Desktop with Local workspaces', () => {
     await expect(page.getByText('Its current data is backed up first')).toBeVisible()
     await page.getByRole('button', { name: 'Replace with latest backup' }).click()
     await expect(page.getByRole('region', { name: 'Workspace', exact: true })).toContainText('Personal')
-    const after = await native.localConnect(ws.id)
-    const titles = ((await (await fetch(`${after.baseUrl}/client/v1/tasks`, { headers: { authorization: `Bearer ${after.capability}` } })).json()) as { items: Array<{ title: string }> }).items.map((t) => t.title)
-    expect(titles).toEqual(['Saved before the backup'])
+    // daemon อาจยังเริ่มใหม่อยู่หลัง restore: ถามซ้ำจนอ่านรายการได้ (คำตอบระหว่างนั้นไม่มี items)
+    await expect
+      .poll(async () => {
+        const after = await native.localConnect(ws.id)
+        const res = await fetch(`${after.baseUrl}/client/v1/tasks`, { headers: { authorization: `Bearer ${after.capability}` } }).catch(() => null)
+        const body = res?.ok ? ((await res.json()) as { items?: Array<{ title: string }> }) : null
+        return body?.items?.map((t) => t.title) ?? null
+      }, { timeout: 15_000 })
+      .toEqual(['Saved before the backup'])
   })
 
   test('onboarding installs only the consented tools; Settings disables an agent and offers to unassign its work', async ({ app, page }) => {
     const home = localHome()
     const native = await FakeNativeCore.attach(page, { localHome: home })
     await page.goto(app.url)
+    await page.getByRole('button', { name: 'Get started' }).click()
     await page.getByRole('button', { name: 'Continue' }).click()
     await page.getByRole('checkbox', { name: /Claude Code/ }).uncheck()
-    await page.getByRole('button', { name: 'Open my Task Pad' }).click()
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('button', { name: 'Open my Task Pad' }).click({ timeout: 20_000 })
     await expect(page.getByRole('region', { name: 'Workspace', exact: true })).toContainText('Personal', { timeout: 20_000 })
     const fsMod = await import('node:fs')
     const pathMod = await import('node:path')
@@ -233,15 +252,82 @@ test.describe('Alice Desktop with Local workspaces', () => {
     expect(task.assignee).toBeNull()
   })
 
-  test('onboarding passes axe WCAG 2.2 AA and fits a 320px window', async ({ app, browser }) => {
+  test('every onboarding stage passes axe WCAG 2.2 AA and fits a 320px window', async ({ app, browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 320, height: 720 } })
     const page = await ctx.newPage()
     await FakeNativeCore.attach(page, { localHome: localHome() })
     await page.goto(app.url)
-    await expect(page.getByRole('heading', { name: 'Welcome to Alice' })).toBeVisible()
-    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
-    const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
-    expect(axe.violations.map((v) => v.id)).toEqual([])
+    const check = async (heading: string) => {
+      await expect(page.getByRole('heading', { name: heading })).toBeVisible()
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+      const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
+      expect(axe.violations.map((v) => v.id), heading).toEqual([])
+    }
+    await check('Welcome to Alice')
+    await page.getByRole('button', { name: 'Get started' }).click()
+    await check('Where should your work live?')
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await check('Work with your terminal and agents')
+    await page.getByRole('button', { name: 'Skip for now' }).click()
+    await check('Capture your first task')
     await ctx.close()
+  })
+
+  test('onboarding goes back, skips agents, and resumes at the last stage after a restart without creating anything twice', async ({ app, page }) => {
+    const home = localHome()
+    const native = await FakeNativeCore.attach(page, { localHome: home })
+    await page.goto(app.url)
+    await page.getByRole('button', { name: 'Get started' }).click()
+    await page.getByLabel('Workspace name').fill('Studio')
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('button', { name: 'Back' }).click()
+    await expect(page.getByLabel('Workspace name')).toHaveValue('Studio')
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('button', { name: 'Skip for now' }).click()
+    await expect(page.getByRole('heading', { name: 'Capture your first task' })).toBeFocused()
+    expect(native.calls).not.toContain('tools_apply')
+    expect(listWorkspaces(home)).toHaveLength(1)
+
+    // ปิดแอปตรงนี้แล้วเปิดใหม่: กลับมาที่ขั้นงานแรก ไม่สร้าง workspace ใหม่
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Capture your first task' })).toBeVisible()
+    expect(listWorkspaces(home)).toHaveLength(1)
+    await page.getByRole('button', { name: 'Open my Task Pad' }).click()
+    await expect(page.getByRole('region', { name: 'Workspace', exact: true })).toContainText('Studio')
+    await expect(page.getByRole('textbox', { name: 'New task' }).first()).toBeFocused()
+    // จบแล้ว: เปิดใหม่ไม่ย้อนกลับไป onboarding
+    await page.reload()
+    await expect(page.getByRole('region', { name: 'Workspace', exact: true })).toContainText('Studio')
+    await expect(page.getByRole('heading', { name: 'Capture your first task' })).toHaveCount(0)
+  })
+
+  test('choosing a team server signs in there, then onboarding continues to the first task and Home', async ({ app, owner, page }) => {
+    const native = await FakeNativeCore.attach(page, { localHome: localHome() })
+    await page.goto(app.url)
+    await page.getByRole('button', { name: 'Get started' }).click()
+    await page.getByRole('radio', { name: /On a team server/ }).check()
+    await expect(page.getByLabel('Your name')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Connect to a server' }).click()
+    await page.getByLabel('Profile name').fill('team')
+    await page.getByLabel('Server URL').fill(app.url)
+    await page.getByRole('button', { name: 'Add server' }).click()
+    await page.getByRole('button', { name: 'Sign in with browser' }).click()
+    await expect(page.getByLabel('Sign-in code')).toBeVisible()
+    await owner.post('/client/v1/device/approve', { userCode: native.pendingUserCode })
+    // กลับเข้า onboarding ขั้นที่ 3 หลัง sign in
+    await expect(page.getByRole('heading', { name: 'You’re connected' })).toBeFocused({ timeout: 15_000 })
+    await expect(page.getByText('Step 3 of 4')).toBeVisible()
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await expect(page.getByRole('heading', { name: 'Capture your first task' })).toBeFocused()
+    await page.getByRole('button', { name: 'Open my Task Pad' }).click()
+    await expect(page.getByRole('textbox', { name: 'New task' }).first()).toBeFocused({ timeout: 15_000 })
+    await page.keyboard.type('First team task')
+    await page.keyboard.press('Enter')
+    await expect.poll(async () => ((await owner.get('/client/v1/tasks?q=First%20team')).body.items as unknown[]).length).toBe(1)
+    await page.getByRole('button', { name: 'Done, show me Home' }).click()
+    await expect(page.getByRole('region', { name: 'Just captured' }).getByRole('link', { name: 'First team task' })).toBeVisible()
+    // จบแล้ว: เปิดใหม่ไม่ย้อนกลับไป onboarding
+    await page.reload()
+    await expect(page.getByRole('heading', { level: 1, name: /^Good (morning|afternoon|evening)/ })).toBeVisible()
   })
 })

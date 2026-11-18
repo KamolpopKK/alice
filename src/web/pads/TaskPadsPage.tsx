@@ -1,7 +1,9 @@
-import { Navigate, useLocation, useParams } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useEffect } from 'react'
 import { isRecoverable, FullPageError } from '../brand'
-import { ErrorMessage, Loading } from '../components/ui'
+import { ErrorMessage } from '../components/ui'
+import { Banner, Button, EmptyState, Skeleton } from '../ui'
+import { ArrowRight, NotebookPen } from 'lucide-react'
 import { NARROW_QUERY, lastPadId, rememberLastPad, useMediaQuery, usePad, usePads } from './hooks'
 import { PadEditor, activePadModel } from './PadEditor'
 import { PadHeader } from './PadHeader'
@@ -20,7 +22,7 @@ export function TaskPadsPage() {
     return (
       <div className="page">
         <h1>Task Pads</h1>
-        <p className="notice">This Alice server does not offer Task Pads yet. Ask the operator to upgrade the server; everything else keeps working.</p>
+        <Banner tone="info">This Alice server does not offer Task Pads yet. Ask the operator to upgrade the server; everything else keeps working.</Banner>
       </div>
     )
   }
@@ -51,8 +53,8 @@ function OpenDefaultPad() {
   const pads = usePads('active')
   const newPad = useNewPad()
   const location = useLocation()
-  if ((location.state as { capture?: unknown } | null)?.capture) return <Loading />
-  if (pads.isLoading) return <Loading />
+  if ((location.state as { capture?: unknown } | null)?.capture) return <Skeleton lines={4} />
+  if (pads.isLoading) return <Skeleton lines={4} />
   if (pads.error) return <ErrorMessage error={pads.error} />
   const items = pads.data ?? []
   if (items.length > 0) {
@@ -62,12 +64,39 @@ function OpenDefaultPad() {
   }
   return (
     <div className="pad-empty">
-      <h2>Capture while you listen</h2>
-      <p className="muted">A pad is a private notepad. Lines you mark as tasks go straight to the Board; text and headings stay yours.</p>
-      <button type="button" className="primary" onClick={newPad.start} disabled={newPad.pending}>
-        New Pad
-      </button>
+      <EmptyState
+        icon={NotebookPen}
+        headingLevel={2}
+        title="Capture while you listen"
+        action={
+          <Button variant="primary" onClick={newPad.start} loading={newPad.pending}>
+            New Pad
+          </Button>
+        }
+      >
+        A pad is a private notepad. Lines you mark as tasks go straight to the Board; text and headings stay yours.
+      </EmptyState>
       <ErrorMessage error={newPad.error} />
+    </div>
+  )
+}
+
+/** Last step of first run: once the first task is written down, show it on Home. */
+function FinishOnboarding({ padId }: { padId: string }) {
+  const navigate = useNavigate()
+  return (
+    <div className="pad-onboarding">
+      <Banner
+        tone="info"
+        title="Write your first task, then press Enter."
+        action={
+          <Button size="sm" variant="primary" icon={ArrowRight} onClick={() => navigate('/', { state: { capturedPad: padId } })}>
+            Done, show me Home
+          </Button>
+        }
+      >
+        Lines here become real tasks right away. You can come back to this pad any time.
+      </Banner>
     </div>
   )
 }
@@ -78,21 +107,20 @@ function PadScreen({ padId, narrow }: { padId: string; narrow: boolean }) {
   useEffect(() => {
     if (pad.data) rememberLastPad(pad.data.id)
   }, [pad.data])
-  if (pad.isLoading) return <Loading />
+  if (pad.isLoading) return <Skeleton lines={6} />
   if (pad.error) {
     // Pad ของคนอื่นกับ id ที่ไม่มีอยู่ แสดงเหมือนกันทุกประการ
     if (!isRecoverable(pad.error)) {
       return (
         <div className="pad-empty">
-          <h2>Pad not found</h2>
-          <p className="muted">It may have been deleted, or it is not one of your pads.</p>
+          <EmptyState headingLevel={2} title="Pad not found">It may have been deleted, or it is not one of your pads.</EmptyState>
         </div>
       )
     }
     return <FullPageError error={pad.error} onRetry={() => void pad.refetch()} />
   }
   if (!pad.data) return null
-  const state = (location.state ?? {}) as { focusCapture?: boolean; focusToken?: string; expand?: string[]; capture?: unknown }
+  const state = (location.state ?? {}) as { focusCapture?: boolean; focusToken?: string; expand?: string[]; capture?: unknown; onboarding?: boolean }
   return (
     <>
       <PadHeader
@@ -112,6 +140,7 @@ function PadScreen({ padId, narrow }: { padId: string; narrow: boolean }) {
               ]
         }
       />
+      {state.onboarding && <FinishOnboarding padId={padId} />}
       <PadEditor pad={pad.data} focusCapture={state.focusCapture === true} focusToken={state.focusToken ?? null} expand={state.expand ?? []} />
     </>
   )

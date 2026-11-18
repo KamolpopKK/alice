@@ -16,6 +16,7 @@ const EXPECTED_CORE_TOOLS = [
   'list_actors',
   'list_projects',
   'get_project',
+  'get_project_plan',
   'create_project',
   'update_project',
   'archive_project',

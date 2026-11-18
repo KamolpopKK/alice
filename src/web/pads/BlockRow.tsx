@@ -1,6 +1,8 @@
 import { memo, useEffect, useLayoutEffect, useRef, type ClipboardEvent, type DragEvent, type KeyboardEvent } from 'react'
 import type { Pad } from '../../shared/pads'
-import { MenuButton, type MenuItem } from '../components/Menu'
+import { ChevronDown, ChevronRight, GripVertical, PanelRightOpen } from 'lucide-react'
+import { Button, Icon, IconButton } from '../ui'
+import { BlockMenu, type BlockMenuItem } from './BlockMenu'
 import { caretAtEnd, caretAtStart, mentionQuery, pastedLines, insertPlainText, readSegments, renderSegments, splitAtCaret, placeCaret } from './editable'
 import { optionId, PICKER_ID, type PickerState } from './MentionPicker'
 import type { FlatRow, MentionMap } from './store'
@@ -26,7 +28,7 @@ export interface RowApi {
   picker(key: string, mode: PickerState['mode'] | null, query: string, anchor?: { node: Text; start: number; end: number } | null): void
   pickerKey(e: KeyboardEvent): boolean
   paste(key: string, lines: string[]): void
-  menuItems(row: FlatRow): MenuItem[]
+  menuItems(row: FlatRow): BlockMenuItem[]
   toggleComplete(key: string): void
   toggleCollapse(key: string): void
   openTask(taskId: string): void
@@ -126,7 +128,7 @@ export const BlockRow = memo(function BlockRow(props: RowProps) {
     >
       <div className="pad-row-line">
         <div className="pad-row-gutter">
-          <MenuButton
+          <BlockMenu
             label={rowLabel(row, mentions)}
             items={api.menuItems(row)}
             open={menuOpen}
@@ -144,27 +146,20 @@ export const BlockRow = memo(function BlockRow(props: RowProps) {
               },
             }}
           >
-            <svg viewBox="0 0 12 18" width="10" height="16" aria-hidden="true" focusable="false">
-              {[3, 9, 15].map((y) => (
-                <g key={y}>
-                  <circle cx="3" cy={y} r="1.5" fill="currentColor" />
-                  <circle cx="9" cy={y} r="1.5" fill="currentColor" />
-                </g>
-              ))}
-            </svg>
-          </MenuButton>
+            <Icon icon={GripVertical} size="sm" />
+          </BlockMenu>
         </div>
         {b.type === 'heading' && (
           <button
             type="button"
-            className="icon-button collapse-toggle"
+            className="ui-icon-button ui-button--ghost ui-icon-button--sm collapse-toggle"
             aria-expanded={!b.collapsed}
             aria-label={`${b.collapsed ? 'Expand' : 'Collapse'} section ${plain(b.content).slice(0, 60)}`}
             onClick={() => api.toggleCollapse(b.key)}
             disabled={!row.hasChildren && !b.collapsed}
             tabIndex={-1}
           >
-            <span aria-hidden="true">{b.collapsed ? '▸' : '▾'}</span>
+            <Icon icon={b.collapsed ? ChevronRight : ChevronDown} size="sm" />
           </button>
         )}
         {b.type === 'task' ? (
@@ -190,12 +185,12 @@ function SyncBadge({ row, api, offline }: { row: FlatRow; api: RowApi; offline: 
     return (
       <span className="sync-failed" role="group" aria-label="Not saved">
         <span className="sync-text">{b.error ?? 'Not saved'}</span>
-        <button type="button" className="link" onClick={() => api.retry(b.key)}>
+        <Button size="sm" variant="ghost" onClick={() => api.retry(b.key)}>
           Retry
-        </button>
-        <button type="button" className="link danger" onClick={() => api.discard(b.key)}>
+        </Button>
+        <Button size="sm" variant="ghost" className="sync-discard" onClick={() => api.discard(b.key)}>
           Discard
-        </button>
+        </Button>
       </span>
     )
   }
@@ -216,10 +211,29 @@ function SyncBadge({ row, api, offline }: { row: FlatRow; api: RowApi; offline: 
   return null
 }
 
-function useFocusRequest(api: RowApi, key: string, field: 'title' | 'content' | 'description', seq: number, focus: (f: { field: string; caret: 'start' | 'end' | number }) => void) {
+type FocusRequest = { field: string; caret: 'start' | 'end' | number }
+
+/**
+ * Applies a focus request to this row. If focus did not land (seen intermittently right after a new
+ * Pad opens on slow machines), try again on the next frames, but only while nothing else has taken
+ * focus in the meantime, so a click or Tab by the person always wins.
+ */
+function useFocusRequest(api: RowApi, key: string, field: 'title' | 'content' | 'description', seq: number, focus: (f: FocusRequest) => HTMLElement | null) {
   useLayoutEffect(() => {
     const req = api.consumeFocus(key, field)
-    if (req) focus(req)
+    if (!req) return
+    const el = focus(req)
+    if (!el || document.activeElement === el) return
+    let frame = 0
+    let tries = 0
+    const retry = () => {
+      const active = document.activeElement
+      if (!el.isConnected || (active !== null && active !== document.body)) return
+      focus(req)
+      if (document.activeElement !== el && ++tries < 10) frame = requestAnimationFrame(retry)
+    }
+    frame = requestAnimationFrame(retry)
+    return () => cancelAnimationFrame(frame)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seq])
 }
@@ -228,11 +242,12 @@ function TaskLine({ row, api, picker, pickerActive, pickerCount, focusSeq, disab
   const b = row.block
   const ref = useRef<HTMLInputElement>(null)
   useFocusRequest(api, b.key, 'title', focusSeq, (req) => {
-    if (req.field !== 'title' || !ref.current) return
+    if (req.field !== 'title' || !ref.current) return null
     const el = ref.current
     el.focus()
     const pos = req.caret === 'start' ? 0 : req.caret === 'end' ? el.value.length : req.caret
     el.setSelectionRange(pos, pos)
+    return el
   })
   const pickerHere = picker?.key === b.key
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -308,9 +323,7 @@ function TaskLine({ row, api, picker, pickerActive, pickerCount, focusSeq, disab
         onDoubleClick={() => b.task && api.openTask(b.task.id)}
       />
       {b.task && (
-        <button type="button" className="icon-button open-task" aria-label={`Open task details: ${b.title}`} onClick={() => api.openTask(b.task!.id)} tabIndex={-1}>
-          <span aria-hidden="true">↗</span>
-        </button>
+        <IconButton icon={PanelRightOpen} size="sm" className="open-task" label={`Open task details: ${b.title}`} title="Open task details" onClick={() => api.openTask(b.task!.id)} tabIndex={-1} />
       )}
     </span>
   )
@@ -352,7 +365,9 @@ function EditableLine({ row, api, mentions, picker, pickerActive, pickerCount, f
     })
   }, [mentions])
   useFocusRequest(api, b.key, 'content', focusSeq, (req) => {
-    if (req.field === 'content' && ref.current) placeCaret(ref.current, req.caret)
+    if (req.field !== 'content' || !ref.current) return null
+    placeCaret(ref.current, req.caret)
+    return ref.current
   })
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -439,10 +454,11 @@ function DescriptionRegion({ row, api, picker, pickerActive, pickerCount, focusS
   const ref = useRef<HTMLTextAreaElement>(null)
   const pickerHere = picker?.key === `${b.key}:description`
   useFocusRequest(api, b.key, 'description', focusSeq, (req) => {
-    if (req.field !== 'description' || !ref.current) return
+    if (req.field !== 'description' || !ref.current) return null
     ref.current.focus()
     const pos = req.caret === 'start' ? 0 : ref.current.value.length
     ref.current.setSelectionRange(pos, pos)
+    return ref.current
   })
   useLayoutEffect(() => {
     const el = ref.current
