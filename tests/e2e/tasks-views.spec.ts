@@ -235,3 +235,14 @@ test('List selection changes several tasks at once and keeps failures selected',
   const act = (await owner.get(`${V1}/tasks/${a.id}/activity`)).body.items as Array<{ actor: { displayName: string } }>
   expect(act[0].actor.displayName).toBe('Olivia Owner')
 })
+
+test('dragging a card to another Board column changes its status and says so', async ({ app, owner, page }) => {
+  const t = await newTask(owner, { title: `Drag me ${stamp()}`, status: 'ready' })
+  await signIn(page, app)
+  await page.goto(`${app.url}/tasks?view=board`)
+  const card = page.getByRole('region', { name: 'Ready' }).getByRole('listitem').filter({ has: page.getByRole('link', { name: t.title }) })
+  await card.dragTo(page.getByRole('region', { name: 'In progress' }), { targetPosition: { x: 30, y: 20 } })
+  await expect(page.getByRole('status').filter({ hasText: `Moved ${t.title} to In progress.` })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'In progress' }).getByRole('link', { name: t.title })).toBeVisible()
+  expect((await owner.get(`${V1}/tasks/${t.id}`)).body.task.status).toBe('in_progress')
+})

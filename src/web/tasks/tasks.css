@@ -403,3 +403,21 @@
   vertical-align: middle;
   flex: none;
 }
+
+/* ---------- board drag and drop ---------- */
+.tasks-card-drag[draggable='true'] {
+  cursor: grab;
+}
+.tasks-card-drag[draggable='true']:active {
+  cursor: grabbing;
+}
+.tasks-column.is-drop-target {
+  outline: 2px dashed var(--ui-focus);
+  outline-offset: -2px;
+}
+.tasks-board-status {
+  margin: 0;
+  min-height: 1.25em;
+  font-size: var(--ui-text-sm);
+  color: var(--ui-text-muted);
+}

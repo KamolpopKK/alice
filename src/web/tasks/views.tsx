@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react'
+import { createContext, useContext, useMemo, useState, type DragEvent, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { STATUS_LABELS, TASK_STATUSES, type Task, type TaskStatus } from '../../shared/contracts'
 import { IllustratedState } from '../brand'
@@ -144,12 +144,39 @@ export function MyWorkView({ filters }: { filters: Record<string, string> }) {
 
 const COLUMN_PAGE = 25
 
+const DRAG_TYPE = 'application/x-alice-task'
+type DragPayload = { id: string; title: string; status: TaskStatus }
+type BoardDnd = { move: (task: DragPayload, to: TaskStatus) => void }
+const BoardDndContext = createContext<BoardDnd | null>(null)
+
 function BoardColumn({ status, filters }: { status: TaskStatus; filters: Record<string, string> }) {
   const query = useTaskPages(`board-${status}`, { ...filters, status }, COLUMN_PAGE)
   const tasks = query.data?.pages.flatMap((p) => p.items) ?? []
   const headingId = `board-col-${status}`
+  const dnd = useContext(BoardDndContext)
+  const [over, setOver] = useState(false)
+  // ลากการ์ดมาวางในคอลัมน์ = เปลี่ยนสถานะ; ทางคีย์บอร์ดยังเป็นตัวเลือกสถานะบนการ์ด
+  const dropProps = {
+    onDragOver: (e: DragEvent) => {
+      if (!e.dataTransfer.types.includes(DRAG_TYPE)) return
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'move'
+      if (!over) setOver(true)
+    },
+    onDragLeave: (e: DragEvent) => {
+      if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) setOver(false)
+    },
+    onDrop: (e: DragEvent) => {
+      setOver(false)
+      const raw = e.dataTransfer.getData(DRAG_TYPE)
+      if (!raw) return
+      e.preventDefault()
+      const task = JSON.parse(raw) as DragPayload
+      if (task.status !== status) dnd?.move(task, status)
+    },
+  }
   return (
-    <section className={`tasks-column tasks-column--${STATUS_TONE[status]}`} aria-labelledby={headingId}>
+    <section className={`tasks-column tasks-column--${STATUS_TONE[status]}${over ? ' is-drop-target' : ''}`} aria-labelledby={headingId} {...dropProps}>
       <header className="tasks-column-head">
         <h2 id={headingId}>{STATUS_LABELS[status]}</h2>
         <span className="ui-text-muted">{query.isLoading ? '' : query.hasNextPage ? `${tasks.length}+` : tasks.length}</span>
@@ -161,7 +188,15 @@ function BoardColumn({ status, filters }: { status: TaskStatus; filters: Record<
       ) : (
         <ul className="tasks-cards" aria-label={`${STATUS_LABELS[status]} tasks`}>
           {tasks.map((t) => (
-            <li key={t.id}>
+            <li
+              key={t.id}
+              draggable={!t.archivedAt}
+              className="tasks-card-drag"
+              onDragStart={(e) => {
+                e.dataTransfer.setData(DRAG_TYPE, JSON.stringify({ id: t.id, title: t.title, status: t.status } satisfies DragPayload))
+                e.dataTransfer.effectAllowed = 'move'
+              }}
+            >
               <TaskEntry task={t} layout="card" />
             </li>
           ))}
@@ -173,15 +208,42 @@ function BoardColumn({ status, filters }: { status: TaskStatus; filters: Record<
   )
 }
 
-/** Board: one column per status; the status control on each card is the keyboard way to move it. */
+/**
+ * Board: one column per status. Drag a card to another column to change its status; the status
+ * control on each card does the same by keyboard. The result is announced either way.
+ */
 export function BoardView({ filters }: { filters: Record<string, string> }) {
+  const change = useStatusChange()
+  const [message, setMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
+  const dnd = useMemo<BoardDnd>(
+    () => ({
+      move: (task, to) => {
+        setMessage({ tone: 'ok', text: `Moving ${task.title} to ${STATUS_LABELS[to]}…` })
+        change.mutate(
+          { id: task.id, status: to },
+          {
+            onSuccess: () => setMessage({ tone: 'ok', text: `Moved ${task.title} to ${STATUS_LABELS[to]}.` }),
+            onError: (error) => setMessage({ tone: 'error', text: `${task.title} was not moved: ${errorText(error)}` }),
+          },
+        )
+      },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
   return (
-    // เลื่อนแนวนอนด้วยคีย์บอร์ดได้แม้คอลัมน์ว่าง (axe: scrollable-region-focusable)
-    <div className="tasks-board" tabIndex={0} role="region" aria-label="Board columns">
-      {TASK_STATUSES.map((s) => (
-        <BoardColumn key={s} status={s} filters={filters} />
-      ))}
-    </div>
+    <BoardDndContext.Provider value={dnd}>
+      <p className="tasks-board-status" role="status">
+        {message?.tone === 'ok' ? message.text : ''}
+      </p>
+      {message?.tone === 'error' && <FieldMessage tone="error">{message.text}</FieldMessage>}
+      {/* เลื่อนแนวนอนด้วยคีย์บอร์ดได้แม้คอลัมน์ว่าง (axe: scrollable-region-focusable) */}
+      <div className="tasks-board" tabIndex={0} role="region" aria-label="Board columns">
+        {TASK_STATUSES.map((s) => (
+          <BoardColumn key={s} status={s} filters={filters} />
+        ))}
+      </div>
+    </BoardDndContext.Provider>
   )
 }
 
