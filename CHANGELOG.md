@@ -1,9 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — 2026-11-18
 
-A new interface for the Web dashboard and Alice Desktop. Domain behaviour, the Client API, MCP and
-the CLI are unchanged.
+The first public release. Alice Desktop, the `alice` CLI and the server image are published from
+GitHub Releases and GHCR. It also brings a new interface for the Web dashboard and Alice Desktop,
+project planning, and approval requests from agents. The new server features are additive
+capabilities (`saved-views`, `project-planning`, `approvals`), so clients keep working with servers
+that do not offer them.
 
 ### Navigation and look
 
@@ -57,11 +60,6 @@ the CLI are unchanged.
   Home with the tasks you just wrote down.
 - **Guided tour.** Take a short tour from Help in the account menu, or "Help: take the tour" in Ctrl K.
 
-## 0.2.0 — 2026-11-17
-
-The first public release. Alice Desktop, the `alice` CLI and the server image are published from
-GitHub Releases and GHCR.
-
 ### Public release and getting started
 
 - **Get started in three paths.** The README now starts with: Alice on your Mac without a server, hosting
@@ -90,15 +88,15 @@ GitHub Releases and GHCR.
 - **macOS arm64 release.** Code-signed without an Apple Developer ID and not notarized. Install it with
   the checksum-verified `install-macos.sh` or from the DMG with one approval.
 
-### For agent: keep it up to date
+### Agents page: keep it up to date
 
-- The For agent page has a **Keep it up to date** section per client: an update prompt and manual steps that
+- The Agents page has a **Keep it up to date** section per client: an update prompt and manual steps that
   compare `alice version` with the server manifest, re-download and verify the CLI and adapter, reinstall the
   skills and restart, without touching the token or MCP configuration.
 
-### For agent: Claude Code via token file
+### Agents page: Claude Code via token file
 
-- The For agent page and prompt connect Claude Code through `alice-mcp-stdio` with
+- The Agents page and its prompt connect Claude Code through `alice-mcp-stdio` with
   `ALICE_TOKEN_FILE=~/.config/alice/token`, like Codex. No `ALICE_TOKEN` in the shell profile, and a rotated
   token needs only a reconnect.
 - `alice mcp-config --client claude-code --transport stdio` prints the matching `claude mcp add` command and
@@ -119,7 +117,7 @@ GitHub Releases and GHCR.
 - The server serves standalone `alice.js` and `alice-mcp-stdio.js` (Node.js 22+, no `node_modules`) under
   `/downloads/`, with `/downloads/manifest.json` listing the version, sizes and SHA-256 checksums. No sign-in is
   needed. `npm run build:server` writes them to `dist/downloads/` (`ALICE_DOWNLOADS_DIR` overrides).
-- A **For agent** page for every signed-in person. It has Claude Code and Codex tabs, steps that use this
+- An **Agents** page (`/agents`; `/for-agent` still works) for every signed-in person. It has Claude Code and Codex tabs, steps that use this
   server's URL, and a setup prompt with a Copy button. The prompt has the agent install the tools, skill and MCP
   connection, stop for the person to place the token, then verify with `whoami`.
 - `alice mcp-config --client claude-code` now prints `--scope user` and single-quotes the header, so the shell
