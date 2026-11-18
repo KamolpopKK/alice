@@ -165,7 +165,7 @@ These are intentionally out of scope:
 - sharing a Local workspace with other people or computers;
 - browser access;
 - MCP setup for Local agents;
-- Windows, Linux or Intel Mac installers;
+- Windows or Linux installers (Macs with Intel processors are not supported at all);
 - application-level database encryption;
 - merge restore;
 - cloud backup;

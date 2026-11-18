@@ -16,7 +16,7 @@ describe('client release workflow', () => {
 
   it('builds every supported desktop target and the standalone CLI', () => {
     const platforms = doc.jobs.desktop.strategy.matrix.include.map((m: { platform: string }) => m.platform)
-    expect(platforms.sort()).toEqual(['darwin-aarch64', 'darwin-x86_64', 'linux-aarch64', 'linux-x86_64', 'windows-x86_64'])
+    expect(platforms.sort()).toEqual(['darwin-aarch64', 'linux-aarch64', 'linux-x86_64', 'windows-x86_64'])
     expect(doc.jobs.cli.steps.some((s: { run?: string }) => s.run?.includes('node alice.js version'))).toBe(true)
     expect(doc.jobs.publish.needs).toEqual(['desktop', 'cli', 'image-manifest'])
   })
@@ -26,7 +26,6 @@ describe('client release workflow', () => {
     const bundles = Object.fromEntries(doc.jobs.desktop.strategy.matrix.include.map((m: { platform: string; bundles: string }) => [m.platform, m.bundles]))
     expect(bundles).toEqual({
       'darwin-aarch64': 'app,dmg',
-      'darwin-x86_64': 'app,dmg',
       'windows-x86_64': 'nsis,msi',
       'linux-x86_64': 'appimage,deb,rpm',
       'linux-aarch64': 'appimage,deb,rpm',
@@ -49,7 +48,8 @@ describe('client release workflow', () => {
   it('builds macOS on runner images GitHub still offers (macos-13/14 are retired and never start)', () => {
     const runners = Object.fromEntries(doc.jobs.desktop.strategy.matrix.include.map((m: { platform: string; runner: string }) => [m.platform, m.runner]))
     expect(runners['darwin-aarch64']).toBe('macos-15')
-    expect(runners['darwin-x86_64']).toBe('macos-15-intel')
+    // Intel Mac ไม่รองรับแล้ว: ไม่มี build บน runner Intel
+    expect(Object.values(runners)).not.toContain('macos-15-intel')
   })
 
   it('hands Tauri only the Apple secrets that are actually set (empty ones would override the self-signed identity)', () => {
@@ -110,10 +110,10 @@ describe('client release workflow', () => {
     expect(config).not.toContain('externalBin')
   })
 
-  it('every macOS build is signed with the release identity, including x64 without the Local runtime', () => {
+  it('the release config signs macOS with the release identity, even without the Local runtime', () => {
     const identity = doc.jobs.desktop.steps.find((s: { name?: string }) => s.name?.startsWith('Release signing identity'))
     expect(identity.if).toBe("runner.os == 'macOS'")
-    // Intel linker ไม่ ad-hoc sign ให้เอง: config ที่ไม่มี runtime ก็ต้องมี signingIdentity
+    // config ที่ไม่มี runtime ก็ต้องมี signingIdentity (ไม่พึ่ง linker ให้ ad-hoc sign เอง)
     const dir = testDir('alice-release-config-')
     const out = path.join(dir, 'release.json')
     const env = { PATH: process.env.PATH ?? '', ALICE_UPDATER_PUBKEY: 'pub', ALICE_UPDATE_URL: 'https://example.com/latest.json', ALICE_MACOS_SIGNING_IDENTITY: 'ABC123' }

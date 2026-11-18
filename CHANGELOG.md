@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Changed
+
+- **Alice Desktop no longer supports Macs with Intel processors.** Releases build macOS for Apple Silicon
+  only. 0.2.0 is the last Intel build; it keeps working with servers that support its Client API, but it
+  will not be offered updates. Use the web app or the `alice` command on those Macs.
+
 ### Fixes
 
 - **Agents ask which workspace to use when there is more than one.** At the start of every

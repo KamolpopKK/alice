@@ -1,6 +1,6 @@
 name: Release clients
 
-# Builds Alice Desktop installers + updater artifacts for every supported target, the standalone CLI,
+# Builds Alice Desktop installers + updater artifacts for every supported target (macOS is Apple Silicon only), the standalone CLI,
 # checksums, the updater manifest and the macOS install script, and attaches them to a draft release.
 #
 # macOS arm64 carries the Local runtime. It needs no Apple Developer ID: every Mach-O is
@@ -11,7 +11,7 @@ name: Release clients
 #   ALICE_MACOS_CERTIFICATE, ALICE_MACOS_CERTIFICATE_PASSWORD (self-signed; generate with scripts/release-keys.sh)
 #   Windows installers are not code-signed yet (SmartScreen is explained in the README).
 #   Optional upgrade only: APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY,
-#   APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID (Developer ID signing + notarization of the x64 build)
+#   APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID (Developer ID signing + notarization)
 # Variables (public): ALICE_UPDATER_PUBKEY, ALICE_UPDATE_URL (https://…/latest.json), ALICE_DOWNLOAD_BASE_URL
 
 on:
@@ -53,7 +53,6 @@ jobs:
       matrix:
         include:
           - { name: macOS arm64, runner: macos-15, target: aarch64-apple-darwin, platform: darwin-aarch64, bundles: 'app,dmg', local: true }
-          - { name: macOS x64, runner: macos-15-intel, target: x86_64-apple-darwin, platform: darwin-x86_64, bundles: 'app,dmg' }
           - { name: Windows x64, runner: windows-latest, target: x86_64-pc-windows-msvc, platform: windows-x86_64, bundles: 'nsis,msi' }
           - { name: Linux x64, runner: ubuntu-22.04, target: x86_64-unknown-linux-gnu, platform: linux-x86_64, bundles: 'appimage,deb,rpm' }
           - { name: Linux arm64, runner: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu, platform: linux-aarch64, bundles: 'appimage,deb,rpm' }
