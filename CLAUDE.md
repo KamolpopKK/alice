@@ -57,3 +57,4 @@ node dist/alice.js profile|auth|...   # CLI ฝั่งคน (ดู docs/cli.
 - TypeScript strict, ESM, 2-space indent, ไม่ใช้ semicolon, single quote
 - ชื่อฟังก์ชัน/ตัวแปร/เอกสารผู้ใช้เป็นภาษาอังกฤษ, comment อธิบายเพิ่มเป็นภาษาไทยได้
 - ทดสอบผ่าน system seam เป็นหลัก ไม่ assert รายละเอียดภายใน (ชื่อตาราง ฯลฯ) ถ้าทำผ่าน public interface ได้
+- โฟลเดอร์ชั่วคราวใน test สร้างผ่าน `testDir(prefix)` จาก `tests/helpers/tmp.ts` เท่านั้น (ห้ามเรียก `mkdtemp` เอง): ถูกลบอัตโนมัติเมื่อไฟล์ test/worker จบ ไม่ต้องลบเอง ตั้ง `ALICE_KEEP_TEST_DIRS=1` ถ้าต้องเก็บไว้ debug — unit test `tests/unit/test-temp-dirs.test.ts` บังคับกติกานี้
