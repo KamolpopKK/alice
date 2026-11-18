@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+
+- **Agents ask which workspace to use when there is more than one.** At the start of every
+  conversation the `alice` and `alice-plan` skills list the Local workspaces and the `alice` MCP server
+  they can reach. With one, they name it before the first change; with two or more, they ask which one
+  before reading or changing anything, and then add `--workspace` to every command. They also offer the
+  Local workspace when the MCP server cannot connect or rejects the token. Before, an agent with an
+  `alice` MCP server configured always used it, even when the person meant the Local workspace.
+
 ## 0.2.0 — 2026-11-18
 
 The first public release. Alice Desktop, the `alice` CLI and the server image are published from

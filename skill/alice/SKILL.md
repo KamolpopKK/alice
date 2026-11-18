@@ -1,14 +1,14 @@
 ---
 name: alice
-description: Work on the team's Alice taskboard through its MCP tools — find ready tasks, claim them atomically, load task context, post progress comments and complete work with a summary. Use when asked to pick up, work on, update or report on Alice tasks, projects or documents.
+description: Work on the team's Alice taskboard through its MCP tools or the alice command — find ready tasks, claim them atomically, load task context, post progress comments and complete work with a summary. Use when asked to pick up, work on, update or report on Alice tasks, projects or documents.
 version: 0.2.0
 ---
 
 # Working in Alice
 
 Alice is the shared taskboard where humans and AI agents coordinate. You act through the `alice`
-MCP server under your own agent identity; every change you make is attributed to you and visible to
-the team immediately. Requires an Alice server speaking MCP contract v1 (Alice 0.1 or later).
+MCP server or the `alice` command under your own agent identity; every change you make is attributed
+to you and visible to the team immediately. Requires an Alice server speaking MCP contract v1 (Alice 0.1 or later).
 
 ## Safety
 
@@ -17,23 +17,43 @@ the team immediately. Requires an Alice server speaking MCP contract v1 (Alice 0
 - Only act on tasks you have claimed or were explicitly asked to handle.
 - Archive instead of deleting; there is no permanent delete for agents.
 
-## Local workspaces (no MCP)
+## Choose where you work first
 
-Alice can also run privately on this computer. When no `alice` MCP server is configured, or
-`alice workspace current --json` reports `"kind": "local"`, use the `alice` command instead of the MCP
-tools. Act as yourself on every command: add `--as claude-code` if you are Claude Code, `--as codex` if
-you are Codex, plus `--json`. Never run Alice commands without `--as`, and never open the credential
-store: the CLI reads your credential itself.
+You can reach Alice in two ways, and they may point at different boards:
+- the `alice` MCP tools, which talk to the one server in your MCP configuration;
+- the `alice` command, which reaches Local workspaces that run privately on this computer.
 
-1. **Name the workspace first.** `alice --as <you> workspace current --json`, then tell the user which
-   workspace (name and alias) you will change before your first change. If it fails and lists
-   `choices`, ask which one, then add `--workspace ALIAS` to every command.
-2. **Find work.** `alice --as <you> task list --status ready --assignee none --json`
-3. **Claim.** `alice --as <you> task claim ID --json` (`CLAIM_FAILED` → pick other work).
-4. **Context.** `alice --as <you> task context ID --json`
-5. **Comment.** `alice --as <you> task comment ID --body "…" --json`
-6. **Complete.** `alice --as <you> task complete ID --summary "…" --json` (the summary is required).
-7. **Ask before risky steps.** `alice --as <you> task ask ID --question "…" [--of PERSON] --json`, then
+Check this at the start of every conversation, before your first read or change:
+
+1. **List what you can reach.** If the `alice` command exists, run `alice --as <you> workspace list --json`;
+   each entry is a workspace. If the `alice` MCP tools are available, they are one more (call `whoami` to
+   name them), unless they are the same server as a Remote entry in that list.
+2. **One workspace:** use it, and tell the user its name and alias (or server) before your first change.
+3. **Two or more:** ask the user which one to use before you read or change anything, even when one is
+   active or this project has a binding file. List each one (name, alias, Local or Remote, or the MCP
+   server) and mention the active or bound one as a suggestion, not a decision. Skip the question only
+   when the user already named the workspace in this conversation.
+4. **Use the answer for the rest of the conversation.** For a workspace from the list, add
+   `--workspace ALIAS` to every command; for the MCP server, use the MCP tools. Ask again only when the
+   user wants to switch.
+5. **When the MCP tools fail.** If they cannot connect or return `UNAUTHENTICATED` while a Local workspace
+   exists, tell the user and offer to continue there instead of stopping.
+
+Never change the active workspace (`alice workspace use`) or write a binding file (`alice workspace
+bind`) unless the user asks.
+
+## Working through the `alice` command
+
+Act as yourself on every command: add `--as claude-code` if you are Claude Code, `--as codex` if you are
+Codex, plus `--json`. Never run Alice commands without `--as`, and never open the credential store: the
+CLI reads your credential itself. Add `--workspace ALIAS` when more than one workspace exists.
+
+1. **Find work.** `alice --as <you> task list --status ready --assignee none --json`
+2. **Claim.** `alice --as <you> task claim ID --json` (`CLAIM_FAILED` → pick other work).
+3. **Context.** `alice --as <you> task context ID --json`
+4. **Comment.** `alice --as <you> task comment ID --body "…" --json`
+5. **Complete.** `alice --as <you> task complete ID --summary "…" --json` (the summary is required).
+6. **Ask before risky steps.** `alice --as <you> task ask ID --question "…" [--of PERSON] --json`, then
    wait until `alice --as <you> task approval APPROVAL_ID --json` shows `approved` (follow its `note`).
 
 Other commands work the same way: `project`, `document`, `search` and `task parent|block|update`. See
@@ -41,7 +61,7 @@ Other commands work the same way: `project`, `document`, `search` and `task pare
 "message" } }` with the codes below, and the exit status is non-zero on errors. `UNAUTHENTICATED`
 means the person disabled your integration: stop and tell them.
 
-## Workflow
+## Working through the MCP tools
 
 1. **Discover work.** `list_tasks` with `status: ["ready"]` and `assigneeId: ["none"]` lists claimable
    work; add `projectId`, `label` or `priority` filters as needed. Use `assigneeId: ["me"]` to resume
