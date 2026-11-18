@@ -15,7 +15,8 @@ const PLATFORM = [
   [/aarch64\.app\.tar\.gz$|_aarch64\.app\.tar\.gz$/, 'darwin-aarch64'],
   [/x64\.app\.tar\.gz$|_x64\.app\.tar\.gz$|x86_64\.app\.tar\.gz$/, 'darwin-x86_64'],
   [/universal\.app\.tar\.gz$/, 'darwin-universal'],
-  [/x64-setup\.exe$|x64_en-US\.msi$/, 'windows-x86_64'],
+  // Windows อัปเดตผ่านตัวติดตั้ง NSIS (.exe) เท่านั้น: .msi เป็นทางเลือกสำหรับติดตั้งใหม่ ไม่ใช่ไฟล์อัปเดต
+  [/x64-setup\.exe$/, 'windows-x86_64'],
   [/arm64-setup\.exe$/, 'windows-aarch64'],
   [/amd64\.AppImage$|x86_64\.AppImage$/, 'linux-x86_64'],
   [/aarch64\.AppImage$/, 'linux-aarch64'],
