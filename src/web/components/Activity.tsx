@@ -16,6 +16,8 @@ const FIELD_LABELS: Record<string, string> = {
   body: 'body',
   sourceUrl: 'source URL',
   parentId: 'parent',
+  startDate: 'start date',
+  targetDate: 'target date',
 }
 
 function describeValue(field: string, value: unknown): string {
@@ -27,7 +29,19 @@ function describeValue(field: string, value: unknown): string {
   return text.length > 60 ? `${text.slice(0, 57)}…` : text
 }
 
+const PLAN_VERBS: Record<string, (d: Record<string, unknown>) => string> = {
+  'project.member_added': (d) => `added ${String(d.memberName)} to the project`,
+  'project.member_removed': (d) => `removed ${String(d.memberName)} from the project`,
+  'project.milestone_added': (d) => `added milestone “${String(d.title)}”`,
+  'project.milestone_updated': (d) => `changed milestone “${String(d.title)}”`,
+  'project.milestone_completed': (d) => `completed milestone “${String(d.title)}”`,
+  'project.milestone_reopened': (d) => `reopened milestone “${String(d.title)}”`,
+  'project.milestone_removed': (d) => `removed milestone “${String(d.title)}”`,
+}
+
 export function describeActivity(event: ActivityEvent): string {
+  const plan = PLAN_VERBS[event.verb]
+  if (plan) return plan(event.data)
   const changes = event.data.changes as Record<string, { from: unknown; to: unknown }> | undefined
   if (changes && Object.keys(changes).length) {
     const parts = Object.entries(changes).map(([field, c]) => {

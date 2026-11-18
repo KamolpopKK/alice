@@ -514,6 +514,36 @@ export const MIGRATIONS: Migration[] = [
       ) STRICT;
     `,
   },
+  {
+    version: 14,
+    name: 'project_planning',
+    sql: `
+      -- วันเริ่มต้น/เป้าหมายของ project (YYYY-MM-DD) สมาชิก (ไม่มีผลต่อสิทธิ์) และ milestone
+      ALTER TABLE projects ADD COLUMN start_date TEXT;
+      ALTER TABLE projects ADD COLUMN target_date TEXT;
+      CREATE TABLE project_members (
+        project_id TEXT NOT NULL REFERENCES projects(id),
+        actor_id TEXT NOT NULL REFERENCES actors(id),
+        added_by TEXT REFERENCES actors(id),
+        added_at TEXT NOT NULL,
+        PRIMARY KEY (project_id, actor_id)
+      ) STRICT;
+      CREATE INDEX project_members_actor ON project_members(actor_id);
+      CREATE TABLE milestones (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL REFERENCES workspaces(id),
+        project_id TEXT NOT NULL REFERENCES projects(id),
+        title TEXT NOT NULL,
+        due_date TEXT,
+        completed_at TEXT,
+        created_by TEXT REFERENCES actors(id),
+        updated_by TEXT REFERENCES actors(id),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      ) STRICT;
+      CREATE INDEX milestones_project ON milestones(project_id, due_date);
+    `,
+  },
 ]
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version

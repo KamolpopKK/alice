@@ -118,11 +118,21 @@ export const createProjectInput = z.object({
   description: markdownSchema.default(''),
   labels: labelsSchema.default([]),
 })
+/** A calendar date (YYYY-MM-DD) without time or time zone, for project and milestone planning. */
+export const calendarDateSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a date like 2026-03-31')
+  .refine((v) => !Number.isNaN(Date.parse(`${v}T00:00:00Z`)) && new Date(`${v}T00:00:00Z`).toISOString().startsWith(v), 'Not a real calendar date')
+
 export const updateProjectInput = z
   .object({
     name: projectNameSchema.optional(),
     description: markdownSchema.optional(),
     labels: labelsSchema.optional(),
+    /** Planning dates (capability `project-planning`); `null` clears. */
+    startDate: calendarDateSchema.nullable().optional(),
+    targetDate: calendarDateSchema.nullable().optional(),
   })
   .strict()
 export const ARCHIVE_FILTERS = ['active', 'archived', 'all'] as const
@@ -136,10 +146,47 @@ export interface Project {
   isSystem: boolean
   systemKey: string | null
   archivedAt: string | null
+  /** Planning dates (YYYY-MM-DD) or null. */
+  startDate: string | null
+  targetDate: string | null
   createdAt: string
   updatedAt: string
   createdBy: ActorRef | null
   updatedBy: ActorRef | null
+}
+
+/** Someone who works on a project. Membership is informational: it grants and removes no access. */
+export interface ProjectMember {
+  actor: ActorRef
+  addedAt: string
+  addedBy: ActorRef | null
+}
+
+export const milestoneTitleSchema = z.string().trim().min(1, 'Title is required').max(200)
+export const createMilestoneInput = z.object({ title: milestoneTitleSchema, dueDate: calendarDateSchema.nullish() }).strict()
+export const updateMilestoneInput = z
+  .object({ title: milestoneTitleSchema.optional(), dueDate: calendarDateSchema.nullable().optional(), completed: z.boolean().optional() })
+  .strict()
+
+/** A dated checkpoint in a project, completed by hand. */
+export interface Milestone {
+  id: string
+  projectId: string
+  title: string
+  dueDate: string | null
+  completedAt: string | null
+  createdAt: string
+  updatedAt: string
+  createdBy: ActorRef | null
+  updatedBy: ActorRef | null
+}
+
+/** Task counts of a project (archived tasks excluded). Progress is done / (total - canceled). */
+export interface ProjectProgress {
+  total: number
+  done: number
+  canceled: number
+  open: number
 }
 
 // ---------- Tasks ----------

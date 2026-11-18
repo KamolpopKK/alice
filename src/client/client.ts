@@ -1,5 +1,5 @@
-import { createSavedViewInput, type SavedView } from '../shared/saved-views'
 import * as z from 'zod'
+import type { SavedView, createSavedViewInput } from '../shared/saved-views'
 import type {
   ActivityEvent,
   ClientCredentials,
@@ -15,7 +15,10 @@ import type {
   InviteInfo,
   ListTasksInput,
   Page,
+  Milestone,
   Project,
+  ProjectMember,
+  ProjectProgress,
   PublicActor,
   SearchResult,
   ServerInfo,
@@ -27,12 +30,14 @@ import type {
   bootstrapInput,
   createInviteInput,
   createDocumentInput,
+  createMilestoneInput,
   createProjectInput,
   createTaskInput,
   listDocumentsInput,
   loginInput,
   searchInput,
   updateDocumentInput,
+  updateMilestoneInput,
   updateProjectInput,
   updateTaskInput,
 } from '../shared/contracts'
@@ -207,6 +212,14 @@ export class AliceClient {
     update: (id: string, patch: In<typeof updateProjectInput>) => this.call<ProjectResult>('PATCH', `/projects/${enc(id)}`, { body: patch }),
     archive: (id: string) => this.call<ProjectResult>('POST', `/projects/${enc(id)}/archive`, { body: {}, idempotent: true }),
     restore: (id: string) => this.call<ProjectResult>('POST', `/projects/${enc(id)}/restore`, { body: {}, idempotent: true }),
+    members: (id: string) => this.get<{ items: ProjectMember[] }>(`/projects/${enc(id)}/members`).then((r) => r.items),
+    addMember: (id: string, actorId: string) => this.call<{ members: ProjectMember[]; changed: boolean }>('PUT', `/projects/${enc(id)}/members/${enc(actorId)}`, { body: {} }),
+    removeMember: (id: string, actorId: string) => this.call<{ members: ProjectMember[]; changed: boolean }>('DELETE', `/projects/${enc(id)}/members/${enc(actorId)}`, { body: {} }),
+    milestones: (id: string) => this.get<{ items: Milestone[] }>(`/projects/${enc(id)}/milestones`).then((r) => r.items),
+    addMilestone: (id: string, input: In<typeof createMilestoneInput>) => this.call<{ milestone: Milestone }>('POST', `/projects/${enc(id)}/milestones`, { body: input }),
+    updateMilestone: (milestoneId: string, patch: In<typeof updateMilestoneInput>) => this.call<{ milestone: Milestone }>('PATCH', `/milestones/${enc(milestoneId)}`, { body: patch }),
+    removeMilestone: (milestoneId: string) => this.call<{ deleted: true; id: string }>('DELETE', `/milestones/${enc(milestoneId)}`, { body: {} }),
+    progress: (id: string) => this.get<{ progress: ProjectProgress }>(`/projects/${enc(id)}/progress`).then((r) => r.progress),
   }
 
   readonly tasks = {

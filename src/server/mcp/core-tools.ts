@@ -11,6 +11,7 @@ import {
 } from '../../shared/contracts'
 import { getPublicActor, listActors } from '../domain/actors'
 import { createProject, getProject, listProjects, setProjectArchived, updateProject } from '../domain/projects'
+import { listMilestones, listProjectMembers, projectProgress } from '../domain/project-planning'
 import { search } from '../domain/search'
 import { claimTask, createTask, getTask, listTasks, setTaskArchived, updateTask } from '../domain/tasks'
 import { defineTool } from './registry'
@@ -53,6 +54,23 @@ export const CORE_TOOLS = [
     handler: (ctx, _a, input) => ({ project: getProject(ctx, input.id) }),
   }),
   defineTool({
+    name: 'get_project_plan',
+    title: 'Get project plan',
+    description: 'Get a project’s planning: start and target dates, members (informational, no access change), milestones in date order and task progress counts.',
+    input: byId,
+    readOnly: true,
+    handler: (ctx, _a, input) => {
+      const project = getProject(ctx, input.id)
+      return {
+        startDate: project.startDate,
+        targetDate: project.targetDate,
+        members: listProjectMembers(ctx, input.id),
+        milestones: listMilestones(ctx, input.id),
+        progress: projectProgress(ctx, input.id),
+      }
+    },
+  }),
+  defineTool({
     name: 'create_project',
     title: 'Create project',
     description: 'Create a project with a name, Markdown description and labels.',
@@ -62,7 +80,7 @@ export const CORE_TOOLS = [
   defineTool({
     name: 'update_project',
     title: 'Update project',
-    description: 'Update a project name, description or labels. The Untitled project cannot be renamed.',
+    description: 'Update a project name, description, labels or planning dates (startDate/targetDate as YYYY-MM-DD; null clears). The Untitled project cannot be renamed.',
     input: updateProjectInput.extend({ id: idSchema }),
     handler: (ctx, actor, { id, ...patch }) => updateProject(ctx, actor, id, patch),
   }),

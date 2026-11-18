@@ -11,6 +11,8 @@ import { LinkedDocuments } from '../components/LinkedDocuments'
 import { Markdown, MarkdownEditor } from '../components/Markdown'
 import { ActorBadge, formatDate } from '../components/ui'
 import { useTaskPages } from '../tasks/hooks'
+import { useCapability } from '../hooks'
+import { ProjectMembers, ProjectPlan } from './projectPlan'
 import { isOpen } from '../tasks/model'
 import { errorText } from '../tasks/TaskDetail'
 import { TaskTable } from '../tasks/views'
@@ -30,6 +32,7 @@ export function ProjectDetailPage() {
   const [params, setParams] = useSearchParams()
   const tab: Tab = TABS.includes(params.get('tab') as Tab) ? (params.get('tab') as Tab) : 'overview'
   const [editing, setEditing] = useState(false)
+  const planning = useCapability('project-planning')
   const qc = useQueryClient()
   const archive = useMutation({
     mutationFn: (archived: boolean) => (archived ? client.projects.archive(id) : client.projects.restore(id)),
@@ -78,6 +81,7 @@ export function ProjectDetailPage() {
               {p.archivedAt ? <Badge>archived</Badge> : <Badge tone="success">Active</Badge>}
               <Labels labels={p.labels} />
             </div>
+            {planning && <ProjectMembers project={p} />}
           </div>
         </div>
         <div className="resource-actions">
@@ -114,6 +118,7 @@ export function ProjectDetailPage() {
 }
 
 function Overview({ project, onAllTasks }: { project: Project; onAllTasks: () => void }) {
+  const planning = useCapability('project-planning')
   const query = useTaskPages(`project-${project.id}-next`, { projectId: project.id, sort: 'priority' }, 50)
   const tasks = query.data?.pages.flatMap((p) => p.items) ?? []
   const open = tasks.filter(isOpen)
@@ -134,6 +139,7 @@ function Overview({ project, onAllTasks }: { project: Project; onAllTasks: () =>
           )}
         </p>
       </section>
+      {planning && <ProjectPlan project={project} />}
       <section className="resource-panel" aria-labelledby="project-next">
         <div className="resource-panel-head">
           <h2 id="project-next" className="resource-panel-title">
@@ -205,8 +211,17 @@ function EditProject({ project, onDone }: { project: Project; onDone: () => void
   const [name, setName] = useState(project.name)
   const [description, setDescription] = useState(project.description)
   const [labels, setLabels] = useState(project.labels)
+  const planning = useCapability('project-planning')
+  const [startDate, setStartDate] = useState(project.startDate ?? '')
+  const [targetDate, setTargetDate] = useState(project.targetDate ?? '')
   const save = useMutation({
-    mutationFn: () => client.projects.update(project.id, { ...(project.isSystem ? {} : { name }), description, labels }),
+    mutationFn: () =>
+      client.projects.update(project.id, {
+        ...(project.isSystem ? {} : { name }),
+        description,
+        labels,
+        ...(planning ? { startDate: startDate || null, targetDate: targetDate || null } : {}),
+      }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['project', project.id] })
       void qc.invalidateQueries({ queryKey: ['projects'] })
@@ -233,6 +248,12 @@ function EditProject({ project, onDone }: { project: Project; onDone: () => void
       />
       <MarkdownEditor id="project-description" label="Description (Markdown)" value={description} onChange={setDescription} />
       <LabelsInput value={labels} onChange={setLabels} />
+      {planning && (
+        <div className="project-dates">
+          <TextField label="Start date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          <TextField label="Target date" type="date" value={targetDate} min={startDate || undefined} onChange={(e) => setTargetDate(e.target.value)} />
+        </div>
+      )}
       {save.error && <FieldMessage tone="error">{errorText(save.error)}</FieldMessage>}
       <div className="resource-actions">
         <Button variant="primary" type="submit" loading={save.isPending}>

@@ -21,6 +21,8 @@ interface ProjectRow {
   description: string
   labels: string
   archived_at: string | null
+  start_date: string | null
+  target_date: string | null
   created_at: string
   updated_at: string
   [key: string]: unknown
@@ -35,6 +37,8 @@ export function toProject(row: ProjectRow): Project {
     isSystem: row.system_key !== null,
     systemKey: row.system_key,
     archivedAt: row.archived_at,
+    startDate: row.start_date,
+    targetDate: row.target_date,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     createdBy: actorRefFrom(row, 'created_by'),
@@ -119,12 +123,21 @@ export function updateProject(ctx: AppContext, actor: Actor, id: string, patch: 
     if (row.system_key && patch.name !== undefined && patch.name !== row.name) {
       throw new AliceError('PROTECTED_RESOURCE', `The ${UNTITLED_PROJECT_NAME} project cannot be renamed`)
     }
-    const changes = diff({ name: before.name, description: before.description, labels: before.labels }, patch)
+    const changes = diff({ name: before.name, description: before.description, labels: before.labels, startDate: before.startDate, targetDate: before.targetDate }, patch)
     if (Object.keys(changes).length === 0) return
-    const next = { name: patch.name ?? before.name, description: patch.description ?? before.description, labels: patch.labels ?? before.labels }
+    const next = {
+      name: patch.name ?? before.name,
+      description: patch.description ?? before.description,
+      labels: patch.labels ?? before.labels,
+      startDate: patch.startDate === undefined ? before.startDate : patch.startDate,
+      targetDate: patch.targetDate === undefined ? before.targetDate : patch.targetDate,
+    }
+    if (next.startDate && next.targetDate && next.startDate > next.targetDate) {
+      throw new AliceError('VALIDATION_ERROR', 'The target date cannot be before the start date', { field: 'targetDate' })
+    }
     m.db
-      .prepare('UPDATE projects SET name = ?, description = ?, labels = ?, updated_by = ?, updated_at = ? WHERE id = ?')
-      .run(next.name, next.description, JSON.stringify(next.labels), actor.id, m.now, id)
+      .prepare('UPDATE projects SET name = ?, description = ?, labels = ?, start_date = ?, target_date = ?, updated_by = ?, updated_at = ? WHERE id = ?')
+      .run(next.name, next.description, JSON.stringify(next.labels), next.startDate, next.targetDate, actor.id, m.now, id)
     m.record({ verb: 'project.updated', resource: { type: 'project', id }, data: { changes } })
   })
   return { project: getProject(ctx, id), activityId }

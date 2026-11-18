@@ -19,7 +19,7 @@ validation, actor attribution, activity history and live invalidation are identi
   "serverVersion": "0.2.0",
   "publicUrl": "https://alice.example.com",
   "clientApi": { "current": 1, "minimum": 1, "prefix": "/client/v1" },
-  "capabilities": ["projects", "tasks", "documents", "comments", "relationships", "activity", "search", "admin", "idempotency", "events.resume", "device-auth", "client-sessions", "task-pads", "saved-views"],
+  "capabilities": ["projects", "tasks", "documents", "comments", "relationships", "activity", "search", "admin", "idempotency", "events.resume", "device-auth", "client-sessions", "task-pads", "saved-views", "project-planning"],
   "events": { "retentionHours": 24, "maxReplay": 1000 }
 }
 ```
@@ -54,6 +54,7 @@ All routes are below `/client/v1`. Bodies and queries use the shared zod schemas
 | Invites (owner) | `GET/POST /invites`, `POST /invites/:id/revoke`, `POST /invites/check`, `POST /invites/accept` |
 | Actors and agents | `GET /actors`; owner only: `GET/POST /agents`, `POST /agents/:id/tokens`, `POST /agents/:id/deactivate`, `POST /agent-tokens/:id/rotate`, `POST /agent-tokens/:id/revoke` |
 | Projects | `GET/POST /projects`, `GET/PATCH /projects/:id`, `POST /projects/:id/archive`, `POST /projects/:id/restore` |
+| Project planning | `GET /projects/:id/members`, `PUT/DELETE /projects/:id/members/:actorId`, `GET/POST /projects/:id/milestones`, `PATCH/DELETE /milestones/:id`, `GET /projects/:id/progress`; see [Project planning](#project-planning) |
 | Tasks | `GET/POST /tasks`, `GET/PATCH /tasks/:id`, `POST /tasks/:id/claim`, `POST /tasks/:id/archive`, `POST /tasks/:id/restore`, `GET /tasks/:id/activity` |
 | Discussion | `GET/POST /tasks/:id/comments`, `POST /tasks/:id/complete`, `GET /tasks/:id/context` |
 | Relationships | `GET /tasks/:id/relations`, `PUT /tasks/:id/parent`, `POST /tasks/:id/blockers`, `DELETE /tasks/:id/blockers/:blockerId` |
@@ -109,6 +110,27 @@ Other actors never see these positions; their streams simply skip them.
 Resume with `Last-Event-ID: <position>` (EventSource sends this automatically) or `?after=<position>`. The
 header wins when both are present. Positions are kept for `ALICE_CLIENT_EVENT_RETENTION_HOURS` (default 24).
 They live in the database, so they survive a server restart.
+
+## Project planning
+
+Capability `project-planning`. These routes add planning to projects without changing access.
+
+- **Dates.** `PATCH /projects/:id` also accepts `startDate` and `targetDate` as `YYYY-MM-DD`; `null` clears a
+  date. The target cannot be before the start (`VALIDATION_ERROR`).
+- **Members.** `PUT` and `DELETE /projects/:id/members/:actorId` add or remove a person or an agent. Membership
+  is informational: every workspace member can still see and change every project. Both answer `{ members,
+  changed }`, with `changed: false` when nothing needed to change. A deactivated account cannot be added.
+- **Milestones.**
+  - `POST /projects/:id/milestones` takes `{ title, dueDate? }`.
+  - `PATCH /milestones/:id` takes `{ title?, dueDate?, completed? }`; `completed: false` reopens.
+  - Lists come in date order, with undated milestones last.
+- **Progress.** `GET /projects/:id/progress` returns `{ total, done, canceled, open }` for tasks that are not
+  archived.
+- **Archived projects.** Changes to the members or milestones of an archived project answer `INVALID_STATE`.
+
+Every change is recorded in activity on the project (`project.member_added`, `project.milestone_completed`, …)
+with the person or agent who made it. Agents read the plan with the MCP tool `get_project_plan` and set
+dates with `update_project`.
 
 ## Saved views
 

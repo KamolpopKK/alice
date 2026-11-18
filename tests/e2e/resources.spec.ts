@@ -108,3 +108,45 @@ for (const scheme of ['light', 'dark'] as const) {
     }
   })
 }
+
+test('a project plan shows dates, members, milestones and progress, and every change is attributed', async ({ app, owner, page }) => {
+  const s = stamp()
+  const project = (await owner.post(`${V1}/projects`, { name: `Plan ${s}` })).body.project
+  for (const status of ['done', 'ready', 'ready', 'canceled']) await owner.post(`${V1}/tasks`, { title: `Plan task ${status} ${s}`, status, projectId: project.id })
+  const { createAgent } = await import('../helpers/client')
+  const agent = await createAgent(owner, `Plan Bot ${s}`)
+  await signIn(page, app)
+  await page.goto(`${app.url}/projects/${project.id}`)
+  const plan = page.getByRole('region', { name: 'Plan', exact: true })
+  await expect(plan.getByRole('progressbar')).toHaveAttribute('aria-valuetext', '1 of 3 tasks done')
+  await expect(plan).toContainText('33%')
+
+  await page.getByRole('button', { name: 'Edit' }).click()
+  await page.getByLabel('Start date').fill('2026-03-01')
+  await page.getByLabel('Target date').fill('2026-04-30')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(plan).toContainText(/Mar 1, 2026|1 Mar 2026/)
+  expect((await owner.get(`${V1}/projects/${project.id}`)).body.project).toMatchObject({ startDate: '2026-03-01', targetDate: '2026-04-30' })
+
+  await page.getByRole('button', { name: /^0 members$/ }).click()
+  const members = page.getByRole('dialog', { name: 'Project members' })
+  await members.getByLabel('Add a person or agent').selectOption({ label: `Plan Bot ${s} (agent)` })
+  await members.getByRole('button', { name: 'Add' }).click()
+  await expect(members.getByRole('list', { name: 'Members' })).toContainText(`Plan Bot ${s}`)
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('button', { name: '1 member' })).toBeVisible()
+
+  const milestones = plan.getByRole('form', { name: 'Add a milestone' })
+  await milestones.getByLabel('Milestone').fill('Design review')
+  await milestones.getByLabel('Due date').fill('2026-03-15')
+  await milestones.getByRole('button', { name: 'Add milestone' }).click()
+  await plan.getByLabel('Complete milestone Design review').check()
+  await expect(plan.getByRole('list', { name: 'Milestones' }).getByText('Done', { exact: true })).toBeVisible()
+  void agent
+
+  await page.getByRole('tab', { name: 'Activity' }).click()
+  const activity = page.getByRole('tabpanel')
+  await expect(activity).toContainText(`added Plan Bot ${s} to the project`)
+  await expect(activity).toContainText('completed milestone “Design review”')
+  await expect(activity).toContainText('changed start date from none to')
+})

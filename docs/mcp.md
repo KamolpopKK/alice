@@ -44,7 +44,10 @@ Ordering is deterministic.
 
 ### Projects
 - `list_projects { archived? }`, `get_project { id }`
-- `create_project { name, description?, labels? }`, `update_project { id, name?, description?, labels? }`
+- `get_project_plan { id }` — start and target dates, members, milestones (date order) and task progress
+  counts `{ total, done, canceled, open }`. Members are informational and grant no access.
+- `create_project { name, description?, labels? }`, `update_project { id, name?, description?, labels?, startDate?, targetDate? }`
+  — dates are `YYYY-MM-DD`; `null` clears; the target cannot be before the start.
 - `archive_project { id }`, `restore_project { id }`
 
 ### Tasks
