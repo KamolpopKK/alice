@@ -4,13 +4,11 @@ import { lazy, Suspense, type ReactNode } from 'react'
 import { AuthProvider, useAuth } from './auth'
 import { AppShell } from './shell/AppShell'
 import { Loading } from './components/ui'
-import { AdminPage } from './pages/AdminPage'
 import { DevicePage } from './pages/DevicePage'
-import { ForAgentPage } from './pages/ForAgentPage'
 import { safeReturnPath } from './navigation'
 import { isDesktop } from './platform'
 import { NotFoundState } from './brand'
-import { ThemeProvider, ToastProvider, TooltipProvider } from './ui'
+import { Banner, ThemeProvider, ToastProvider, TooltipProvider } from './ui'
 
 // โค้ดเฉพาะ Desktop โหลดเมื่ออยู่ใน Tauri เท่านั้น
 const DesktopShell = lazy(() => import('./desktop/DesktopShell').then((m) => ({ default: m.DesktopShell })))
@@ -20,7 +18,7 @@ import { DocumentDetailPage } from './pages/DocumentDetailPage'
 import { DocumentsPage } from './pages/DocumentsPage'
 import { LegacyTasksRedirect, TasksPage } from './pages/TasksPage'
 import { HomeRoute } from './pages/HomePage'
-import { SettingsPage } from './pages/SettingsPage'
+import { SettingsPage } from './settings/SettingsPage'
 import { AgentsPage } from './pages/AgentsPage'
 import { SearchPage } from './pages/SearchPage'
 import { ProjectDetailPage } from './pages/ProjectDetailPage'
@@ -45,7 +43,14 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
 function RequireOwner({ children }: { children: ReactNode }) {
   const { actor } = useAuth()
-  if (!actor?.isOwner) return <p className="error">Only the workspace owner can open this page.</p>
+  if (!actor?.isOwner)
+    return (
+      <div className="page">
+        <Banner tone="danger" title="Only the workspace owner can open this page.">
+          Ask the owner if you need something changed here.
+        </Banner>
+      </div>
+    )
   return <>{children}</>
 }
 
@@ -79,11 +84,12 @@ export function AppRoutes() {
         <Route path="tasks/new" element={<NewTaskPage />} />
         <Route path="tasks/:id" element={<TaskDetailPage />} />
         <Route path="device" element={<DevicePage />} />
-        <Route path="devices" element={<DevicePage />} />
+        <Route path="devices" element={<Navigate to="/settings/devices" replace />} />
         <Route path="agents" element={<AgentsPage />} />
-        <Route path="for-agent" element={<ForAgentPage />} />
+        <Route path="for-agent" element={<Navigate to="/agents" replace />} />
         <Route path="settings" element={<SettingsPage />} />
-        <Route path="admin" element={<RequireOwner><AdminPage /></RequireOwner>} />
+        <Route path="settings/:section" element={<SettingsPage />} />
+        <Route path="admin" element={<RequireOwner><Navigate to="/settings/admin" replace /></RequireOwner>} />
         <Route path="*" element={<NotFoundState />} />
       </Route>
     </Routes>

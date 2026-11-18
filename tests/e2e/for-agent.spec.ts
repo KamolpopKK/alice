@@ -23,18 +23,18 @@ async function openAs(browser: Browser, who: 'owner' | 'member', options: Parame
   await page.getByRole('button', { name: /^Account: / }).first().waitFor()
   if (await page.getByRole('button', { name: 'Open navigation' }).isVisible()) await page.getByRole('button', { name: 'Open navigation' }).click()
   await page.getByRole('navigation', { name: 'More' }).getByRole('link', { name: 'Agents' }).click()
-  await expect(page.getByRole('heading', { level: 1, name: 'For agent' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Agents' })).toBeVisible()
   return page
 }
 
 test('owner and member both reach the page; token guidance differs by role', async ({ browser }) => {
   const owner = await openAs(browser, 'owner')
-  await expect(owner.getByRole('link', { name: 'Admin → Agents' })).toHaveAttribute('href', '/admin')
+  await expect(owner.getByRole('link', { name: 'Settings › Administration' })).toHaveAttribute('href', '/settings/admin')
   await expect(owner.getByText('Ask the workspace owner')).toHaveCount(0)
 
   const member = await openAs(browser, 'member')
   await expect(member.getByText('Ask the workspace owner to create an agent and give you its token.')).toBeVisible()
-  await expect(member.getByRole('link', { name: 'Admin → Agents' })).toHaveCount(0)
+  await expect(member.getByRole('link', { name: 'Settings › Administration' })).toHaveCount(0)
   await expect(member.getByText(/tools version \d+\.\d+\.\d+/)).toBeVisible()
   await expect(member.getByText('Tool downloads are not available')).toHaveCount(0)
 })

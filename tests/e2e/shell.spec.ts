@@ -23,11 +23,14 @@ test('the sidebar has exactly six primary and three secondary destinations, the 
   await signIn(member, app, username, `${username}-password-123`)
   expect(await names(member, 'Main')).toEqual(['Home', 'Task Pads', 'Tasks', 'Projects', 'Documents', 'Search'])
   await member.getByRole('navigation', { name: 'More' }).getByRole('link', { name: 'Settings' }).click()
-  await expect(member.getByRole('link', { name: 'Devices and sessions' })).toBeVisible()
-  await expect(member.getByRole('link', { name: 'Workspace admin' })).toHaveCount(0)
+  await expect(member.getByRole('link', { name: 'Devices & Sessions' })).toBeVisible()
+  await expect(member.getByRole('link', { name: 'Administration' })).toHaveCount(0)
+  // ลิงก์ตรงไปที่หมวดที่ไม่มีสิทธิ์ กลับไปหน้ารวม Settings
+  await member.goto(`${app.url}/settings/admin`)
+  await expect(member).toHaveURL(/\/settings$/)
   await ctx.close()
   await page.getByRole('navigation', { name: 'More' }).getByRole('link', { name: 'Settings' }).click()
-  await expect(page.getByRole('link', { name: 'Workspace admin' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Administration' })).toBeVisible()
 })
 
 test('old Board, List and My Tasks links open the matching Tasks view and keep their filters', async ({ app, owner, page }) => {
@@ -158,7 +161,7 @@ test('the theme chosen in Settings applies at once, survives reload and System f
   void owner
   await page.emulateMedia({ colorScheme: 'light' })
   await signIn(page, app)
-  await page.goto(`${app.url}/settings`)
+  await page.goto(`${app.url}/settings/appearance`)
   await page.getByRole('radio', { name: 'Dark' }).click()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   const bg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor)

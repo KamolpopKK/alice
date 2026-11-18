@@ -29,7 +29,7 @@ test('owner sets up Alice, invites a teammate and creates an agent token', async
 
   // Admin อยู่ใน Settings (เฉพาะ owner)
   await page.getByRole('navigation', { name: 'More' }).getByRole('link', { name: 'Settings' }).click()
-  await page.getByRole('link', { name: 'Workspace admin' }).click()
+  await page.getByRole('link', { name: 'Administration' }).click()
   await page.getByRole('button', { name: 'Create invite link' }).click()
   const inviteUrl = (await page.getByTestId('secret-value').textContent())!.trim()
   expect(inviteUrl).toContain('/invite/')
@@ -42,7 +42,7 @@ test('owner sets up Alice, invites a teammate and creates an agent token', async
   await page.getByRole('button', { name: 'Done' }).click()
   await expect(page.getByTestId('secret-value')).toHaveCount(0)
   await page.reload()
-  await expect(page.getByText('Codex Backend')).toBeVisible()
+  await expect(page.getByText('Codex Backend', { exact: true })).toBeVisible()
   await expect(page.locator('body')).not.toContainText(token)
 
   // คนที่ถูกเชิญเปิดลิงก์ใน browser context แยก
@@ -56,7 +56,7 @@ test('owner sets up Alice, invites a teammate and creates an agent token', async
   await expect(accountButton(guestPage)).toBeVisible()
   await guestPage.getByRole('navigation', { name: 'More' }).getByRole('link', { name: 'Settings' }).click()
   await expect(guestPage.getByRole('heading', { name: 'Settings' })).toBeVisible()
-  await expect(guestPage.getByRole('link', { name: 'Workspace admin' })).toHaveCount(0)
+  await expect(guestPage.getByRole('link', { name: 'Administration' })).toHaveCount(0)
 
   await signOut(guestPage)
   await expect(guestPage).toHaveURL(/\/login$/)

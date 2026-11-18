@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { STATUS_LABELS, type ActivityEvent, type TaskStatus } from '../../shared/contracts'
-import { ActorBadge, formatDate } from './ui'
+import { formatDate } from './ui'
+import { Avatar, Badge } from '../ui'
 
 const FIELD_LABELS: Record<string, string> = {
   title: 'title',
@@ -59,26 +60,43 @@ export function resourceLink(event: ActivityEvent): string | null {
   }
 }
 
+const RESOURCE_LABEL: Record<string, string> = { task: 'task', project: 'project', document: 'document' }
+
+/**
+ * Who did what, newest first. People and agents are told apart by text ("Agent") and avatar shape,
+ * never by colour alone; each event links to what it changed when that still exists.
+ */
 export function ActivityList({ events, showResource = false }: { events: ActivityEvent[]; showResource?: boolean }) {
-  if (events.length === 0) return <p className="muted">No activity yet.</p>
+  if (events.length === 0) return <p className="ui-text-muted">No activity yet.</p>
   return (
-    <ol className="activity">
+    <ol className="activity-list">
       {events.map((e) => {
         const link = showResource ? resourceLink(e) : null
+        const agent = e.actor?.kind === 'agent'
         return (
-          <li key={e.id}>
-            <ActorBadge actor={e.actor} /> <span>{describeActivity(e)}</span>
-            {link && (
-              <>
-                {' '}
-                <Link to={link} className="small">
-                  open {e.resourceType}
-                </Link>
-              </>
-            )}
-            <time className="muted small" dateTime={e.createdAt}>
-              {formatDate(e.createdAt)}
-            </time>
+          <li key={e.id} className="activity-item">
+            <Avatar name={e.actor?.displayName ?? 'System'} kind={agent ? 'agent' : 'human'} size="sm" />
+            <div className="activity-body">
+              <p className="activity-text">
+                <strong>{e.actor?.displayName ?? 'System'}</strong>
+                {agent && (
+                  <>
+                    {' '}
+                    <Badge tone="agent">Agent</Badge>
+                  </>
+                )}{' '}
+                {describeActivity(e)}
+                {link && (
+                  <>
+                    {' '}
+                    <Link to={link}>Open {RESOURCE_LABEL[e.resourceType] ?? e.resourceType}</Link>
+                  </>
+                )}
+              </p>
+              <time className="activity-time" dateTime={e.createdAt}>
+                {formatDate(e.createdAt)}
+              </time>
+            </div>
           </li>
         )
       })}

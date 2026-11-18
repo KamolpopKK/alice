@@ -5,6 +5,7 @@ import { AGENT_GUIDE_CLIENTS, agentSetupGuide, type AgentGuideClient } from '../
 import { useMe } from '../auth'
 import { CodeBlock } from '../components/CodeBlock'
 import { useServerInfo } from '../hooks'
+import { Banner } from '../ui'
 
 interface DownloadManifest {
   version: string
@@ -37,7 +38,8 @@ function useDownloads(origin: string) {
   })
 }
 
-export function ForAgentPage() {
+/** Setup guide for connecting an agent to this Remote workspace (no secrets are ever shown here). */
+export function AgentSetupGuide() {
   const me = useMe()
   const origin = useServerOrigin()
   const downloads = useDownloads(origin)
@@ -55,19 +57,19 @@ export function ForAgentPage() {
   }
 
   return (
-    <div className="page for-agent">
-      <h1>For agent</h1>
-      <p className="muted">
-        Connect an AI agent to this Alice workspace: install the <code>alice</code> CLI, the Alice skill and the MCP
-        connection. Every change the agent makes is recorded under its own identity.
-      </p>
-
-      <section className="panel" aria-labelledby="token-heading">
-        <h2 id="token-heading">Agent token</h2>
+    <div className="for-agent">
+      <section className="resource-panel" aria-labelledby="connect-heading">
+        <h2 id="connect-heading" className="resource-panel-title">
+          Connect an agent
+        </h2>
+        <p>
+          Install the <code>alice</code> CLI, the Alice skill and the MCP connection. Every change the agent makes is recorded under its own identity.
+        </p>
+        <h3 id="token-heading">Agent token</h3>
         <p>Each agent needs its own token. You place it yourself; neither this page nor the setup prompt ever asks for it.</p>
         {me.isOwner ? (
           <p>
-            Create an agent and its token in <Link to="/admin">Admin → Agents</Link>. The token is shown once.
+            Create an agent and its token in <Link to="/settings/admin">Settings › Administration</Link>. The token is shown once.
           </p>
         ) : (
           <p>Ask the workspace owner to create an agent and give you its token.</p>
@@ -75,9 +77,9 @@ export function ForAgentPage() {
       </section>
 
       {downloads.data === null && (
-        <p className="error" role="alert">
+        <Banner tone="danger">
           Tool downloads are not available on this server. Ask the operator to build it with <code>npm run build:server</code>.
-        </p>
+        </Banner>
       )}
 
       <div className="agent-tabs" role="tablist" aria-label="Agent client">
@@ -102,8 +104,8 @@ export function ForAgentPage() {
       </div>
 
       <div id="agent-tabpanel" role="tabpanel" aria-labelledby={`agent-tab-${client}`}>
-        <section className="panel" aria-labelledby="prompt-heading">
-          <h2 id="prompt-heading">Let your agent set it up</h2>
+        <section className="resource-panel" aria-labelledby="prompt-heading">
+          <h2 id="prompt-heading" className="resource-panel-title">Let your agent set it up</h2>
           <p>
             Copy this prompt and paste it into {guide.label}. It installs and configures everything, then stops for you to place the
             token, and finally checks the connection.
@@ -111,9 +113,9 @@ export function ForAgentPage() {
           <CodeBlock code={guide.prompt} label={`Setup prompt for ${guide.label}`} primary />
         </section>
 
-        <section className="panel" aria-labelledby="manual-heading">
-          <h2 id="manual-heading">Or set it up yourself</h2>
-          <p className="muted">
+        <section className="resource-panel" aria-labelledby="manual-heading">
+          <h2 id="manual-heading" className="resource-panel-title">Or set it up yourself</h2>
+          <p className="resource-meta">
             Server <code>{guide.origin}</code> · MCP endpoint <code>{guide.mcpUrl}</code>
             {downloads.data && <> · tools version {downloads.data.version}</>}
           </p>
@@ -128,8 +130,8 @@ export function ForAgentPage() {
           </ol>
         </section>
 
-        <section className="panel" aria-labelledby="update-heading">
-          <h2 id="update-heading">Keep it up to date</h2>
+        <section className="resource-panel" aria-labelledby="update-heading">
+          <h2 id="update-heading" className="resource-panel-title">Keep it up to date</h2>
           <p>
             After this server is upgraded, update the CLI, the MCP adapter and the skills so they match it. Your token and MCP
             configuration stay as they are.
