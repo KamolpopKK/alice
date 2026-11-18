@@ -25,17 +25,18 @@ Templates and the pre-creation checklist are in [TEMPLATE.md](TEMPLATE.md). Read
 ## Choose where you work first
 
 The `alice` MCP tools reach the one server in your MCP configuration; the `alice` command reaches Local
-workspaces on this computer. They may be different boards. Before reading or drafting anything, decide
-which one to use and name the workspace (name and alias) or server to the user:
+workspaces on this computer. They may be different boards. At the start of every conversation, before
+reading or drafting anything:
 
-1. If the user named a workspace, a server or a way to reach Alice, use it.
-2. If the `alice` command exists, run `alice --as <you> workspace current --json`. Use the command when it
-   reports `"kind": "local"` and either no `alice` MCP tools are available, or its `source` is `option`,
-   `environment` or `local-binding`.
-3. If both are available and nothing above decides, ask the user which one. Do not guess.
-4. If `workspace current` lists `choices`, ask which one and add `--workspace ALIAS` to every command.
+1. List what you can reach: `alice --as <you> workspace list --json` if the command exists, plus the `alice`
+   MCP tools if available (call `whoami`), unless they are the same server as a Remote entry in the list.
+2. One workspace: use it and name it (name and alias, or server) to the user.
+3. Two or more: ask the user which one before you read or draft anything, even when one is active or
+   bound to this project. List each one and mention the active or bound one as a suggestion only. Skip
+   the question only when the user already named the workspace in this conversation.
+4. Use the answer for the whole plan: add `--workspace ALIAS` to every command, or use the MCP tools.
 5. If the MCP tools cannot connect or return `UNAUTHENTICATED` while a Local workspace exists, tell the
-   user and offer to plan in that workspace instead of stopping.
+   user and offer to plan there instead of stopping.
 
 Never change the active workspace or write a binding file unless the user asks.
 

@@ -23,19 +23,21 @@ You can reach Alice in two ways, and they may point at different boards:
 - the `alice` MCP tools, which talk to the one server in your MCP configuration;
 - the `alice` command, which reaches Local workspaces that run privately on this computer.
 
-Before your first change in a conversation, decide which one to use, then tell the user the workspace
-(name and alias) or server you will change:
+Check this at the start of every conversation, before your first read or change:
 
-1. If the user named a workspace, a server or a way to reach Alice, use it.
-2. If the `alice` command exists, run `alice --as <you> workspace current --json`. Use the command when it
-   reports `"kind": "local"` and either no `alice` MCP tools are available, or its `source` is `option`,
-   `environment` or `local-binding` (the user or this project chose it).
-3. If both the MCP tools and a Local workspace are available and nothing above decides, ask the user
-   which one to use. Do not guess.
-4. If `workspace current` fails and lists `choices`, ask which one, then add `--workspace ALIAS` to every
-   command.
-5. If the MCP tools cannot connect or return `UNAUTHENTICATED` while the `alice` command reports a Local
-   workspace, tell the user and offer to continue in that workspace instead of stopping.
+1. **List what you can reach.** If the `alice` command exists, run `alice --as <you> workspace list --json`;
+   each entry is a workspace. If the `alice` MCP tools are available, they are one more (call `whoami` to
+   name them), unless they are the same server as a Remote entry in that list.
+2. **One workspace:** use it, and tell the user its name and alias (or server) before your first change.
+3. **Two or more:** ask the user which one to use before you read or change anything, even when one is
+   active or this project has a binding file. List each one (name, alias, Local or Remote, or the MCP
+   server) and mention the active or bound one as a suggestion, not a decision. Skip the question only
+   when the user already named the workspace in this conversation.
+4. **Use the answer for the rest of the conversation.** For a workspace from the list, add
+   `--workspace ALIAS` to every command; for the MCP server, use the MCP tools. Ask again only when the
+   user wants to switch.
+5. **When the MCP tools fail.** If they cannot connect or return `UNAUTHENTICATED` while a Local workspace
+   exists, tell the user and offer to continue there instead of stopping.
 
 Never change the active workspace (`alice workspace use`) or write a binding file (`alice workspace
 bind`) unless the user asks.
@@ -44,7 +46,7 @@ bind`) unless the user asks.
 
 Act as yourself on every command: add `--as claude-code` if you are Claude Code, `--as codex` if you are
 Codex, plus `--json`. Never run Alice commands without `--as`, and never open the credential store: the
-CLI reads your credential itself. Add `--workspace ALIAS` when the user chose a workspace in chat.
+CLI reads your credential itself. Add `--workspace ALIAS` when more than one workspace exists.
 
 1. **Find work.** `alice --as <you> task list --status ready --assignee none --json`
 2. **Claim.** `alice --as <you> task claim ID --json` (`CLAIM_FAILED` → pick other work).
