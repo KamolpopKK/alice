@@ -1,8 +1,8 @@
 import { execFileSync, spawnSync } from 'node:child_process'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { testDir } from '../helpers/tmp'
 
 // Release keys are generated outside the repository, owner-only, and usable
 const ROOT = path.resolve(import.meta.dirname, '../..')
@@ -12,7 +12,7 @@ const run = (out: string) => spawnSync('bash', [SCRIPT, out], { encoding: 'utf8'
 describe.runIf(process.platform === 'darwin')('release keys script', () => {
   it('creates an updater key and a code-signing certificate, prints only commands, and leaves the repo clean', () => {
     const before = execFileSync('git', ['status', '--porcelain'], { cwd: ROOT, encoding: 'utf8' })
-    const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'alice-keys-')), 'keys')
+    const out = path.join(testDir('alice-keys-'), 'keys')
     const res = run(out)
     expect(res.status, res.stderr).toBe(0)
     const files = fs.readdirSync(out).sort()

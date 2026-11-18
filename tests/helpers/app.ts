@@ -2,14 +2,15 @@ import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { randomBytes } from 'node:crypto'
+import { testDir } from './tmp'
 
 const ROOT = path.resolve(import.meta.dirname, '../..')
 const CLI = path.join(ROOT, 'src/server/cli.ts')
 const TEST_ROOT = path.join(ROOT, '.alice-test')
 
+/** A data directory under `.alice-test/`, removed when the test file or worker finishes (see ./tmp). */
 export function tempDataDir(label = 'app'): string {
-  fs.mkdirSync(TEST_ROOT, { recursive: true })
-  return fs.mkdtempSync(path.join(TEST_ROOT, `${label}-`))
+  return testDir(`${label}-`, TEST_ROOT)
 }
 
 export interface StartOptions {

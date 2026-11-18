@@ -1,6 +1,7 @@
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
+import { testDir } from './tmp'
 
 const ROOT = path.resolve(import.meta.dirname, '../..')
 const BIN = path.join(ROOT, 'src-tauri/target/debug/examples/desktop_probe')
@@ -50,7 +51,8 @@ export class DesktopProbe {
   }
 
   static async start(): Promise<DesktopProbe> {
-    const child = spawn(BIN, [], { stdio: ['pipe', 'pipe', 'inherit'] })
+    // probe เขียน profile ลง temp_dir() ของ Rust (อ่าน TMPDIR): ชี้ไป directory ที่ test ลบเองได้
+    const child = spawn(BIN, [], { stdio: ['pipe', 'pipe', 'inherit'], env: { ...process.env, TMPDIR: testDir('alice-probe-') } })
     const probe = new DesktopProbe(child)
     await new Promise<void>((resolve) => child.stdout!.once('data', () => resolve()))
     return probe

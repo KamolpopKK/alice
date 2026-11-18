@@ -1,10 +1,10 @@
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { AGENT_GUIDE_CLIENTS, agentSetupGuide, claudeMcpAddCommand, tokenFileCommand } from '../../src/shared/agent-guide'
 import { mcpConfigSnippet } from '../../src/server/agent-setup'
+import { testDir } from '../helpers/tmp'
 
 const ORIGIN = 'https://alice.example.com'
 
@@ -95,13 +95,12 @@ describe('agent setup guide', () => {
 
   it.each(['bash', 'zsh'])('the token command stores stdin silently with mode 0600 under %s', (shell) => {
     if (spawnSync('which', [shell]).status !== 0) return
-    const home = fs.mkdtempSync(path.join(os.tmpdir(), 'alice-token-'))
+    const home = testDir('alice-token-')
     const res = spawnSync(shell, ['-c', tokenFileCommand()], { env: { PATH: process.env.PATH, HOME: home }, input: 'alice_at_example\n', encoding: 'utf8' })
     expect(res.status).toBe(0)
     expect(res.stdout).not.toContain('alice_at_example')
     const file = path.join(home, '.config/alice/token')
     expect(fs.readFileSync(file, 'utf8')).toBe('alice_at_example')
     expect(fs.statSync(file).mode & 0o777).toBe(0o600)
-    fs.rmSync(home, { recursive: true, force: true })
   })
 })

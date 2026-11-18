@@ -12,6 +12,7 @@ import { isProcessAlive, workspacePaths } from '../../src/local/paths'
 import { createWorkspace, listWorkspaces } from '../../src/local/registry'
 import { installLauncher, installedRuntime, setPointer, verifyRuntimeDir } from '../../src/local/runtime-install'
 import { localEnv, localHome, storedCapability } from '../helpers/local'
+import { testDir } from '../helpers/tmp'
 
 /** The packaged runtime, launcher and atomic activation with rollback. */
 let built: string
@@ -21,7 +22,7 @@ const homes: string[] = []
 /** A copy of the built runtime under another version name (same code; activation logic is what differs). */
 function variant(version: string): string {
   if (variants[version]) return variants[version]
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), `alice-rt-${version}-`))
+  const dir = testDir(`alice-rt-${version}-`)
   fs.cpSync(built, dir, { recursive: true })
   const manifest = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'))
   fs.writeFileSync(path.join(dir, 'manifest.json'), JSON.stringify({ ...manifest, version }))
@@ -40,7 +41,7 @@ function run(home: string, args: string[]) {
 
 beforeAll(async () => {
   // runtime จริงจาก source ของ repo นี้ โดยใช้ Node ที่รัน test เป็นไบนารีที่แจก
-  const out = fs.mkdtempSync(path.join(os.tmpdir(), 'alice-runtime-'))
+  const out = testDir('alice-runtime-')
   await buildRuntime({ root: path.resolve(import.meta.dirname, '../..'), outdir: out, nodeBinary: process.execPath, version: '0.2.0' })
   built = out
 }, 180_000)
