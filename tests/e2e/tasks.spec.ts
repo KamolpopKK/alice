@@ -81,7 +81,7 @@ test('decompose work and add blockers from task detail', async ({ app, owner, pa
   await page.getByLabel('Parent task').fill('checkout')
   await page.getByRole('button', { name: 'Choose Card checkout' }).click()
   await expect(page.getByRole('alert')).toContainText('cycle')
+  // แถวแสดงสถานะ blocked; จำนวน subtask อยู่ใน Task Detail
   await page.goto(`${app.url}/list`)
-  await expect(page.getByText('1 subtasks')).toBeVisible()
-  await expect(page.getByText('blocked by 1')).toBeVisible()
+  await expect(page.getByText('Blocked by 1')).toBeVisible()
 })

@@ -189,3 +189,21 @@ export function FieldMessage({ id, tone, children }: { id?: string; tone: 'error
     </p>
   )
 }
+
+/**
+ * Compact native select for changing one value in place (a task's status in a row). The label is
+ * required and stays the accessible name; it is not shown because the surrounding row names the item.
+ */
+export const InlineSelect = forwardRef<HTMLSelectElement, Omit<SelectHTMLAttributes<HTMLSelectElement>, 'aria-label'> & { label: string; options: SelectOption[]; tone?: 'neutral' | 'info' | 'success' | 'warning' | 'danger' }>(
+  function InlineSelect({ label, options, tone = 'neutral', className, ...rest }, ref) {
+    return (
+      <select ref={ref} aria-label={label} className={cx('ui-inline-select', `ui-inline-select--${tone}`, className)} {...rest}>
+        {options.map((o) => (
+          <option key={o.value} value={o.value} disabled={o.disabled}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    )
+  },
+)

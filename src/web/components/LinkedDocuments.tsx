@@ -4,7 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { DocumentSummary, Page } from '../../shared/contracts'
 import { client } from '../api'
 import { NewDocumentForm } from '../pages/DocumentsPage'
-import { ErrorMessage, Field } from './ui'
+import { ErrorMessage } from './ui'
+import { Button, TextField } from '../ui'
 
 type Target = { taskId: string } | { projectId: string }
 
@@ -30,40 +31,40 @@ export function LinkedDocuments({ target, title = 'Documents' }: { target: Targe
   const headingId = `linked-docs-${key}`
   return (
     <section className="linked-docs" aria-labelledby={headingId}>
-      <h2 id={headingId} className="side-heading">
+      <h2 id={headingId} className="task-section-title">
         {title}
       </h2>
-      {items.length === 0 && <p className="muted small">No linked documents.</p>}
+      {items.length === 0 && <p className="ui-text-muted">No linked documents.</p>}
       <ul className="plain-list">
         {items.map((d) => (
           <li key={d.id} className="row spread">
             <Link to={`/documents/${d.id}`}>{d.title}</Link>
-            <button type="button" className="link small" aria-label={`Unlink ${d.title}`} onClick={() => unlink.mutate(d.id)}>
+            <Button size="sm" variant="ghost" aria-label={`Unlink ${d.title}`} onClick={() => unlink.mutate(d.id)}>
               Unlink
-            </button>
+            </Button>
           </li>
         ))}
       </ul>
       <div className="row">
-        <button type="button" onClick={() => setAdding(adding === 'existing' ? 'none' : 'existing')} aria-expanded={adding === 'existing'}>
+        <Button size="sm" onClick={() => setAdding(adding === 'existing' ? 'none' : 'existing')} aria-expanded={adding === 'existing'}>
           Link existing
-        </button>
-        <button type="button" onClick={() => setAdding(adding === 'new' ? 'none' : 'new')} aria-expanded={adding === 'new'}>
+        </Button>
+        <Button size="sm" onClick={() => setAdding(adding === 'new' ? 'none' : 'new')} aria-expanded={adding === 'new'}>
           New document
-        </button>
+        </Button>
       </div>
       {adding === 'existing' && (
         <div className="stack">
-          <Field label="Find a document">{(id) => <input id={id} type="search" value={search} onChange={(e) => setSearch(e.target.value)} autoFocus />}</Field>
+          <TextField label="Find a document" type="search" value={search} onChange={(e) => setSearch(e.target.value)} autoFocus />
           <ul className="plain-list">
             {candidates.data?.items
               .filter((d) => !linkedIds.has(d.id))
               .map((d) => (
                 <li key={d.id} className="row spread">
                   <span>{d.title}</span>
-                  <button type="button" aria-label={`Link ${d.title}`} onClick={() => link.mutate(d.id)}>
+                  <Button size="sm" aria-label={`Link ${d.title}`} onClick={() => link.mutate(d.id)}>
                     Link
-                  </button>
+                  </Button>
                 </li>
               ))}
           </ul>

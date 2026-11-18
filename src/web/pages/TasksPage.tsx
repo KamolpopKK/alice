@@ -1,39 +1,51 @@
-import { LayoutGrid, List, UserRound } from 'lucide-react'
-import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
-import { SegmentedControl } from '../ui'
-import { BoardPage } from './BoardPage'
-import { ListPage } from './ListPage'
-import { MyTasksPage } from './MyTasksPage'
+import { Plus } from 'lucide-react'
+import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
+import { LinkButton } from '../ui'
+import { useFilterParams } from '../tasks/hooks'
+import { TaskPanel } from '../tasks/TaskPanel'
+import { TaskPanelHost } from '../tasks/panel'
+import { TaskToolbar, viewFilters, type TaskView } from '../tasks/TaskToolbar'
+import { BoardView, ListView, MyWorkView } from '../tasks/views'
 
-export type TaskView = 'my-work' | 'board' | 'list'
+export type { TaskView }
 const VIEWS: TaskView[] = ['my-work', 'board', 'list']
 const isView = (v: string | null): v is TaskView => VIEWS.includes(v as TaskView)
 
-/** Tasks: one destination with My Work, Board and List views (`?view=`), filters kept in the URL. */
+/**
+ * Tasks: My Work, Board and List as views of the same task data (`?view=`), sharing one toolbar,
+ * the filters in the URL and Task Detail beside the view (`?task=`).
+ */
 export function TasksPage() {
   const [params, setParams] = useSearchParams()
+  const [values] = useFilterParams()
   const view: TaskView = isView(params.get('view')) ? (params.get('view') as TaskView) : 'board'
-  const choose = (next: string) => {
-    const p = new URLSearchParams(params)
-    p.set('view', next)
-    setParams(p)
-  }
+  const filters = viewFilters(view, values)
+  const choose = (next: TaskView) =>
+    setParams(
+      (p) => {
+        const n = new URLSearchParams(p)
+        n.set('view', next)
+        return n
+      },
+      { preventScrollReset: true },
+    )
+  const panelOpen = params.has('task')
   return (
-    <div className="tasks-area">
-      <div className="tasks-viewbar">
-        <SegmentedControl
-          label="Task view"
-          value={view}
-          onValueChange={choose}
-          options={[
-            { value: 'my-work', label: 'My Work', icon: UserRound },
-            { value: 'board', label: 'Board', icon: LayoutGrid },
-            { value: 'list', label: 'List', icon: List },
-          ]}
-        />
+    <TaskPanelHost.Provider value={true}>
+    <div className={`tasks-layout${panelOpen ? ' has-panel' : ''}`}>
+      <div className={`page tasks-page tasks-page--${view}`}>
+        <div className="tasks-head">
+          <h1>Tasks</h1>
+          <LinkButton as={Link as never} to="/tasks/new" variant="primary" icon={Plus}>
+            New task
+          </LinkButton>
+        </div>
+        <TaskToolbar view={view} onView={choose} />
+        {view === 'board' ? <BoardView filters={filters} /> : view === 'list' ? <ListView filters={filters} /> : <MyWorkView filters={filters} />}
       </div>
-      {view === 'board' ? <BoardPage /> : view === 'list' ? <ListPage /> : <MyTasksPage />}
+      <TaskPanel />
     </div>
+    </TaskPanelHost.Provider>
   )
 }
 

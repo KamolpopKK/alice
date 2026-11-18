@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import { Link } from 'react-router-dom'
-import { TaskTable, useTaskPages } from './ListPage'
+import { useTaskPages } from '../tasks/hooks'
+import { TaskTable } from '../tasks/views'
 import type { Project } from '../../shared/contracts'
 import { LinkedDocuments } from '../components/LinkedDocuments'
 
@@ -16,7 +17,7 @@ function ProjectTasks({ project }: { project: Project }) {
           New task in project
         </Link>
       </div>
-      {tasks.length === 0 ? <p className="muted">No active tasks.</p> : <TaskTable tasks={tasks} showProject={false} />}
+      {tasks.length === 0 ? <p className="muted">No active tasks.</p> : <TaskTable tasks={tasks} showProject={false} caption={`Tasks in ${project.name}`} />}
       {query.hasNextPage && (
         <button type="button" onClick={() => void query.fetchNextPage()}>
           Load more

@@ -31,9 +31,10 @@ layout, but never restyle controls or use colour values directly.
 | Group | Components |
 |---|---|
 | Controls | `Button` (primary, secondary, ghost, danger; loading), `IconButton` (required `label`), `LinkButton`, `TextLink`, `Spinner` |
-| Fields | `TextField`, `TextArea`, `SelectField` (native), `Checkbox`, `Switch`, `RadioGroup`, `FieldMessage` |
+| Fields | `TextField`, `TextArea`, `SelectField` (native), `InlineSelect` (compact, change one value in place), `Checkbox`, `Switch`, `RadioGroup`, `FieldMessage` |
 | Display | `Badge`, `Avatar` (round for people, square for agents), `Card`, `SectionHeader`, `EmptyState`, `Skeleton`, `Banner`, `List`/`ListItem`, `Table` |
-| Overlays | `Tooltip`, `Menu`, `Popover`, `Dialog`, `Sheet`, `ConfirmDialog` (Radix underneath) |
+| Tasks | `TaskItem` (card or row with a fixed content budget: title, status, assignee, high or urgent priority, relevant due date, project when needed, open blockers), `PriorityBadge`, `DueLabel`, `AssigneeChip`, `ProjectLabel`, `BlockedBadge` |
+| Overlays | `Tooltip`, `Menu`, `Popover`, `Dialog`, `Sheet` (`size="lg"` for detail views), `ConfirmDialog` (Radix underneath) |
 | Navigation | `Tabs`, `SegmentedControl` (radio semantics) |
 | Feedback | `ToastProvider`/`useToast` (short confirmations only; errors stay next to the field or in a `Banner`) |
 | Icons | `Icon` with Lucide glyphs, sizes 16, 20 and 24, decorative unless given a `label` |

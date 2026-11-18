@@ -196,6 +196,7 @@ export function Sheet({
   children,
   side = 'right',
   hideTitle,
+  size = 'md',
   onCloseAutoFocus: custom,
 }: {
   open: boolean
@@ -204,6 +205,8 @@ export function Sheet({
   children: ReactNode
   side?: 'left' | 'right' | 'bottom'
   hideTitle?: boolean
+  /** `lg` suits detail views: wider on large screens and the full width of a phone. */
+  size?: 'md' | 'lg'
   /** Runs first; call preventDefault() to place focus yourself (for example after navigating). */
   onCloseAutoFocus?: (e: Event) => void
 }) {
@@ -216,7 +219,7 @@ export function Sheet({
     <RDialog.Root open={open} onOpenChange={onOpenChange}>
       <RDialog.Portal>
         <RDialog.Overlay className="ui-overlay" />
-        <RDialog.Content className={cx('ui-sheet', `ui-sheet--${side}`)} onCloseAutoFocus={onCloseAutoFocus}>
+        <RDialog.Content className={cx('ui-sheet', `ui-sheet--${side}`, size === 'lg' && 'ui-sheet--lg')} onCloseAutoFocus={onCloseAutoFocus}>
           <div className={cx('ui-dialog-head', hideTitle && 'ui-sheet-head--compact')}>
             <RDialog.Title className={cx('ui-dialog-title', hideTitle && 'ui-visually-hidden')}>{title}</RDialog.Title>
             <RDialog.Close asChild>

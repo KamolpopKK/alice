@@ -13,7 +13,7 @@ import { useNewPad } from '../pads/PadSidebar'
 import { Avatar, Badge, Banner, Button, EmptyState, IconButton, LinkButton, List, ListItem, SectionHeader, Skeleton } from '../ui'
 import { LegacyTasksRedirect } from './TasksPage'
 import { markWhatsNewSeen, whatsNewSeen } from '../whats-new'
-import { useTaskPages } from './ListPage'
+import { useTaskPages } from '../tasks/hooks'
 
 const GREETING_KEY = 'alice.home.summary'
 const SHOW = 5

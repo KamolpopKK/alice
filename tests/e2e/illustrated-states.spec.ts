@@ -40,7 +40,7 @@ test('approved page-level states show Alice with the exact line; inline empties 
     await expect(page.getByText('No documents found.')).toBeVisible()
     await expect(page.locator('img.mascot')).toHaveCount(0)
     await page.goto(`${app.url}/tasks?view=board`)
-    await expect(page.getByRole('heading', { name: 'Board' })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Board columns' })).toBeVisible()
     await expect(page.locator('img.mascot')).toHaveCount(0)
 
     // มีงานแล้ว → ไม่แสดง Alice

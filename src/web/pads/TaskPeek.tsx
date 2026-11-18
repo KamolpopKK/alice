@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { Dialog } from '../components/Dialog'
 import { ErrorMessage, Loading } from '../components/ui'
 import { useTask } from '../hooks'
-import { TaskDetailView } from '../pages/TaskDetailPage'
+import { TaskDetail } from '../tasks/TaskDetail'
 
 /** Query parameter that opens the Task side peek, so the peek is linkable and Back closes it. */
 export const PEEK_PARAM = 'task'
@@ -48,7 +48,7 @@ export function TaskPeek() {
           </p>
           {task.isLoading && <Loading />}
           <ErrorMessage error={task.error} />
-          {task.data && <TaskDetailView task={task.data} variant="peek" headingId={headingId} />}
+          {task.data && <TaskDetail task={task.data} mode="panel" headingId={headingId} />}
         </div>
       )}
     </Dialog>

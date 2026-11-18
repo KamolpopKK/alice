@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Page, Task, TaskRef, TaskRelations } from '../../shared/contracts'
 import { client } from '../api'
-import { StatusPill } from './TaskFields'
-import { ErrorMessage, Field } from './ui'
+import { STATUS_LABELS } from '../../shared/contracts'
+import { STATUS_TONE } from '../tasks/model'
+import { Badge, Button, TextField } from '../ui'
+import { ErrorMessage } from './ui'
 
 function TaskPicker({ label, exclude, onPick }: { label: string; exclude: Set<string>; onPick: (task: Task) => void }) {
   const [q, setQ] = useState('')
@@ -15,16 +17,16 @@ function TaskPicker({ label, exclude, onPick }: { label: string; exclude: Set<st
   })
   return (
     <div className="stack">
-      <Field label={label}>{(id) => <input id={id} type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tasks" autoFocus />}</Field>
+      <TextField label={label} type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tasks" autoFocus />
       <ul className="plain-list">
         {results.data?.items
           .filter((t) => !exclude.has(t.id))
           .map((t) => (
             <li key={t.id} className="row spread">
               <span>{t.title}</span>
-              <button type="button" aria-label={`Choose ${t.title}`} onClick={() => onPick(t)}>
+              <Button size="sm" aria-label={`Choose ${t.title}`} onClick={() => onPick(t)}>
                 Choose
-              </button>
+              </Button>
             </li>
           ))}
       </ul>
@@ -36,12 +38,12 @@ function RefItem({ task, onRemove, removeLabel }: { task: TaskRef; onRemove?: ()
   return (
     <li className="row spread">
       <span>
-        <Link to={`/tasks/${task.id}`}>{task.title}</Link> <StatusPill status={task.status} /> {task.archivedAt && <span className="pill pill-archived">archived</span>}
+        <Link to={`/tasks/${task.id}`}>{task.title}</Link> <Badge tone={STATUS_TONE[task.status]}>{STATUS_LABELS[task.status]}</Badge> {task.archivedAt && <Badge>archived</Badge>}
       </span>
       {onRemove && (
-        <button type="button" className="link small" aria-label={removeLabel} onClick={onRemove}>
+        <Button size="sm" variant="ghost" aria-label={removeLabel} onClick={onRemove}>
           Remove
-        </button>
+        </Button>
       )}
     </li>
   )
@@ -64,7 +66,7 @@ export function Relations({ task }: { task: Task }) {
   const disabled = task.archivedAt !== null
   return (
     <section className="relations" aria-labelledby={`rel-${task.id}`}>
-      <h2 id={`rel-${task.id}`} className="side-heading">
+      <h2 id={`rel-${task.id}`} className="task-section-title">
         Relationships
       </h2>
       <h3 className="small">Parent</h3>
@@ -73,7 +75,7 @@ export function Relations({ task }: { task: Task }) {
           <RefItem task={r.parent} onRemove={disabled ? undefined : () => setParent.mutate(null)} removeLabel="Remove parent" />
         </ul>
       ) : (
-        <p className="muted small">No parent.</p>
+        <p className="ui-text-muted">No parent.</p>
       )}
       <h3 className="small">Subtasks</h3>
       <ul className="plain-list">
@@ -98,12 +100,12 @@ export function Relations({ task }: { task: Task }) {
       )}
       {!disabled && (
         <div className="row">
-          <button type="button" aria-expanded={picking === 'parent'} onClick={() => setPicking(picking === 'parent' ? 'none' : 'parent')}>
+          <Button size="sm" aria-expanded={picking === 'parent'} onClick={() => setPicking(picking === 'parent' ? 'none' : 'parent')}>
             Set parent
-          </button>
-          <button type="button" aria-expanded={picking === 'blocker'} onClick={() => setPicking(picking === 'blocker' ? 'none' : 'blocker')}>
+          </Button>
+          <Button size="sm" aria-expanded={picking === 'blocker'} onClick={() => setPicking(picking === 'blocker' ? 'none' : 'blocker')}>
             Add blocker
-          </button>
+          </Button>
         </div>
       )}
       {picking === 'parent' && <TaskPicker label="Parent task" exclude={new Set([task.id])} onPick={(t) => setParent.mutate(t.id)} />}

@@ -439,6 +439,7 @@
 }
 .ui-banner {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: var(--ui-space-3);
   padding: var(--ui-space-3) var(--ui-space-4);
@@ -450,7 +451,7 @@
   margin-top: 2px;
 }
 .ui-banner-body {
-  flex: 1;
+  flex: 1 1 12rem;
   min-width: 0;
   color: var(--ui-text);
 }
@@ -459,7 +460,10 @@
   font-weight: var(--ui-weight-semibold);
 }
 .ui-banner-action {
-  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  max-width: 100%;
 }
 .ui-banner--info {
   background: var(--ui-info-bg);
@@ -683,6 +687,14 @@
   max-height: 92dvh;
   border-radius: var(--ui-radius-lg) var(--ui-radius-lg) 0 0;
 }
+.ui-sheet--lg {
+  width: min(100vw, 640px);
+}
+@media (max-width: 639px) {
+  .ui-sheet--lg {
+    border-radius: 0;
+  }
+}
 .ui-sheet-body {
   flex: 1;
   min-height: 0;
@@ -836,4 +848,141 @@
   min-height: var(--ui-target-min);
   padding: 0 var(--ui-space-2);
   border-radius: var(--ui-radius-sm);
+}
+
+/* ---------- inline select ---------- */
+.ui-inline-select {
+  width: auto;
+  min-height: 28px;
+  max-width: 100%;
+  padding: 2px var(--ui-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-pill);
+  font: inherit;
+  font-size: var(--ui-text-xs);
+  font-weight: var(--ui-weight-semibold);
+  background: var(--ui-surface-sunken);
+  color: var(--ui-text);
+  cursor: pointer;
+}
+.ui-inline-select:hover {
+  border-color: var(--ui-border-strong);
+}
+.ui-inline-select:focus-visible {
+  outline: var(--ui-focus-width) solid var(--ui-focus);
+  outline-offset: var(--ui-focus-offset);
+}
+.ui-inline-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.ui-inline-select--info {
+  background: var(--ui-info-bg);
+  color: var(--ui-info-text);
+}
+.ui-inline-select--success {
+  background: var(--ui-success-bg);
+  color: var(--ui-success-text);
+}
+.ui-inline-select--warning {
+  background: var(--ui-warning-bg);
+  color: var(--ui-warning-text);
+}
+.ui-inline-select--danger {
+  background: var(--ui-danger-bg);
+  color: var(--ui-danger-text);
+}
+.ui-inline-select option {
+  background: var(--ui-surface);
+  color: var(--ui-text);
+}
+
+/* ---------- task item (row and card) ---------- */
+.ui-task {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  min-width: 0;
+  color: var(--ui-text);
+}
+.ui-task--card {
+  padding: var(--ui-space-3);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+}
+.ui-task--card:hover {
+  border-color: var(--ui-border-strong);
+}
+.ui-task--row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--ui-space-4);
+  padding: var(--ui-space-2) var(--ui-space-3);
+  min-height: 44px;
+}
+.ui-task.is-selected {
+  background: var(--ui-surface-selected);
+  border-color: var(--ui-action-primary);
+}
+.ui-task-title {
+  font-weight: var(--ui-weight-semibold);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.ui-task--row .ui-task-title {
+  flex: 1 1 14rem;
+}
+.ui-task--row .ui-task-meta {
+  flex: 0 1 auto;
+}
+.ui-task-title a {
+  color: inherit;
+  text-decoration: none;
+}
+.ui-task-title a:hover {
+  text-decoration: underline;
+}
+.ui-task-title a:focus-visible {
+  outline: var(--ui-focus-width) solid var(--ui-focus);
+  outline-offset: var(--ui-focus-offset);
+  border-radius: var(--ui-radius-sm);
+}
+.ui-task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2);
+  font-size: var(--ui-text-sm);
+  color: var(--ui-text-muted);
+  min-width: 0;
+}
+.ui-task-assignee,
+.ui-task-project,
+.ui-task-due {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+  min-width: 0;
+}
+.ui-task-assignee-name,
+.ui-task-project span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 14ch;
+}
+.ui-task-due--warning {
+  color: var(--ui-warning-text);
+  font-weight: var(--ui-weight-semibold);
+}
+.ui-task-due--danger {
+  color: var(--ui-danger-text);
+  font-weight: var(--ui-weight-semibold);
+}
+.ui-task-feedback {
+  font-size: var(--ui-text-sm);
+  flex-basis: 100%;
 }

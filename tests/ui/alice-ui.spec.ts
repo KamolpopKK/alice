@@ -22,9 +22,21 @@ async function openStory(page: Page, id: string, theme: 'light' | 'dark') {
 
 const axe = (page: Page) => new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
 
+/** addon-a11y ของ Storybook รัน axe เองหลัง render: ถ้าชนกัน ให้รอแล้วรันใหม่ */
+async function analyze(builder: AxeBuilder) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await builder.analyze()
+    } catch (error) {
+      if (attempt >= 10 || !String(error).includes('Axe is already running')) throw error
+      await new Promise((r) => setTimeout(r, 200))
+    }
+  }
+}
+
 test('the Storybook catalogue documents every primitive', () => {
   const titles = new Set(stories.map((s) => s.title))
-  for (const t of ['Controls', 'Fields', 'Display', 'Overlays', 'Navigation', 'Foundations', 'Compositions']) expect(titles).toContain(`Alice UI/${t}`)
+  for (const t of ['Controls', 'Fields', 'Display', 'Overlays', 'Navigation', 'Foundations', 'Compositions', 'Tasks']) expect(titles).toContain(`Alice UI/${t}`)
   expect(stories.length).toBeGreaterThanOrEqual(20)
 })
 
@@ -35,7 +47,7 @@ for (const theme of ['light', 'dark'] as const) {
       await page.emulateMedia({ reducedMotion: 'reduce' })
       await openStory(page, story.id, theme)
       const builder = MODAL_OPEN.has(story.id) ? axe(page).include('[role="dialog"]') : axe(page)
-      const { violations } = await builder.analyze()
+      const { violations } = await analyze(builder)
       expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([])
     })
   }

@@ -26,7 +26,7 @@ import { SearchPage } from './pages/SearchPage'
 import { ProjectDetailPage } from './pages/ProjectDetailPage'
 import { ProjectsPage } from './pages/ProjectsPage'
 import { NewTaskPage } from './pages/NewTaskPage'
-import { TaskDetailPage } from './pages/TaskDetailPage'
+import { TaskDetailPage } from './tasks/TaskPanel'
 import { TaskPadsPage } from './pads/TaskPadsPage'
 
 const queryClient = new QueryClient({

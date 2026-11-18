@@ -36,14 +36,16 @@ test('old Board, List and My Tasks links open the matching Tasks view and keep t
   await page.goto(`${app.url}/list?priority=urgent`)
   await expect(page).toHaveURL(/\/tasks\?priority=urgent&view=list$/)
   await expect(page.getByRole('radio', { name: 'List' })).toHaveAttribute('aria-checked', 'true')
+  await page.getByRole('button', { name: 'Filters, 1 active' }).click()
   await expect(page.getByLabel('Priority')).toHaveValue('urgent')
+  await page.keyboard.press('Escape')
   await page.goto(`${app.url}/my-tasks`)
   await expect(page).toHaveURL(/\/tasks\?view=my-work$/)
   await expect(page.getByRole('radio', { name: 'My Work' })).toHaveAttribute('aria-checked', 'true')
   // ลิงก์ Board เดิมที่มี filter (/?…) ยังเปิด Board; / เปล่า ๆ คือ Home
   await page.goto(`${app.url}/?priority=low`)
   await expect(page).toHaveURL(/\/tasks\?priority=low&view=board$/)
-  await expect(page.getByRole('heading', { name: 'Board' })).toBeVisible()
+  await expect(page.getByRole('radio', { name: 'Board' })).toHaveAttribute('aria-checked', 'true')
   // ปุ่ม Back ของ browser ไม่วนกลับไปที่ redirect
   await page.getByRole('radio', { name: 'List' }).click()
   await expect(page).toHaveURL(/view=list/)
