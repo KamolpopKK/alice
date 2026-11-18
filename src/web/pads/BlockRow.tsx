@@ -1,6 +1,8 @@
 import { memo, useEffect, useLayoutEffect, useRef, type ClipboardEvent, type DragEvent, type KeyboardEvent } from 'react'
 import type { Pad } from '../../shared/pads'
-import { MenuButton, type MenuItem } from '../components/Menu'
+import { ChevronDown, ChevronRight, GripVertical, PanelRightOpen } from 'lucide-react'
+import { Button, Icon, IconButton } from '../ui'
+import { BlockMenu, type BlockMenuItem } from './BlockMenu'
 import { caretAtEnd, caretAtStart, mentionQuery, pastedLines, insertPlainText, readSegments, renderSegments, splitAtCaret, placeCaret } from './editable'
 import { optionId, PICKER_ID, type PickerState } from './MentionPicker'
 import type { FlatRow, MentionMap } from './store'
@@ -26,7 +28,7 @@ export interface RowApi {
   picker(key: string, mode: PickerState['mode'] | null, query: string, anchor?: { node: Text; start: number; end: number } | null): void
   pickerKey(e: KeyboardEvent): boolean
   paste(key: string, lines: string[]): void
-  menuItems(row: FlatRow): MenuItem[]
+  menuItems(row: FlatRow): BlockMenuItem[]
   toggleComplete(key: string): void
   toggleCollapse(key: string): void
   openTask(taskId: string): void
@@ -126,7 +128,7 @@ export const BlockRow = memo(function BlockRow(props: RowProps) {
     >
       <div className="pad-row-line">
         <div className="pad-row-gutter">
-          <MenuButton
+          <BlockMenu
             label={rowLabel(row, mentions)}
             items={api.menuItems(row)}
             open={menuOpen}
@@ -144,27 +146,20 @@ export const BlockRow = memo(function BlockRow(props: RowProps) {
               },
             }}
           >
-            <svg viewBox="0 0 12 18" width="10" height="16" aria-hidden="true" focusable="false">
-              {[3, 9, 15].map((y) => (
-                <g key={y}>
-                  <circle cx="3" cy={y} r="1.5" fill="currentColor" />
-                  <circle cx="9" cy={y} r="1.5" fill="currentColor" />
-                </g>
-              ))}
-            </svg>
-          </MenuButton>
+            <Icon icon={GripVertical} size="sm" />
+          </BlockMenu>
         </div>
         {b.type === 'heading' && (
           <button
             type="button"
-            className="icon-button collapse-toggle"
+            className="ui-icon-button ui-button--ghost ui-icon-button--sm collapse-toggle"
             aria-expanded={!b.collapsed}
             aria-label={`${b.collapsed ? 'Expand' : 'Collapse'} section ${plain(b.content).slice(0, 60)}`}
             onClick={() => api.toggleCollapse(b.key)}
             disabled={!row.hasChildren && !b.collapsed}
             tabIndex={-1}
           >
-            <span aria-hidden="true">{b.collapsed ? '▸' : '▾'}</span>
+            <Icon icon={b.collapsed ? ChevronRight : ChevronDown} size="sm" />
           </button>
         )}
         {b.type === 'task' ? (
@@ -190,12 +185,12 @@ function SyncBadge({ row, api, offline }: { row: FlatRow; api: RowApi; offline: 
     return (
       <span className="sync-failed" role="group" aria-label="Not saved">
         <span className="sync-text">{b.error ?? 'Not saved'}</span>
-        <button type="button" className="link" onClick={() => api.retry(b.key)}>
+        <Button size="sm" variant="ghost" onClick={() => api.retry(b.key)}>
           Retry
-        </button>
-        <button type="button" className="link danger" onClick={() => api.discard(b.key)}>
+        </Button>
+        <Button size="sm" variant="ghost" className="sync-discard" onClick={() => api.discard(b.key)}>
           Discard
-        </button>
+        </Button>
       </span>
     )
   }
@@ -328,9 +323,7 @@ function TaskLine({ row, api, picker, pickerActive, pickerCount, focusSeq, disab
         onDoubleClick={() => b.task && api.openTask(b.task.id)}
       />
       {b.task && (
-        <button type="button" className="icon-button open-task" aria-label={`Open task details: ${b.title}`} onClick={() => api.openTask(b.task!.id)} tabIndex={-1}>
-          <span aria-hidden="true">↗</span>
-        </button>
+        <IconButton icon={PanelRightOpen} size="sm" className="open-task" label={`Open task details: ${b.title}`} title="Open task details" onClick={() => api.openTask(b.task!.id)} tabIndex={-1} />
       )}
     </span>
   )

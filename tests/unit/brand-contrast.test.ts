@@ -2,19 +2,23 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const css = fs.readFileSync(path.resolve(import.meta.dirname, '../../src/web/styles.css'), 'utf8')
+// สีของทั้งแอปมาจาก semantic token ใน tokens.css (styles.css แค่ชี้ชื่อเดิมไปที่ token)
+const css = fs.readFileSync(path.resolve(import.meta.dirname, '../../src/web/ui/tokens.css'), 'utf8')
+const legacy = fs.readFileSync(path.resolve(import.meta.dirname, '../../src/web/styles.css'), 'utf8')
 
 function tokens(block: string): Record<string, string> {
   const out: Record<string, string> = {}
   for (const m of block.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)) out[m[1]] = m[2].trim()
   return out
 }
-const light = tokens(css.slice(css.indexOf(':root {'), css.indexOf('@media (prefers-color-scheme: dark)')))
-const dark = { ...light, ...tokens(css.slice(css.indexOf('@media (prefers-color-scheme: dark)'), css.indexOf('* {'))) }
+const brand = tokens(legacy.slice(legacy.indexOf(':root {'), legacy.indexOf('}', legacy.indexOf(':root {'))))
+const light = { ...brand, ...tokens(css.slice(css.indexOf(':root {'), css.indexOf('@media (prefers-color-scheme: dark)'))) }
+const darkStart = css.indexOf(":root[data-theme='dark']")
+const dark = { ...light, ...tokens(css.slice(darkStart, css.indexOf('}', darkStart))) }
 
 function resolve(t: Record<string, string>, name: string): string {
   let v = t[name]
-  for (let i = 0; i < 5 && v?.startsWith('var('); i++) v = t[v.slice(6, -1)]
+  for (let i = 0; i < 8 && v?.startsWith('var('); i++) v = t[v.slice(6, -1)]
   if (!v || !/^#[0-9a-f]{6}$/i.test(v)) throw new Error(`token --${name} is not a hex colour: ${v}`)
   return v
 }
@@ -29,21 +33,23 @@ export const contrast = (a: string, b: string) => {
 
 // [foreground, background, minimum]: 4.5 text, 3 for focus/UI indicators (WCAG 2.2 AA)
 const PAIRS: Array<[string, string, number]> = [
-  ['text', 'bg', 4.5],
-  ['text', 'surface', 4.5],
-  ['text', 'surface-2', 4.5],
-  ['muted', 'bg', 4.5],
-  ['muted', 'surface', 4.5],
-  ['accent', 'bg', 4.5],
-  ['accent', 'surface', 4.5],
-  ['accent-text', 'accent', 4.5],
-  ['accent-text', 'accent-hover', 4.5],
-  ['accent', 'accent-soft', 4.5],
-  ['danger', 'surface', 4.5],
-  ['agent', 'agent-soft', 4.5],
-  ['focus', 'bg', 3],
-  ['focus', 'surface', 3],
-  ['live', 'surface', 3],
+  ['ui-text', 'ui-canvas', 4.5],
+  ['ui-text', 'ui-surface', 4.5],
+  ['ui-text', 'ui-surface-sunken', 4.5],
+  ['ui-text-muted', 'ui-canvas', 4.5],
+  ['ui-text-muted', 'ui-surface', 4.5],
+  ['ui-link', 'ui-canvas', 4.5],
+  ['ui-link', 'ui-surface', 4.5],
+  ['ui-text-on-action', 'ui-action-primary', 4.5],
+  ['ui-text-on-action', 'ui-action-primary-hover', 4.5],
+  ['ui-link', 'ui-brand-soft', 4.5],
+  ['ui-danger-text', 'ui-surface', 4.5],
+  ['ui-danger-text', 'ui-danger-bg', 4.5],
+  ['ui-warning-text', 'ui-warning-bg', 4.5],
+  ['ui-agent-text', 'ui-agent-bg', 4.5],
+  ['ui-focus', 'ui-canvas', 3],
+  ['ui-focus', 'ui-surface', 3],
+  ['ui-success-text', 'ui-surface', 3],
 ]
 
 describe('brand palette contrast (WCAG 2.2 AA)', () => {

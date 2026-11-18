@@ -8,6 +8,8 @@ import { expect, openNewPad, signIn, test } from './fixtures'
 const V1 = '/client/v1'
 
 async function audit(page: Page, label: string) {
+  // overlay ที่กำลัง fade/slide เข้ามาทำให้วัด contrast ผิด: รอ animation จบก่อน
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity))
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze()
   expect(result.violations.map((v) => `${label}: ${v.id} — ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([])
 }
@@ -167,7 +169,7 @@ test.describe('Task Pads accessibility, reflow, motion and compatibility', () =>
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
     expect(overflow).toBeLessThanOrEqual(0)
     await page.getByRole('button', { name: /Open task details: Fourth level/ }).click()
-    const animation = await page.locator('dialog.side-peek').evaluate((el) => getComputedStyle(el).animationName)
+    const animation = await page.locator('.ui-sheet').evaluate((el) => getComputedStyle(el).animationName)
     expect(animation).toBe('none')
     await ctx.close()
   })

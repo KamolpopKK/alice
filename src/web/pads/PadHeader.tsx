@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { STATUS_LABELS, TASK_STATUSES, type TaskStatus } from '../../shared/contracts'
 import type { Pad } from '../../shared/pads'
-import { MenuButton, type MenuItem } from '../components/Menu'
+import { Archive, ArchiveRestore, ChevronLeft, MoreHorizontal, Pin, PinOff, Trash2 } from 'lucide-react'
 import { ErrorMessage } from '../components/ui'
+import { Banner, Button, IconButton, LinkButton, Menu, type MenuItem } from '../ui'
 import { useActors } from '../hooks'
 import { useProjects } from '../pages/ProjectsPage'
 import { usePadMutations } from './hooks'
@@ -29,9 +30,9 @@ export function PadHeader({ pad, narrow, extraActions = [] }: { pad: Pad; narrow
   return (
     <header className="pad-header">
       {narrow && (
-        <Link to="/pads" className="button pad-back">
-          <span aria-hidden="true">‹</span> Back to pads
-        </Link>
+        <LinkButton as={Link as never} to="/pads" size="sm" variant="ghost" icon={ChevronLeft} className="pad-back">
+          Back to pads
+        </LinkButton>
       )}
       <div className="pad-title-row">
         <label htmlFor="pad-name" className="sr-only">
@@ -55,43 +56,28 @@ export function PadHeader({ pad, narrow, extraActions = [] }: { pad: Pad; narrow
             }
           }}
         />
-        <button
-          type="button"
-          className="icon-button"
+        <IconButton
+          icon={pad.pinned ? PinOff : Pin}
           aria-pressed={pad.pinned}
-          aria-label={pad.pinned ? 'Unpin pad' : 'Pin pad'}
+          label={pad.pinned ? 'Unpin pad' : 'Pin pad'}
           title={pad.pinned ? 'Unpin pad' : 'Pin pad'}
           onClick={() => update.mutate({ id: pad.id, patch: { pinned: !pad.pinned } })}
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
-            <path
-              d="M9 3h6l-1 6 4 4H6l4-4-1-6zM12 13v8"
-              fill={pad.pinned ? 'currentColor' : 'none'}
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
-        <MenuButton
-          label="Pad actions"
+        />
+        <Menu
+          trigger={<IconButton icon={MoreHorizontal} label="Pad actions" />}
           items={[
             ...extraActions,
             archived
-              ? { label: 'Restore pad', onSelect: () => restore.mutate(pad.id) }
-              : { label: 'Archive pad', onSelect: () => archive.mutate(pad.id, { onSuccess: () => navigate('/pads') }) },
-            { label: 'Delete pad permanently…', danger: true, onSelect: () => setConfirmDelete(true) },
+              ? { label: 'Restore pad', icon: ArchiveRestore, onSelect: () => restore.mutate(pad.id) }
+              : { label: 'Archive pad', icon: Archive, navigates: true, onSelect: () => archive.mutate(pad.id, { onSuccess: () => navigate('/pads') }) },
+            { label: 'Delete pad permanently…', icon: Trash2, destructive: true, onSelect: () => setConfirmDelete(true) },
           ]}
         />
       </div>
       {archived ? (
-        <p className="notice row spread">
-          <span>This pad is archived. Restore it to keep writing.</span>
-          <button type="button" onClick={() => restore.mutate(pad.id)}>
-            Restore pad
-          </button>
-        </p>
+        <Banner tone="info" action={<Button size="sm" onClick={() => restore.mutate(pad.id)}>Restore pad</Button>}>
+          This pad is archived. Restore it to keep writing.
+        </Banner>
       ) : (
         <PadDefaults pad={pad} onChange={(patch) => update.mutate({ id: pad.id, patch })} />
       )}

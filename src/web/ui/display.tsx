@@ -57,7 +57,8 @@ export function SectionHeader({ title, level = 2, actions, description }: { titl
 }
 
 /** Empty, inline variant (text only). Page-level moments with Alice use the brand's illustrated state. */
-export function EmptyState({ title, children, action, icon }: { title: ReactNode; children?: ReactNode; action?: ReactNode; icon?: LucideIcon }) {
+export function EmptyState({ title, children, action, icon, headingLevel }: { title: ReactNode; children?: ReactNode; action?: ReactNode; icon?: LucideIcon; headingLevel?: 2 | 3 }) {
+  const Title = headingLevel ? (`h${headingLevel}` as const) : 'p'
   return (
     <div className="ui-empty">
       {icon && (
@@ -65,7 +66,7 @@ export function EmptyState({ title, children, action, icon }: { title: ReactNode
           <Icon icon={icon} size="lg" />
         </span>
       )}
-      <p className="ui-empty-title">{title}</p>
+      <Title className="ui-empty-title">{title}</Title>
       {children && <p className="ui-text-muted">{children}</p>}
       {action && <div className="ui-empty-action">{action}</div>}
     </div>

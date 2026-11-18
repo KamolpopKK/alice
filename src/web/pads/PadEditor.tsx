@@ -3,8 +3,8 @@ import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import type { Pad, PadBlock, PadBlockPage, PadMentionInfo, PadSegment, PadTaskCandidate } from '../../shared/pads'
 import type { PadBlockType } from '../../shared/pads'
-import { ConfirmDialog } from '../components/Dialog'
-import type { MenuItem } from '../components/Menu'
+import { Banner, Button, ConfirmDialog } from '../ui'
+import type { BlockMenuItem } from './BlockMenu'
 import { ErrorMessage, Loading } from '../components/ui'
 import { onLiveEvent } from '../live'
 import { useMe } from '../auth'
@@ -328,11 +328,11 @@ export function PadEditor({ pad, focusCapture, focusToken = null, expand }: { pa
     [],
   )
 
-  const menuFor = (row: FlatRow): MenuItem[] => {
+  const menuFor = (row: FlatRow): BlockMenuItem[] => {
     const b = row.block
     const key = b.key
     if (archived) return [{ label: 'Restore the pad to edit', onSelect: () => undefined, disabled: true }]
-    const items: MenuItem[] = []
+    const items: BlockMenuItem[] = []
     const types: PadBlockType[] = ['task', 'text', 'heading']
     for (const t of types) if (t !== b.type) items.push({ label: `Turn into ${t === 'task' ? 'Task' : t === 'text' ? 'Text' : 'Heading'}`, onSelect: () => model.convert(key, t) })
     items.push(
@@ -435,9 +435,9 @@ export function PadEditor({ pad, focusCapture, focusToken = null, expand }: { pa
         {snap.notice?.text}
       </p>
       {snap.notice?.text.startsWith('This line was updated') && (
-        <p className="notice pad-notice" role="alert">
-          {snap.notice.text}
-        </p>
+        <div className="pad-notice">
+          <Banner tone="warning">{snap.notice.text}</Banner>
+        </div>
       )}
       <PasteDialog
         request={paste}
@@ -462,16 +462,17 @@ export function PadEditor({ pad, focusCapture, focusToken = null, expand }: { pa
       />
       <ConfirmDialog
         open={subtreeRow != null}
+        onOpenChange={(o) => !o && setConfirmSubtree(null)}
         title="Delete this line and everything nested in it?"
-        message={`“${subtreeRow ? plain(subtreeRow.block.content).slice(0, 80) || 'This line' : ''}” and all lines nested under it will be removed from this pad. Tasks inside stay on the Board.`}
         confirmLabel="Delete with nested lines"
-        danger
-        onCancel={() => setConfirmSubtree(null)}
+        destructive
         onConfirm={() => {
           if (confirmSubtree) removeAndFocus(confirmSubtree, 'subtree')
           setConfirmSubtree(null)
         }}
-      />
+      >
+        {`“${subtreeRow ? plain(subtreeRow.block.content).slice(0, 80) || 'This line' : ''}” and all lines nested under it will be removed from this pad. Tasks inside stay on the Board.`}
+      </ConfirmDialog>
     </div>
   )
 }
@@ -516,9 +517,9 @@ function SyncStatus({ pending, failed, offline, overflow, onRetry }: { pending: 
         <span>
           Not synced: {pending} change{pending === 1 ? '' : 's'} {overflow ? 'are kept in this window only' : 'saved on this device'} and will be sent when the connection returns.
         </span>
-        <button type="button" className="link" onClick={onRetry}>
+        <Button size="sm" onClick={onRetry}>
           Retry now
-        </button>
+        </Button>
       </p>
     )
   }

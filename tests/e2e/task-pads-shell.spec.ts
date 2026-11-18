@@ -7,6 +7,8 @@ const V1 = '/client/v1'
 const text = (t: string) => [{ type: 'text', text: t }]
 
 async function audit(page: Page, label: string) {
+  // overlay ที่กำลัง fade/slide เข้ามาทำให้วัด contrast ผิด: รอ animation จบก่อน
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity))
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze()
   expect(result.violations.map((v) => `${label}: ${v.id} — ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([])
 }
@@ -57,7 +59,7 @@ test('New Pad opens a localized date-and-time pad ready for capture, and pads ca
   await expect(archivedDialog.getByRole('strong').filter({ hasText: 'Weekly sync' })).toBeVisible()
   await audit(page, 'archived pads dialog')
   await archivedDialog.getByRole('button', { name: 'Restore Weekly sync' }).click()
-  await expect(archivedDialog.getByText('No archived pads.')).toBeVisible()
+  await expect(archivedDialog.getByText('No archived pads')).toBeVisible()
   await archivedDialog.getByRole('button', { name: 'Close' }).click()
   await expect(sidebar(page).getByRole('link', { name: /Weekly sync/ })).toBeVisible()
 

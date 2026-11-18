@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { STATUS_LABELS } from '../../shared/contracts'
-import { Dialog, ConfirmDialog } from '../components/Dialog'
 import { ErrorMessage } from '../components/ui'
+import { Banner, Button, ConfirmDialog, Dialog, TextField } from '../ui'
 import { client } from '../api'
 
 export interface PasteRequest {
@@ -30,13 +30,24 @@ export function PasteDialog({ request, onTasks, onText, onCancel }: { request: P
   return (
     <Dialog
       open={request !== null}
-      onClose={onCancel}
+      onOpenChange={(o) => !o && onCancel()}
       title="Paste multiple lines"
       description={`You pasted ${count} non-blank line${count === 1 ? '' : 's'}. Create a task from each line, or keep them as text in this pad.`}
+      actions={
+        <>
+          <Button onClick={onCancel} data-autofocus>
+            Cancel
+          </Button>
+          <Button onClick={() => request && onText(request.lines.filter((l) => l.trim()))}>Paste as text</Button>
+          <Button variant="primary" disabled={check.errors.length > 0 || check.titles.length === 0} onClick={() => onTasks(check.titles)}>
+            Create {check.titles.length} task{check.titles.length === 1 ? '' : 's'}
+          </Button>
+        </>
+      }
     >
       {check.errors.length > 0 && (
-        <div className="error" role="alert">
-          <p>Task titles are limited to 300 characters. Shorten these lines or paste as text:</p>
+        <Banner tone="danger" title="Task titles are limited to 300 characters.">
+          Shorten these lines or paste as text:
           <ul>
             {check.errors.map((e) => (
               <li key={e.line}>
@@ -44,7 +55,7 @@ export function PasteDialog({ request, onTasks, onText, onCancel }: { request: P
               </li>
             ))}
           </ul>
-        </div>
+        </Banner>
       )}
       {check.titles.length > 0 && (
         <details className="paste-preview">
@@ -54,20 +65,9 @@ export function PasteDialog({ request, onTasks, onText, onCancel }: { request: P
               <li key={i}>{t}</li>
             ))}
           </ol>
-          {check.titles.length > 50 && <p className="muted small">…and {check.titles.length - 50} more</p>}
+          {check.titles.length > 50 && <p className="ui-text-muted">…and {check.titles.length - 50} more</p>}
         </details>
       )}
-      <div className="row dialog-actions">
-        <button type="button" className="primary" disabled={check.errors.length > 0 || check.titles.length === 0} onClick={() => onTasks(check.titles)}>
-          Create {check.titles.length} task{check.titles.length === 1 ? '' : 's'}
-        </button>
-        <button type="button" onClick={() => request && onText(request.lines.filter((l) => l.trim()))}>
-          Paste as text
-        </button>
-        <button type="button" onClick={onCancel} data-autofocus>
-          Cancel
-        </button>
-      </div>
     </Dialog>
   )
 }
@@ -94,29 +94,23 @@ export function TurnIntoDescriptionDialog({
     return (
       <ConfirmDialog
         open
+        onOpenChange={(o) => !o && close()}
         title="Turn into description?"
-        message={
-          <>
-            “{source.title}” will be added as a line to the description of “{target.title}”, and its Task line will be removed from this pad. The task “{source.title}”
-            itself is not archived or changed.
-          </>
-        }
         confirmLabel="Turn into description"
-        onCancel={close}
         onConfirm={() => {
           onConfirm(target.id)
           setTarget(null)
           setQ('')
         }}
-      />
+      >
+        “{source.title}” will be added as a line to the description of “{target.title}”, and its Task line will be removed from this pad. The task “{source.title}” itself is
+        not archived or changed.
+      </ConfirmDialog>
     )
   }
   return (
-    <Dialog open={source !== null} onClose={close} title="Turn into description" description="Choose the task whose description should receive this line.">
-      <label className="field">
-        <span>Find a task</span>
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
-      </label>
+    <Dialog open={source !== null} onOpenChange={(o) => !o && close()} title="Turn into description" description="Choose the task whose description should receive this line.">
+      <TextField label="Find a task" type="search" value={q} onChange={(e) => setQ(e.target.value)} data-autofocus />
       <ErrorMessage error={results.error} />
       <ul className="plain-list describe-targets">
         {(results.data ?? [])

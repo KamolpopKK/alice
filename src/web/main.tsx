@@ -7,6 +7,7 @@ import './ui/alice-ui.css'
 import './styles.css'
 import './shell/shell.css'
 import './tasks/tasks.css'
+import './pads/pads.css'
 
 // ใส่ธีมที่เลือกไว้ก่อน render แรก ไม่ให้จอกระพริบเป็นธีมอื่น
 applyThemePreference(readThemePreference())

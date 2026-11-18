@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type KeyboardEvent, type ReactNode } from 'react'
 
-export interface MenuItem {
+export interface BlockMenuItem {
   label: string
   onSelect: () => void
   danger?: boolean
@@ -8,10 +8,12 @@ export interface MenuItem {
 }
 
 /**
- * Menu button following the WAI-ARIA menu pattern: Enter/Space/ArrowDown opens and focuses the first
+ * Line actions behind a Pad line's drag handle. The handle is also a drag source, so it opens on
+ * click (not pointer-down like the shared Menu) and stays out of the Tab order (Ctrl/⌘ + / opens it).
+ * It uses the shared Alice UI menu styling. Follows the WAI-ARIA menu pattern: Enter/Space/ArrowDown opens and focuses the first
  * item, arrows move, Home/End jump, Escape or Tab closes and focus returns to the button.
  */
-export function MenuButton({
+export function BlockMenu({
   label,
   items,
   children,
@@ -21,7 +23,7 @@ export function MenuButton({
   buttonProps,
 }: {
   label: string
-  items: MenuItem[]
+  items: BlockMenuItem[]
   children?: ReactNode
   className?: string
   /** Controlled mode (e.g. a keyboard shortcut opens the menu). */
@@ -76,12 +78,12 @@ export function MenuButton({
   }
 
   return (
-    <div className={`menu ${className ?? ''}`}>
+    <div className={`block-menu-wrap ${className ?? ''}`}>
       <button
         {...buttonProps}
         ref={buttonRef}
         type="button"
-        className={`icon-button ${buttonProps?.className ?? ''}`}
+        className={`ui-icon-button ui-button--ghost ui-icon-button--sm ${buttonProps?.className ?? ''}`}
         aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -94,10 +96,10 @@ export function MenuButton({
           }
         }}
       >
-        {children ?? <span aria-hidden="true">⋯</span>}
+        {children}
       </button>
       {open && (
-        <div ref={listRef} id={menuId} role="menu" aria-label={label} className="menu-list" onKeyDown={onMenuKey}>
+        <div ref={listRef} id={menuId} role="menu" aria-label={label} className="ui-menu block-menu-list" onKeyDown={onMenuKey}>
           {items.map((item) => (
             <button
               key={item.label}
@@ -105,16 +107,16 @@ export function MenuButton({
               role="menuitem"
               tabIndex={-1}
               disabled={item.disabled}
-              className={item.danger ? 'danger' : undefined}
+              className={`ui-menu-item${item.danger ? ' is-destructive' : ''}`}
               onClick={() => {
                 close()
                 item.onSelect()
               }}
             >
-              {item.label}
+              <span className="ui-menu-item-label">{item.label}</span>
             </button>
           ))}
-          {enabled.length === 0 && <span className="muted small">No actions</span>}
+          {enabled.length === 0 && <span className="ui-menu-label">No actions</span>}
         </div>
       )}
     </div>

@@ -161,6 +161,15 @@ function useReturnFocus(open: boolean) {
   }
 }
 
+/** Opens on the element marked `data-autofocus` (the safer choice, such as Cancel) when there is one. */
+function focusPreferred(e: Event) {
+  const preferred = (e.currentTarget as HTMLElement | null)?.querySelector<HTMLElement>('[data-autofocus]')
+  if (preferred) {
+    e.preventDefault()
+    preferred.focus()
+  }
+}
+
 /** Modal dialog: traps focus, closes on Escape, and returns focus to whatever opened it. */
 export function Dialog({ open, onOpenChange, title, description, children, actions, trigger, size = 'md' }: DialogProps) {
   const onCloseAutoFocus = useReturnFocus(open)
@@ -169,7 +178,7 @@ export function Dialog({ open, onOpenChange, title, description, children, actio
       {trigger && <RDialog.Trigger asChild>{trigger}</RDialog.Trigger>}
       <RDialog.Portal>
         <RDialog.Overlay className="ui-overlay" />
-        <RDialog.Content className={cx('ui-dialog', `ui-dialog--${size}`)} onCloseAutoFocus={trigger ? undefined : onCloseAutoFocus}>
+        <RDialog.Content className={cx('ui-dialog', `ui-dialog--${size}`)} onOpenAutoFocus={focusPreferred} onCloseAutoFocus={trigger ? undefined : onCloseAutoFocus}>
           <div className="ui-dialog-head">
             <RDialog.Title className="ui-dialog-title">{title}</RDialog.Title>
             <RDialog.Close asChild>
@@ -245,6 +254,7 @@ export function ConfirmDialog({
   destructive,
   busy,
   onConfirm,
+  error,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -255,6 +265,8 @@ export function ConfirmDialog({
   destructive?: boolean
   busy?: boolean
   onConfirm: () => void
+  /** Why the last attempt failed, shown above the actions. */
+  error?: ReactNode
 }) {
   return (
     <Dialog
@@ -264,7 +276,7 @@ export function ConfirmDialog({
       size="sm"
       actions={
         <>
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>
+          <Button variant="secondary" onClick={() => onOpenChange(false)} data-autofocus={destructive || undefined}>
             {cancelLabel}
           </Button>
           <Button variant={destructive ? 'danger' : 'primary'} loading={busy} onClick={onConfirm}>
@@ -274,6 +286,7 @@ export function ConfirmDialog({
       }
     >
       {children}
+      {error}
     </Dialog>
   )
 }
