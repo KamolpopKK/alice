@@ -1,8 +1,8 @@
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { testDir } from '../helpers/tmp'
 
 const ROOT = path.resolve(import.meta.dirname, '../..')
 const TAURI = path.join(ROOT, 'src-tauri')
@@ -35,7 +35,7 @@ describe('Alice Desktop security configuration', () => {
 
   it('bundle verifier with --local-runtime requires exactly the verified runtime of the app version', async () => {
     const { createHash } = await import('node:crypto')
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'alice-bundle-local-'))
+    const dir = testDir('alice-bundle-local-')
     fs.mkdirSync(path.join(dir, 'MacOS'))
     fs.mkdirSync(path.join(dir, 'Resources/runtime'), { recursive: true })
     fs.writeFileSync(path.join(dir, 'MacOS/alice-desktop'), 'binary', { mode: 0o755 })
@@ -67,7 +67,7 @@ describe('Alice Desktop security configuration', () => {
   })
 
   it('bundle verifier rejects Node runtimes, SQLite and sidecars', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'alice-bundle-'))
+    const dir = testDir('alice-bundle-')
     fs.mkdirSync(path.join(dir, 'MacOS'))
     fs.writeFileSync(path.join(dir, 'MacOS/alice-desktop'), 'binary', { mode: 0o755 })
     const run = () => spawnSync(process.execPath, [path.join(ROOT, 'scripts/verify-desktop-bundle.mjs'), dir], { encoding: 'utf8' })

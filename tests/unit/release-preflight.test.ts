@@ -1,11 +1,11 @@
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 // @ts-expect-error — plain ESM release script without type declarations
 import { preflight, REQUIRED_SECRETS, REQUIRED_VARIABLES } from '../../scripts/release-preflight.mjs'
 // @ts-expect-error — plain ESM release script without type declarations
 import { releaseNotes } from '../../scripts/release-notes.mjs'
+import { testDir } from '../helpers/tmp'
 
 const ROOT = path.resolve(import.meta.dirname, '../..')
 const version = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version as string
@@ -19,7 +19,7 @@ const fullEnv = {
 
 /** A copy of the files the preflight reads, so a test can break one. */
 function fixture(edit: Record<string, (text: string) => string> = {}) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'alice-preflight-'))
+  const dir = testDir('alice-preflight-')
   for (const f of ['package.json', 'CHANGELOG.md', 'compose.yaml', '.env.example', 'src-tauri/tauri.conf.json', 'src-tauri/Cargo.toml']) {
     const text = fs.readFileSync(path.join(ROOT, f), 'utf8')
     fs.mkdirSync(path.dirname(path.join(dir, f)), { recursive: true })

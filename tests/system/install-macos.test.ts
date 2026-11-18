@@ -5,6 +5,7 @@ import http from 'node:http'
 import os from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { testDir } from '../helpers/tmp'
 
 /** The macOS install script verifies the release and installs without quarantine. */
 const ROOT = path.resolve(import.meta.dirname, '../..')
@@ -14,7 +15,7 @@ let base = ''
 let files: Record<string, Buffer> = {}
 
 function fakeApp(): Buffer {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'alice-fake-app-'))
+  const dir = testDir('alice-fake-app-')
   const app = path.join(dir, 'Alice.app/Contents')
   fs.mkdirSync(path.join(app, 'MacOS'), { recursive: true })
   fs.writeFileSync(path.join(app, 'Info.plist'), '<?xml version="1.0"?><plist version="1.0"><dict><key>CFBundleExecutable</key><string>alice-desktop</string><key>CFBundleIdentifier</key><string>app.alice.test</string></dict></plist>')
@@ -53,7 +54,7 @@ function install(dest: string): Promise<{ status: number | null; stderr: string 
 
 describe.skipIf(!mac)('install-macos.sh', () => {
   it('installs a verified, signed app with no quarantine attribute and without sudo', async () => {
-    const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'alice-apps-'))
+    const dest = testDir('alice-apps-')
     const res = await install(dest)
     expect(res.status, res.stderr).toBe(0)
     expect(fs.existsSync(path.join(dest, 'Alice.app/Contents/MacOS/alice-desktop'))).toBe(true)
@@ -63,7 +64,7 @@ describe.skipIf(!mac)('install-macos.sh', () => {
   })
 
   it('refuses a tampered archive and leaves the installed app untouched', async () => {
-    const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'alice-apps-'))
+    const dest = testDir('alice-apps-')
     expect((await install(dest)).status).toBe(0)
     const before = fs.statSync(path.join(dest, 'Alice.app')).ino
     const good = files['Alice_aarch64.app.tar.gz']

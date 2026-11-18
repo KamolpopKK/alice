@@ -1,9 +1,9 @@
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
+import { testDir } from '../helpers/tmp'
 
 const ROOT = path.resolve(import.meta.dirname, '../..')
 const load = (f: string) => {
@@ -79,14 +79,13 @@ describe('client release workflow', () => {
     const identity = doc.jobs.desktop.steps.find((s: { name?: string }) => s.name?.startsWith('Release signing identity'))
     expect(identity.if).toBe("runner.os == 'macOS'")
     // Intel linker ไม่ ad-hoc sign ให้เอง: config ที่ไม่มี runtime ก็ต้องมี signingIdentity
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'alice-release-config-'))
+    const dir = testDir('alice-release-config-')
     const out = path.join(dir, 'release.json')
     const env = { PATH: process.env.PATH ?? '', ALICE_UPDATER_PUBKEY: 'pub', ALICE_UPDATE_URL: 'https://example.com/latest.json', ALICE_MACOS_SIGNING_IDENTITY: 'ABC123' }
     execFileSync(process.execPath, [path.join(ROOT, 'scripts/desktop-release-config.mjs'), out], { cwd: dir, env })
     const written = JSON.parse(fs.readFileSync(out, 'utf8'))
     expect(written.bundle.resources).toBeUndefined()
     expect(written.bundle.macOS).toEqual({ signingIdentity: 'ABC123', hardenedRuntime: false })
-    fs.rmSync(dir, { recursive: true, force: true })
   })
 
   it('preflight gates every build, and the draft carries only this version notes', () => {
