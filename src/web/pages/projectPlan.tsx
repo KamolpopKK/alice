@@ -12,10 +12,7 @@ const today = () => new Date().toLocaleDateString('en-CA')
 
 function useInvalidateProject(projectId: string) {
   const qc = useQueryClient()
-  return () => {
-    void qc.invalidateQueries({ queryKey: ['project', projectId] })
-    void qc.invalidateQueries({ queryKey: ['activity'] })
-  }
+  return () => Promise.all([qc.invalidateQueries({ queryKey: ['project', projectId] }), qc.invalidateQueries({ queryKey: ['activity'] })])
 }
 
 /** Who works on the project. Informational only: adding someone grants no access. */
@@ -161,11 +158,12 @@ function Milestones({ project }: { project: Project }) {
       refresh()
     },
   })
-  // แสดงค่าที่เพิ่งกดทันที (optimistic) จนกว่า server ตอบ
+  // แสดงค่าที่เพิ่งกดทันที (optimistic) จนกว่ารายการที่โหลดใหม่จาก server จะมีค่านั้น
+  // ไม่งั้น checkbox จะเด้งกลับไปค่าเก่าช่วงสั้น ๆ ระหว่างรอ refetch
   const [pending, setPending] = useState<Record<string, boolean>>({})
   const update = useMutation({
     mutationFn: ({ id, completed }: { id: string; completed: boolean }) => client.projects.updateMilestone(id, { completed }),
-    onSuccess: refresh,
+    onSuccess: () => refresh(),
     onSettled: (_d, _e, v) =>
       setPending((p) => {
         const next = { ...p }
