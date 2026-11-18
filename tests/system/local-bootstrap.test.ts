@@ -1,7 +1,7 @@
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
+import { testDir } from '../helpers/tmp'
 import { loadConfig } from '../../src/server/config'
 import type { AppContext } from '../../src/server/context'
 import { migrate, openDatabase } from '../../src/server/db/database'
@@ -18,10 +18,6 @@ import {
 import { createWorkspace, ensureIntegration } from '../../src/local/registry'
 import { workspacePaths } from '../../src/local/paths'
 
-const roots: string[] = []
-afterEach(() => {
-  for (const dir of roots.splice(0)) fs.rmSync(dir, { recursive: true, force: true })
-})
 
 function openLocal(home: string, ws: { id: string; name: string }): AppContext {
   const paths = workspacePaths(home, ws.id)
@@ -33,8 +29,7 @@ function openLocal(home: string, ws: { id: string; name: string }): AppContext {
 
 describe('Local workspace bootstrap', () => {
   it('creates one passwordless Local Owner, keeps the registry id and is idempotent', () => {
-    const home = fs.mkdtempSync(path.join(os.tmpdir(), 'alice-home-'))
-    roots.push(home)
+    const home = testDir('alice-home-')
     const ws = createWorkspace(home)
     const ctx = openLocal(home, ws)
     const owner = bootstrapLocalWorkspace(ctx)
@@ -51,8 +46,7 @@ describe('Local workspace bootstrap', () => {
   })
 
   it('materialises Codex and Claude as distinct, deactivated, non-owner agents tied to the machine identity', () => {
-    const home = fs.mkdtempSync(path.join(os.tmpdir(), 'alice-home-'))
-    roots.push(home)
+    const home = testDir('alice-home-')
     const ws = createWorkspace(home)
     const ctx = openLocal(home, ws)
     bootstrapLocalWorkspace(ctx)
@@ -66,8 +60,7 @@ describe('Local workspace bootstrap', () => {
   })
 
   it('capabilities are stored as hashes, rotate, and never resolve a deactivated actor', () => {
-    const home = fs.mkdtempSync(path.join(os.tmpdir(), 'alice-home-'))
-    roots.push(home)
+    const home = testDir('alice-home-')
     const ws = createWorkspace(home)
     const ctx = openLocal(home, ws)
     const owner = bootstrapLocalWorkspace(ctx)

@@ -1,8 +1,8 @@
 import { fork } from 'node:child_process'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
+import { testDir } from '../helpers/tmp'
 import {
   createWorkspace,
   ensureDefaultWorkspace,
@@ -20,15 +20,8 @@ import {
 } from '../../src/local/registry'
 import { workspacePaths } from '../../src/local/paths'
 
-const roots: string[] = []
-function root(): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'alice-home-'))
-  roots.push(dir)
-  return dir
-}
-afterEach(() => {
-  for (const dir of roots.splice(0)) fs.rmSync(dir, { recursive: true, force: true })
-})
+// โฟลเดอร์ชั่วคราวผ่าน testDir เท่านั้น: ถูกลบเมื่อไฟล์ test จบ
+const root = (): string => testDir('alice-home-')
 
 const mode = (p: string) => fs.statSync(p).mode & 0o777
 
