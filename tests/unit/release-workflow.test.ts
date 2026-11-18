@@ -21,6 +21,31 @@ describe('client release workflow', () => {
     expect(doc.jobs.publish.needs).toEqual(['desktop', 'cli', 'image-manifest'])
   })
 
+  it('builds every installer kind, not just the first one listed (a flow mapping splits unquoted commas)', () => {
+    // v0.2.0 รอบแรก: `bundles: app,dmg` ใน { … } ถูกตัดเป็น bundles: "app" + key "dmg" → ไม่มี .dmg/.msi/.deb/.rpm
+    const bundles = Object.fromEntries(doc.jobs.desktop.strategy.matrix.include.map((m: { platform: string; bundles: string }) => [m.platform, m.bundles]))
+    expect(bundles).toEqual({
+      'darwin-aarch64': 'app,dmg',
+      'darwin-x86_64': 'app,dmg',
+      'windows-x86_64': 'nsis,msi',
+      'linux-x86_64': 'appimage,deb,rpm',
+      'linux-aarch64': 'appimage,deb,rpm',
+    })
+    for (const m of doc.jobs.desktop.strategy.matrix.include) expect(Object.keys(m).sort()).toEqual(['bundles', 'name', 'platform', 'runner', 'target', ...('local' in m ? ['local'] : [])].sort())
+  })
+
+  it('the updater manifest points Windows at the NSIS installer even when an .msi is also signed', () => {
+    const dir = testDir('alice-latest-json-')
+    for (const f of ['Alice_0.2.0_x64-setup.exe', 'Alice_0.2.0_x64_en-US.msi', 'Alice_aarch64.app.tar.gz']) {
+      fs.writeFileSync(path.join(dir, f), 'x')
+      fs.writeFileSync(path.join(dir, `${f}.sig`), `sig-${f}`)
+    }
+    const out = execFileSync(process.execPath, [path.join(ROOT, 'scripts/desktop-latest-json.mjs'), '0.2.0', 'https://example.test/dl', dir], { cwd: ROOT, encoding: 'utf8' })
+    const manifest = JSON.parse(out)
+    expect(manifest.platforms['windows-x86_64']).toEqual({ signature: 'sig-Alice_0.2.0_x64-setup.exe', url: 'https://example.test/dl/Alice_0.2.0_x64-setup.exe' })
+    expect(manifest.platforms['darwin-aarch64'].url).toBe('https://example.test/dl/Alice_aarch64.app.tar.gz')
+  })
+
   it('builds macOS on runner images GitHub still offers (macos-13/14 are retired and never start)', () => {
     const runners = Object.fromEntries(doc.jobs.desktop.strategy.matrix.include.map((m: { platform: string; runner: string }) => [m.platform, m.runner]))
     expect(runners['darwin-aarch64']).toBe('macos-15')
