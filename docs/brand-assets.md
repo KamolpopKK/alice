@@ -19,7 +19,7 @@ details (paths, sizes, intended surfaces, colour schemes and palette) are listed
 | `apple-touch-icon.png` (180), `icon-192.png`, `icon-512.png` | Opaque navy install icons with 12% safe padding | same |
 | `alice-mascot-friendly.webp` | Full body, open smile (login, setup, invite) | `scripts/brand/extract-mascots.mjs` |
 | `alice-mascot-peek.png`, `alice-mascot-peek.webp` | Transparent full-height pose gripping the authentication-card edge | Built-in ImageGen using the friendly production mascot and approved workspace-peek reference; optimized with `sharp` |
-| `alice-mascot-neutral.webp` | Bust, calm smile (My Tasks empty) | same |
+| `alice-mascot-neutral.webp` | Bust, calm smile (Tasks › My Work empty) | same |
 | `alice-mascot-curious.webp` | Bust, finger to cheek (Projects empty) | same |
 | `alice-mascot-focused.webp` | Bust, thinking (Documents empty) | same |
 | `alice-mascot-concerned.webp` | Bust, mildly worried, no tears (404, full-page error) | same |
@@ -119,7 +119,7 @@ The size budget is 180 KiB per WebP and 300 KiB per file of any type.
 The approved lines live only in `src/web/brand/copy.ts`. Alice speaks in exactly these places:
 
 - login, setup and invite;
-- the empty states of My Tasks, Projects and Documents;
+- the empty states of Tasks › My Work, Projects and Documents;
 - the signed-in 404 page;
 - recoverable full-page errors.
 

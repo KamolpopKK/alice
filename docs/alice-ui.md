@@ -32,12 +32,16 @@ layout, but never restyle controls or use colour values directly.
 |---|---|
 | Controls | `Button` (primary, secondary, ghost, danger; loading), `IconButton` (required `label`), `LinkButton`, `TextLink`, `Spinner` |
 | Fields | `TextField`, `TextArea`, `SelectField` (native), `InlineSelect` (compact, change one value in place), `Checkbox`, `Switch`, `RadioGroup`, `FieldMessage` |
-| Display | `Badge`, `Avatar` (round for people, square for agents), `Card`, `SectionHeader`, `EmptyState`, `Skeleton`, `Banner`, `List`/`ListItem`, `Table` |
+| Display | `Badge`, `Avatar` (round for people, square for agents), `Card`, `SectionHeader`, `EmptyState` (optionally a real heading), `Skeleton`, `Banner`, `List`/`ListItem`, `Table`, `ResourceList`/`ResourceItem` (projects, documents, search results) |
 | Tasks | `TaskItem` (card or row with a fixed content budget: title, status, assignee, high or urgent priority, relevant due date, project when needed, open blockers), `PriorityBadge`, `DueLabel`, `AssigneeChip`, `ProjectLabel`, `BlockedBadge` |
 | Overlays | `Tooltip`, `Menu`, `Popover`, `Dialog`, `Sheet` (`size="lg"` for detail views), `ConfirmDialog` (Radix underneath) |
 | Navigation | `Tabs`, `SegmentedControl` (radio semantics) |
 | Feedback | `ToastProvider`/`useToast` (short confirmations only; errors stay next to the field or in a `Banner`) |
 | Icons | `Icon` with Lucide glyphs, sizes 16, 20 and 24, decorative unless given a `label` |
+
+Older pages keep a few helpers in `src/web/components/ui.tsx` (`ErrorMessage`, `Loading`, `Field`,
+`ActorBadge`). They render Alice UI components and classes, so they look the same; new code imports
+from `src/web/ui` directly.
 
 ### Behaviour every primitive keeps
 
@@ -47,6 +51,36 @@ layout, but never restyle controls or use colour values directly.
 - **Status.** State is never shown by colour alone: there is always text, an icon or a shape.
 - **Touch targets.** On touch screens (`pointer: coarse`), core controls are at least 44 px.
 - **Reduced motion.** Removes overlay and skeleton animation.
+
+- **Errors.** A `FieldMessage` with an `id` belongs to a field (read through its `aria-describedby`);
+  without an `id` it is announced at once (`role="alert"`). `ConfirmDialog` focuses Cancel first for
+  destructive actions.
+
+## Page patterns
+
+These compositions are shared so that every area behaves the same way.
+
+- **Tasks** (`src/web/tasks/`). My Work, Board and List are views of one task list (`?view=`). They
+  share one toolbar: view switch, search, filters, sort and saved views. Filters live in the URL.
+  Saved views are kept on the device under `alice.tasks.savedViews`. Rows and cards use `TaskItem`.
+- **Task Detail** (`TaskDetail`). One component renders three ways:
+  - a side panel beside a work view on screens of 1180 px and wider (`?task=`, so Back closes it);
+  - a full-height `Sheet` on narrower screens and beside a Task Pad;
+  - the full page at `/tasks/:id`.
+
+  Closing it returns focus to the task that opened it. Each field shows "Saving…", "Saved" or its error
+  next to itself. If someone else changes a task while it is being edited, the editor says who and lets
+  the person choose which version to keep.
+- **Resource pages** (Projects, Documents, Search, Agents, Activity). A heading row with the primary
+  action, an optional toolbar, then `ResourceList` or a `Table`. Loading, empty and error states use
+  `Skeleton`, `EmptyState` and a `Banner` with Try again.
+- **Project Detail.** Tabs for Overview, Tasks, Documents and Activity; the tab is in the URL (`?tab=`).
+- **Settings** (`src/web/settings/`). Categories show as a list beside the detail, or as list then
+  detail with Back on narrow screens. A category appears only where it applies: Devices & Sessions on
+  Remote, Workspaces in Desktop, Administration for Remote owners. The server still checks every
+  permission.
+- **Quick and full search.** The command palette and Search use the same result vocabulary
+  (`src/web/search/results.tsx`); "Search everything" in the palette opens full Search.
 
 ## Storybook
 

@@ -284,22 +284,22 @@ export function LocalRecovery({
         </h1>
         <p>{code === 'RUNTIME_MISMATCH' ? 'This workspace needs the same Alice version as Desktop. Repair or update Alice.' : code === 'WORKSPACE_DAMAGED' ? 'The database failed its integrity check. Restore the latest backup; the damaged copy is kept.' : code === 'MIGRATION_FAILED' ? 'The update could not upgrade this workspace. Its data was backed up before the upgrade; restore the latest backup or repair Alice.' : 'Your data is safe on this computer. Try again, or use one of the recovery options below.'}</p>
         <div className="row wrap">
-          <button className="primary" type="button" onClick={onRetry}>
+          <Button variant="primary" onClick={onRetry}>
             Try again
-          </button>
+          </Button>
           {extraActions}
-          <button type="button" onClick={() => void diagnose()} disabled={!!busy}>
+          <Button onClick={() => void diagnose()} disabled={!!busy}>
             Diagnostics
-          </button>
-          <button type="button" onClick={() => setConfirming(true)} disabled={!!busy} aria-expanded={confirming}>
+          </Button>
+          <Button onClick={() => setConfirming(true)} disabled={!!busy} aria-expanded={confirming}>
             Restore latest backup
-          </button>
-          <button type="button" onClick={() => void native.localOpenFolder(profile.name)}>
+          </Button>
+          <Button onClick={() => void native.localOpenFolder(profile.name)}>
             Open data folder
-          </button>
-          <button type="button" onClick={onSwitch}>
+          </Button>
+          <Button onClick={onSwitch}>
             Switch workspace
-          </button>
+          </Button>
         </div>
         {confirming && (
           <div className="stack" role="group" aria-labelledby="restore-confirm">
@@ -307,12 +307,12 @@ export function LocalRecovery({
               Replace <strong>{workspaceLabel(profile)}</strong> with its newest backup? Its current data is backed up first and kept, so you can go back.
             </p>
             <div className="row">
-              <button className="primary" type="button" onClick={() => void restore()} disabled={!!busy}>
+              <Button variant="primary" onClick={() => void restore()} disabled={!!busy}>
                 Replace with latest backup
-              </button>
-              <button type="button" onClick={() => setConfirming(false)} disabled={!!busy}>
+              </Button>
+              <Button onClick={() => setConfirming(false)} disabled={!!busy}>
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -386,25 +386,25 @@ export function LocalWorkspacesSection({ view, onChanged }: { view: ProfilesView
                     }}
                   >
                     <TextInput label={editing.field === 'name' ? `New name for ${p.local!.displayName}` : `New alias for ${p.local!.displayName}`} value={editing.value} onChange={(e) => setEditing({ ...editing, value: e.target.value })} required />
-                    <button type="submit">Save</button>
-                    <button type="button" onClick={() => setEditing(null)}>
+                    <Button type="submit">Save</Button>
+                    <Button onClick={() => setEditing(null)}>
                       Cancel
-                    </button>
+                    </Button>
                   </form>
                 )}
               </div>
               <div className="row">
                 {!p.active && (
-                  <button type="button" onClick={() => void run(() => native.useProfile(p.name))} aria-label={`Use ${p.local!.displayName} (${p.local!.alias})`}>
+                  <Button onClick={() => void run(() => native.useProfile(p.name))} aria-label={`Use ${p.local!.displayName} (${p.local!.alias})`}>
                     Use
-                  </button>
+                  </Button>
                 )}
-                <button type="button" onClick={() => setEditing({ id: p.name, field: 'name', value: p.local!.displayName })} aria-label={`Rename ${p.local!.alias}`}>
+                <Button onClick={() => setEditing({ id: p.name, field: 'name', value: p.local!.displayName })} aria-label={`Rename ${p.local!.alias}`}>
                   Rename
-                </button>
-                <button type="button" onClick={() => setEditing({ id: p.name, field: 'alias', value: p.local!.alias })} aria-label={`Change alias of ${p.local!.alias}`}>
+                </Button>
+                <Button onClick={() => setEditing({ id: p.name, field: 'alias', value: p.local!.alias })} aria-label={`Change alias of ${p.local!.alias}`}>
                   Alias
-                </button>
+                </Button>
               </div>
             </li>
           ))}
@@ -418,7 +418,7 @@ export function LocalWorkspacesSection({ view, onChanged }: { view: ProfilesView
         }}
       >
         <TextInput label="New Local workspace" value={name} onChange={(e) => setName(e.target.value)} placeholder="Workspace" maxLength={80} />
-        <button type="submit">Create</button>
+        <Button type="submit">Create</Button>
       </form>
       <ErrorMessage error={error} />
     </section>
@@ -470,12 +470,12 @@ export function AgentsSection() {
                   {a.optedIn ? (
                     <>
                       {outdated && (
-                        <button type="button" disabled={!!busy} onClick={() => void act('repair', async () => void (await native.integrationSet(a.client, true)))}>
+                        <Button disabled={!!busy} onClick={() => void act('repair', async () => void (await native.integrationSet(a.client, true)))}>
                           Repair {a.label}
-                        </button>
+                        </Button>
                       )}
-                      <button
-                        type="button"
+                      <Button
+                       
                         disabled={!!busy}
                         onClick={() =>
                           void act('disable', async () => {
@@ -485,12 +485,12 @@ export function AgentsSection() {
                         }
                       >
                         Disable {a.label}
-                      </button>
+                      </Button>
                     </>
                   ) : (
-                    <button type="button" disabled={!!busy} onClick={() => void act('enable', async () => void (await native.integrationSet(a.client, true)))}>
+                    <Button disabled={!!busy} onClick={() => void act('enable', async () => void (await native.integrationSet(a.client, true)))}>
                       Enable {a.label}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </li>
@@ -505,8 +505,8 @@ export function AgentsSection() {
             them.
           </p>
           <div className="row">
-            <button
-              type="button"
+            <Button
+             
               onClick={() =>
                 void act('unassign', async () => {
                   const ws = (await native.profiles()).profiles.find((p) => p.local?.alias === x.workspace)
@@ -516,7 +516,7 @@ export function AgentsSection() {
               }
             >
               Unassign them in {x.workspace}
-            </button>
+            </Button>
           </div>
         </div>
       ))}

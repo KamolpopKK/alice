@@ -52,10 +52,10 @@ test('revoking a token and deactivating an agent ask first; secrets are shown on
   const agentId = ((await owner.get(`${V1}/agents`)).body.items as Array<{ id: string; displayName: string; tokens: Array<{ revokedAt: string | null }> }>).find((a) => a.displayName === name)!
   expect(agentId.tokens[0].revokedAt).toBeNull()
 
-  await page.getByRole('button', { name: 'Deactivate' }).last().click()
+  await page.locator('li.settings-agent', { hasText: name }).getByRole('button', { name: 'Deactivate' }).click()
   await page.getByRole('dialog', { name: `Deactivate ${name}?` }).getByRole('button', { name: 'Deactivate agent' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
-  await expect(page.locator('li', { hasText: name }).getByText('deactivated', { exact: true })).toBeVisible()
+  await expect(page.locator('li.settings-agent', { hasText: name }).getByText('deactivated', { exact: true })).toBeVisible()
   const res = await agentClient(app, { id: agentId.id, token, tokenId: '' }).get('/api/tasks')
   expect(res.status).toBe(401)
 })

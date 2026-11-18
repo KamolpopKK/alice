@@ -8,6 +8,7 @@ import { AgentsSection, LocalRecovery, LocalWorkspacesSection, Onboarding, onboa
 import { LocalWorkspaceContext } from '../workspace-mode'
 import { ShellWorkspaceContext, type ShellWorkspace } from '../shell/workspace'
 import { TauriTransport } from './transport'
+import { Button } from '../ui'
 
 type Phase =
   | { kind: 'loading' }
@@ -151,9 +152,9 @@ export function DesktopShell({ children }: { children: ReactNode }) {
   const notice = linkNotice && (
     <div className="disconnected-banner" role="alert">
       {linkNotice}{' '}
-      <button type="button" className="link" onClick={() => setLinkNotice(null)}>
+      <Button variant="ghost" size="sm" onClick={() => setLinkNotice(null)}>
         Dismiss
-      </button>
+      </Button>
     </div>
   )
   if (phase.kind === 'onboarding') {
@@ -200,12 +201,12 @@ export function DesktopShell({ children }: { children: ReactNode }) {
           <p>{phase.message}</p>
           <p className="muted">Nothing is shown until {phase.profile.server} answers. Alice Desktop keeps no offline copy.</p>
           <div className="row">
-            <button className="primary" type="button" onClick={() => void evaluate()}>
+            <Button variant="primary" onClick={() => void evaluate()}>
               Try again
-            </button>
-            <button type="button" onClick={() => setManaging(true)}>
+            </Button>
+            <Button onClick={() => setManaging(true)}>
               Choose another server
-            </button>
+            </Button>
           </div>
         </StateCard>
       ) : phase.kind === 'incompatible' ? (
@@ -252,9 +253,9 @@ function ProfileBar({ profile, onManage }: { profile: DesktopProfile; onManage: 
         <span>
           <strong>{workspaceLabel(profile)}</strong> <span className="pill">Local</span> <span className="muted small">{profile.local.alias} · on this computer</span>
         </span>
-        <button type="button" className="link" onClick={onManage}>
+        <Button variant="ghost" size="sm" onClick={onManage}>
           Switch workspace
-        </button>
+        </Button>
       </div>
     )
   }
@@ -269,9 +270,9 @@ function ProfileBar({ profile, onManage }: { profile: DesktopProfile; onManage: 
           Unencrypted HTTP — development only
         </span>
       )}
-      <button type="button" className="link" onClick={onManage}>
+      <Button variant="ghost" size="sm" onClick={onManage}>
         Switch server
-      </button>
+      </Button>
     </div>
   )
 }
@@ -316,16 +317,16 @@ function SignInScreen({ profile }: { profile: DesktopProfile }) {
             If no browser opened, visit <a href={pending.verificationUri}>{pending.verificationUri}</a>
           </p>
           <div className="row">
-            <button type="button" onClick={() => void native.loginCancel()}>
+            <Button onClick={() => void native.loginCancel()}>
               Cancel
-            </button>
+            </Button>
           </div>
         </>
       ) : (
         <div className="row">
-          <button className="primary" type="button" onClick={() => void start()}>
+          <Button variant="primary" onClick={() => void start()}>
             Sign in with browser
-          </button>
+          </Button>
         </div>
       )}
       {error && <p className="error" role="alert">{error}</p>}
@@ -378,16 +379,16 @@ function ProfilesScreen({ view, onDone, canClose, onChanged }: { view: ProfilesV
                 </div>
                 <div className="row">
                   {!p.active && (
-                    <button type="button" onClick={() => void run(() => native.useProfile(p.name))}>
+                    <Button onClick={() => void run(() => native.useProfile(p.name))}>
                       Use
-                    </button>
+                    </Button>
                   )}
-                  <button type="button" onClick={() => void test(p)}>
+                  <Button onClick={() => void test(p)}>
                     Test
-                  </button>
-                  <button type="button" onClick={() => void run(() => native.removeProfile(p.name))} aria-label={`Remove ${p.name}`}>
+                  </Button>
+                  <Button onClick={() => void run(() => native.removeProfile(p.name))} aria-label={`Remove ${p.name}`}>
                     Remove
-                  </button>
+                  </Button>
                 </div>
               </li>
             ))}
@@ -415,13 +416,13 @@ function ProfilesScreen({ view, onDone, canClose, onChanged }: { view: ProfilesV
         </label>
         <ErrorMessage error={error} />
         <div className="row">
-          <button className="primary" type="submit">
+          <Button variant="primary" type="submit">
             Add server
-          </button>
+          </Button>
           {canClose && (
-            <button type="button" onClick={onDone}>
+            <Button onClick={onDone}>
               Done
-            </button>
+            </Button>
           )}
         </div>
       </form>
@@ -450,16 +451,16 @@ function UpdateCheck() {
   return (
     <span role="status">
       {status ?? (
-        <button type="button" className="link" onClick={() => void check()}>
+        <Button variant="ghost" size="sm" onClick={() => void check()}>
           Check for updates
-        </button>
+        </Button>
       )}
       {installable && (
         <>
           {' '}
-          <button type="button" className="link" onClick={() => void native.updateInstall().catch((e) => setStatus(messageOf(e)))}>
+          <Button variant="ghost" size="sm" onClick={() => void native.updateInstall().catch((e) => setStatus(messageOf(e)))}>
             Install and restart
-          </button>
+          </Button>
         </>
       )}
     </span>

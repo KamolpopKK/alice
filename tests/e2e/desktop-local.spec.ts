@@ -206,9 +206,15 @@ test.describe('Alice Desktop with Local workspaces', () => {
     await expect(page.getByText('Its current data is backed up first')).toBeVisible()
     await page.getByRole('button', { name: 'Replace with latest backup' }).click()
     await expect(page.getByRole('region', { name: 'Workspace', exact: true })).toContainText('Personal')
-    const after = await native.localConnect(ws.id)
-    const titles = ((await (await fetch(`${after.baseUrl}/client/v1/tasks`, { headers: { authorization: `Bearer ${after.capability}` } })).json()) as { items: Array<{ title: string }> }).items.map((t) => t.title)
-    expect(titles).toEqual(['Saved before the backup'])
+    // daemon อาจยังเริ่มใหม่อยู่หลัง restore: ถามซ้ำจนอ่านรายการได้ (คำตอบระหว่างนั้นไม่มี items)
+    await expect
+      .poll(async () => {
+        const after = await native.localConnect(ws.id)
+        const res = await fetch(`${after.baseUrl}/client/v1/tasks`, { headers: { authorization: `Bearer ${after.capability}` } }).catch(() => null)
+        const body = res?.ok ? ((await res.json()) as { items?: Array<{ title: string }> }) : null
+        return body?.items?.map((t) => t.title) ?? null
+      }, { timeout: 15_000 })
+      .toEqual(['Saved before the backup'])
   })
 
   test('onboarding installs only the consented tools; Settings disables an agent and offers to unassign its work', async ({ app, page }) => {
