@@ -6,8 +6,12 @@ import { FullPageError, isRecoverable } from '../brand'
 import { client } from '../api'
 import { ActivityList } from '../components/Activity'
 import { Markdown, MarkdownEditor } from '../components/Markdown'
-import { StatusPill } from '../components/TaskFields'
-import { ActorBadge, ErrorMessage, Loading, TextInput, formatDate } from '../components/ui'
+import { ActorBadge, formatDate } from '../components/ui'
+import { STATUS_LABELS } from '../../shared/contracts'
+import { STATUS_TONE } from '../tasks/model'
+import { errorText } from '../tasks/TaskDetail'
+import { Archive, ArchiveRestore, History as HistoryIcon, Pencil } from 'lucide-react'
+import { Badge, Banner, Button, FieldMessage, Skeleton, TextField } from '../ui'
 
 export function useDocument(id: string) {
   return useQuery({ queryKey: ['document', id], queryFn: () => client.documents.get(id) })
@@ -27,54 +31,76 @@ export function DocumentDetailPage() {
     mutationFn: (archived: boolean) => (archived ? client.documents.archive(id) : client.documents.restore(id)),
     onSuccess: () => invalidateDoc(qc, id),
   })
-  if (doc.isLoading) return <Loading />
+  if (doc.isLoading)
+    return (
+      <div className="page resource-page">
+        <Skeleton lines={8} />
+      </div>
+    )
   if (doc.error && isRecoverable(doc.error)) return <FullPageError error={doc.error} onRetry={() => void doc.refetch()} />
-  if (!doc.data) return <div className="page"><ErrorMessage error={doc.error ?? 'Document not found'} /></div>
+  if (!doc.data)
+    return (
+      <div className="page resource-page">
+        <Banner tone="danger" title="This document could not be opened">
+          {doc.error ? errorText(doc.error) : 'Document not found'}
+        </Banner>
+      </div>
+    )
   const d = doc.data
   const archived = d.archivedAt !== null
   return (
-    <div className="page">
-      <nav className="breadcrumbs small" aria-label="Breadcrumb">
-        <Link to="/documents">Documents</Link> <span aria-hidden="true">/</span> <span className="muted">{d.id}</span>
+    <div className="page resource-page document-page">
+      <nav className="task-detail-crumbs" aria-label="Breadcrumb">
+        <Link to="/documents">Documents</Link> <span aria-hidden="true">/</span> <span className="ui-text-muted">{d.id}</span>
       </nav>
-      <div className="page-head">
-        <h1>
-          {d.title} {archived && <span className="pill pill-archived">archived</span>}
-        </h1>
-        <div className="row" role="group" aria-label="Document actions">
-          <button type="button" aria-pressed={mode === 'view'} onClick={() => setMode('view')}>
+      <div className="resource-head">
+        <div>
+          <h1>{d.title}</h1>
+          <div className="resource-meta-row">
+            {archived && <Badge>archived</Badge>}
+            <span>
+              Revision {d.revision} · updated {formatDate(d.updatedAt)} by <ActorBadge actor={d.updatedBy} />
+            </span>
+          </div>
+        </div>
+        <div className="resource-actions" role="group" aria-label="Document actions">
+          <Button size="sm" variant={mode === 'view' ? 'primary' : 'secondary'} aria-pressed={mode === 'view'} onClick={() => setMode('view')}>
             View
-          </button>
+          </Button>
           {!archived && (
-            <button type="button" aria-pressed={mode === 'edit'} onClick={() => setMode('edit')}>
+            <Button size="sm" icon={Pencil} variant={mode === 'edit' ? 'primary' : 'secondary'} aria-pressed={mode === 'edit'} onClick={() => setMode('edit')}>
               Edit
-            </button>
+            </Button>
           )}
-          <button type="button" aria-pressed={mode === 'history'} onClick={() => setMode('history')}>
+          <Button size="sm" icon={HistoryIcon} variant={mode === 'history' ? 'primary' : 'secondary'} aria-pressed={mode === 'history'} onClick={() => setMode('history')}>
             History
-          </button>
-          <button type="button" onClick={() => archive.mutate(!archived)}>
+          </Button>
+          <Button size="sm" icon={archived ? ArchiveRestore : Archive} loading={archive.isPending} onClick={() => archive.mutate(!archived)}>
             {archived ? 'Restore' : 'Archive'}
-          </button>
+          </Button>
         </div>
       </div>
-      <ErrorMessage error={archive.error} />
-      <p className="muted small">
-        Revision {d.revision} · updated {formatDate(d.updatedAt)} by <ActorBadge actor={d.updatedBy} />
-      </p>
+      {archive.error && <FieldMessage tone="error">{errorText(archive.error)}</FieldMessage>}
+      {archived && <Banner tone="info">This document is archived. Restore it to edit.</Banner>}
       {d.sourceUrl && (
-        <p>
+        <p className="resource-meta">
           Source:{' '}
-          <a href={d.sourceUrl} target="_blank" rel="noopener noreferrer nofollow" className="source">
+          <a href={d.sourceUrl} target="_blank" rel="noopener noreferrer nofollow" className="resource-source">
             {d.sourceUrl}
           </a>
         </p>
       )}
-      {mode === 'edit' && <EditDocument doc={d} onDone={() => setMode('view')} />}
-      {mode === 'history' && <History doc={d} onRestored={() => setMode('view')} />}
-      {mode === 'view' && (d.body ? <Markdown source={d.body} /> : <p className="muted">This document only references its source.</p>)}
-      <Links doc={d} />
-      <DocumentActivity id={d.id} />
+      <div className="document-layout">
+        <div className="document-main">
+          {mode === 'edit' && <EditDocument doc={d} onDone={() => setMode('view')} />}
+          {mode === 'history' && <History doc={d} onRestored={() => setMode('view')} />}
+          {mode === 'view' && (d.body ? <Markdown source={d.body} className="document-body" /> : <p className="ui-text-muted">This document only references its source.</p>)}
+        </div>
+        <aside className="document-side" aria-label="Links and activity">
+          <Links doc={d} />
+          <DocumentActivity id={d.id} />
+        </aside>
+      </div>
     </div>
   )
 }
@@ -93,24 +119,23 @@ function EditDocument({ doc, onDone }: { doc: DocumentDetail; onDone: () => void
   })
   return (
     <form
-      className="panel stack"
+      className="resource-panel resource-form"
+      aria-label="Edit document"
       onSubmit={(e: FormEvent) => {
         e.preventDefault()
         save.mutate()
       }}
     >
-      <TextInput label="Document title" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} />
+      <TextField label="Document title" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} />
       <MarkdownEditor id="doc-body" label="Body (Markdown)" value={body} onChange={setBody} rows={18} />
-      <TextInput label="Source URL (optional)" type="url" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} />
-      <p className="hint">Saving creates revision {doc.revision + 1}. Earlier revisions stay available in History.</p>
-      <ErrorMessage error={save.error} />
-      <div className="row">
-        <button className="primary" type="submit" disabled={save.isPending}>
+      <TextField label="Source URL (optional)" type="url" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} />
+      <p className="ui-text-muted">Saving creates revision {doc.revision + 1}. Earlier revisions stay available in History.</p>
+      {save.error && <FieldMessage tone="error">{errorText(save.error)}</FieldMessage>}
+      <div className="resource-actions">
+        <Button variant="primary" type="submit" loading={save.isPending}>
           Save revision
-        </button>
-        <button type="button" onClick={onDone}>
-          Cancel
-        </button>
+        </Button>
+        <Button onClick={onDone}>Cancel</Button>
       </div>
     </form>
   )
@@ -127,29 +152,31 @@ function History({ doc, onRestored }: { doc: DocumentDetail; onRestored: () => v
       onRestored()
     },
   })
-  if (revisions.isLoading) return <Loading />
+  if (revisions.isLoading) return <Skeleton lines={4} />
   const items = revisions.data?.items ?? []
   const current = items.find((r) => r.number === selected)
   return (
-    <section className="panel" aria-labelledby="history-heading">
-      <h2 id="history-heading">Revision history</h2>
-      <ErrorMessage error={restore.error} />
+    <section className="resource-panel" aria-labelledby="history-heading">
+      <h2 id="history-heading" className="resource-panel-title">
+        Revision history
+      </h2>
+      {restore.error && <FieldMessage tone="error">{errorText(restore.error)}</FieldMessage>}
       <ol className="revisions">
         {items.map((r) => (
           <li key={r.id}>
-            <button type="button" className="link" aria-expanded={selected === r.number} onClick={() => setSelected(selected === r.number ? null : r.number)}>
+            <Button size="sm" variant="ghost" aria-expanded={selected === r.number} onClick={() => setSelected(selected === r.number ? null : r.number)}>
               Revision {r.number}
-            </button>{' '}
-            {r.number === doc.revision && <span className="pill pill-ready">current</span>}
-            {r.restoredFrom && <span className="muted small"> restored from {r.restoredFrom}</span>}
-            <span className="muted small">
+            </Button>{' '}
+            {r.number === doc.revision && <Badge tone="info">current</Badge>}
+            {r.restoredFrom && <span className="ui-text-muted"> restored from {r.restoredFrom}</span>}
+            <span className="ui-text-muted">
               {' '}
               · {formatDate(r.createdAt)} by <ActorBadge actor={r.createdBy} />
             </span>
             {r.number !== doc.revision && (
-              <button type="button" onClick={() => restore.mutate(r.number)} disabled={restore.isPending || doc.archivedAt !== null}>
+              <Button size="sm" onClick={() => restore.mutate(r.number)} disabled={restore.isPending || doc.archivedAt !== null}>
                 Restore revision {r.number}
-              </button>
+              </Button>
             )}
           </li>
         ))}
@@ -157,7 +184,7 @@ function History({ doc, onRestored }: { doc: DocumentDetail; onRestored: () => v
       {current && (
         <div className="revision-preview">
           <h3>{current.title}</h3>
-          {current.sourceUrl && <p className="small source">{current.sourceUrl}</p>}
+          {current.sourceUrl && <p className="resource-source">{current.sourceUrl}</p>}
           <Markdown source={current.body} />
         </div>
       )}
@@ -172,28 +199,30 @@ function Links({ doc }: { doc: DocumentDetail }) {
     onSuccess: () => invalidateDoc(qc, doc.id),
   })
   return (
-    <section className="section" aria-labelledby="links-heading">
-      <h2 id="links-heading">Linked to</h2>
-      {doc.links.tasks.length === 0 && doc.links.projects.length === 0 && <p className="muted">Not linked to any task or project.</p>}
-      <ul className="plain-list">
+    <section className="task-section" aria-labelledby="links-heading">
+      <h2 id="links-heading" className="task-section-title">
+        Linked to
+      </h2>
+      {doc.links.tasks.length === 0 && doc.links.projects.length === 0 && <p className="ui-text-muted">Not linked to any task or project.</p>}
+      <ul className="document-links">
         {doc.links.projects.map((p) => (
           <li key={p.id}>
-            <span className="pill">project</span> <Link to={`/projects/${p.id}`}>{p.name}</Link>{' '}
-            <button type="button" className="link" onClick={() => unlink.mutate({ projectId: p.id })}>
+            <Badge>project</Badge> <Link to={`/projects/${p.id}`}>{p.name}</Link>{' '}
+            <Button size="sm" variant="ghost" aria-label={`Unlink ${p.name}`} onClick={() => unlink.mutate({ projectId: p.id })}>
               Unlink
-            </button>
+            </Button>
           </li>
         ))}
         {doc.links.tasks.map((t) => (
           <li key={t.id}>
-            <span className="pill">task</span> <Link to={`/tasks/${t.id}`}>{t.title}</Link> <StatusPill status={t.status} />{' '}
-            <button type="button" className="link" onClick={() => unlink.mutate({ taskId: t.id })}>
+            <Badge>task</Badge> <Link to={`/tasks/${t.id}`}>{t.title}</Link> <Badge tone={STATUS_TONE[t.status]}>{STATUS_LABELS[t.status]}</Badge>{' '}
+            <Button size="sm" variant="ghost" aria-label={`Unlink ${t.title}`} onClick={() => unlink.mutate({ taskId: t.id })}>
               Unlink
-            </button>
+            </Button>
           </li>
         ))}
       </ul>
-      <ErrorMessage error={unlink.error} />
+      {unlink.error && <FieldMessage tone="error">{errorText(unlink.error)}</FieldMessage>}
     </section>
   )
 }
@@ -201,9 +230,11 @@ function Links({ doc }: { doc: DocumentDetail }) {
 function DocumentActivity({ id }: { id: string }) {
   const activity = useQuery({ queryKey: ['document', id, 'activity'], queryFn: () => client.documents.activity(id, { limit: 30 }) })
   return (
-    <section className="section" aria-labelledby="doc-activity-heading">
-      <h2 id="doc-activity-heading">Activity</h2>
-      {activity.isLoading ? <Loading /> : <ActivityList events={activity.data?.items ?? []} />}
+    <section className="task-section" aria-labelledby="doc-activity-heading">
+      <h2 id="doc-activity-heading" className="task-section-title">
+        Activity
+      </h2>
+      {activity.isLoading ? <Skeleton lines={3} /> : <ActivityList events={activity.data?.items ?? []} />}
     </section>
   )
 }

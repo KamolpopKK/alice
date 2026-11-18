@@ -915,16 +915,6 @@ main:focus {
   color: var(--muted);
   margin-bottom: 8px;
 }
-.results {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.snippet {
-  margin: 4px 0 0;
-}
 mark {
   background: var(--agent-soft);
   color: inherit;

@@ -1,6 +1,7 @@
 import * as RDialog from '@radix-ui/react-dialog'
 import { useQuery } from '@tanstack/react-query'
 import { CircleHelp, FilePlus2, FolderPlus, Monitor, Moon, NotebookPen, Repeat, Search, SquarePlus, Sun, type LucideIcon } from 'lucide-react'
+import { SEARCH_KIND, searchResultLink } from '../search/results'
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { client } from '../api'
@@ -12,7 +13,7 @@ import { useShellWorkspace } from './workspace'
 
 interface Command {
   id: string
-  group: 'Go to' | 'Create' | 'Tasks' | 'Workspace' | 'Theme' | 'Help'
+  group: 'Go to' | 'Create' | 'Tasks' | 'Documents' | 'Search' | 'Workspace' | 'Theme' | 'Help'
   label: string
   icon: LucideIcon
   keywords?: string
@@ -33,7 +34,7 @@ export function usePaletteShortcut(open: () => void) {
   }, [open])
 }
 
-const GROUP_ORDER: Command['group'][] = ['Tasks', 'Go to', 'Create', 'Workspace', 'Theme', 'Help']
+const GROUP_ORDER: Command['group'][] = ['Tasks', 'Documents', 'Go to', 'Create', 'Workspace', 'Theme', 'Help', 'Search']
 
 /**
  * Keyboard command palette: navigation, task search, creation, workspace switching, theme, Help and
@@ -61,7 +62,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
 
   const tasks = useQuery({
     queryKey: ['palette-tasks', q],
-    queryFn: () => client.search({ q, kind: ['task'], limit: 6 }),
+    queryFn: () => client.search({ q, kind: ['task', 'document'], limit: 8 }),
     enabled: open && q.length >= 2,
     staleTime: 5_000,
   })
@@ -86,10 +87,12 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const results = useMemo(() => {
     const matched = q ? commands.filter((c) => `${c.label} ${c.group} ${c.keywords ?? ''}`.toLowerCase().includes(q)) : commands
     const found: Command[] = (tasks.data?.items ?? [])
-      .filter((r) => r.kind === 'task')
-      .map((r) => ({ id: `task:${r.id}`, group: 'Tasks' as const, label: r.title, icon: Search, run: () => navigate(`/tasks/${r.id}`) }))
-    return [...found, ...matched].sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group))
-  }, [q, commands, tasks.data, navigate])
+      .filter((r) => r.kind === 'task' || r.kind === 'document')
+      .map((r) => ({ id: `${r.kind}:${r.id}`, group: SEARCH_KIND[r.kind].plural as 'Tasks' | 'Documents', label: r.title, icon: SEARCH_KIND[r.kind].icon, run: () => navigate(searchResultLink(r)) }))
+    // ค้นหาเต็มรูปแบบเสมอ (comments, archived, หน้าถัดไป)
+    const everywhere: Command[] = q.length >= 2 ? [{ id: 'search:all', group: 'Search', label: `Search everything for “${query.trim()}”`, icon: Search, run: () => navigate(`/search?q=${encodeURIComponent(query.trim())}`) }] : []
+    return [...found, ...matched, ...everywhere].sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group))
+  }, [q, query, commands, tasks.data, navigate])
 
   useEffect(() => setActive((i) => Math.min(i, Math.max(0, results.length - 1))), [results.length])
 

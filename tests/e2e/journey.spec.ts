@@ -11,7 +11,7 @@ test('human and agent operate on one authoritative board @mobile', async ({ app,
   await page.getByRole('button', { name: 'New project' }).click()
   await page.getByLabel('Project name').fill('Customer portal')
   await page.getByRole('button', { name: 'Create project' }).click()
-  await page.getByRole('link', { name: 'New task in project' }).click()
+  await page.getByRole('link', { name: 'New task', exact: true }).click()
   await page.getByLabel('Title').fill('Add password reset')
   await page.getByLabel('Status').selectOption('ready')
   await page.getByRole('button', { name: 'Create task' }).click()

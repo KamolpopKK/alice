@@ -1,10 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { FileText, Link2, Plus } from 'lucide-react'
 import type { DocumentDetail, DocumentSummary, Page } from '../../shared/contracts'
 import { client } from '../api'
 import { MarkdownEditor } from '../components/Markdown'
-import { ActorBadge, Empty, ErrorMessage, Field, Loading, TextInput, formatDate } from '../components/ui'
+import { ActorBadge, formatDate } from '../components/ui'
+import { errorText } from '../tasks/TaskDetail'
+import { Badge, Banner, Button, Dialog, EmptyState, FieldMessage, ResourceItem, ResourceList, SegmentedControl, Skeleton, TextField } from '../ui'
 import { IllustratedState } from '../brand'
 
 export function DocumentsPage() {
@@ -17,6 +20,7 @@ export function DocumentsPage() {
     queryFn: ({ pageParam }) => client.documents.list({ q, archived, limit: 30, cursor: pageParam }),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
+    placeholderData: keepPreviousData,
   })
   const docs = query.data?.pages.flatMap((p) => p.items) ?? []
   const update = (key: string, value: string) => {
@@ -26,57 +30,67 @@ export function DocumentsPage() {
     setParams(next, { replace: true })
   }
   return (
-    <div className="page">
-      <div className="page-head">
+    <div className="page resource-page">
+      <div className="resource-head">
         <h1>Documents</h1>
-        <button type="button" className="primary" onClick={() => update('new', '1')}>
+        <Button variant="primary" icon={Plus} onClick={() => update('new', '1')}>
           New document
-        </button>
+        </Button>
       </div>
-      {creating && <NewDocumentForm onCancel={() => update('new', '')} />}
-      <form className="inline-form" role="search" onSubmit={(e) => e.preventDefault()}>
-        <Field label="Search documents">{(id) => <input id={id} type="search" value={q} onChange={(e) => update('q', e.target.value)} />}</Field>
-        <Field label="Show">
-          {(id) => (
-            <select id={id} value={archived} onChange={(e) => update('archived', e.target.value === 'active' ? '' : e.target.value)}>
-              <option value="active">Active</option>
-              <option value="archived">Archived</option>
-              <option value="all">All</option>
-            </select>
-          )}
-        </Field>
+      <Dialog open={creating} onOpenChange={(o) => !o && update('new', '')} title="New document" size="lg">
+        <NewDocumentForm onCancel={() => update('new', '')} />
+      </Dialog>
+      <form className="resource-toolbar" role="search" aria-label="Find documents" onSubmit={(e) => e.preventDefault()}>
+        <div className="resource-toolbar-search">
+          <TextField label="Search documents" hideLabel placeholder="Search documents" type="search" value={q} onChange={(e) => update('q', e.target.value)} />
+        </div>
+        <SegmentedControl
+          label="Show documents"
+          value={archived}
+          onValueChange={(v) => update('archived', v === 'active' ? '' : v)}
+          options={[
+            { value: 'active', label: 'Active' },
+            { value: 'archived', label: 'Archived' },
+            { value: 'all', label: 'All' },
+          ]}
+        />
       </form>
-      <ErrorMessage error={query.error} />
-      {query.isLoading ? (
-        <Loading />
+      {query.error && !query.data ? (
+        <Banner tone="danger" title="Documents could not be loaded" action={<Button size="sm" onClick={() => void query.refetch()}>Try again</Button>}>
+          {errorText(query.error)}
+        </Banner>
+      ) : query.isLoading ? (
+        <Skeleton lines={5} />
       ) : docs.length === 0 && !q && archived === 'active' ? (
         creating ? null : <IllustratedState pose="focused" copy="documentsEmpty" title="Reference documents live here" />
       ) : docs.length === 0 ? (
-        <Empty>No documents found.</Empty>
+        <EmptyState title="No documents found.">Try other words, or show archived documents.</EmptyState>
       ) : (
-        <ul className="doc-list">
+        <ResourceList label="Documents" layout="list">
           {docs.map((d) => (
-            <li key={d.id} className="card">
-              <div className="row">
-                <Link to={`/documents/${d.id}`} className="card-title">
-                  {d.title}
-                </Link>
-                {d.archivedAt && <span className="pill pill-archived">archived</span>}
-                <span className="muted small">rev {d.revision}</span>
-              </div>
-              {d.excerpt && <p className="muted clamp small">{d.excerpt}</p>}
-              {d.sourceUrl && <span className="small source">{d.sourceUrl}</span>}
-              <span className="muted small">
-                Updated {formatDate(d.updatedAt)} by <ActorBadge actor={d.updatedBy} />
-              </span>
-            </li>
+            <ResourceItem
+              key={d.id}
+              icon={d.sourceUrl && !d.excerpt ? Link2 : FileText}
+              title={<Link to={`/documents/${d.id}`}>{d.title}</Link>}
+              text={d.excerpt || undefined}
+              meta={
+                <>
+                  {d.archivedAt && <Badge>archived</Badge>}
+                  <span>Revision {d.revision}</span>
+                  <span>
+                    Updated {formatDate(d.updatedAt)} by <ActorBadge actor={d.updatedBy} />
+                  </span>
+                  {d.sourceUrl && <span className="resource-source">{d.sourceUrl}</span>}
+                </>
+              }
+            />
           ))}
-        </ul>
+        </ResourceList>
       )}
       {query.hasNextPage && (
-        <button type="button" onClick={() => void query.fetchNextPage()}>
+        <Button size="sm" loading={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
           Load more
-        </button>
+        </Button>
       )}
     </div>
   )
@@ -105,25 +119,29 @@ export function NewDocumentForm({ onCancel, link }: { onCancel: () => void; link
   })
   return (
     <form
-      className="panel stack"
+      className="resource-form"
       aria-label="New document"
       onSubmit={(e: FormEvent) => {
         e.preventDefault()
         create.mutate()
       }}
     >
-      <TextInput label="Document title" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} autoFocus />
+      <TextField label="Document title" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} autoFocus data-autofocus />
       <MarkdownEditor id={`new-doc-body-${link?.taskId ?? link?.projectId ?? 'page'}`} label="Body (Markdown)" value={body} onChange={setBody} rows={6} />
-      <TextInput label="Source URL (optional)" type="url" placeholder="https://…" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} />
-      <p className="hint">A document needs a body, a source URL, or both.</p>
-      <ErrorMessage error={create.error} />
-      <div className="row">
-        <button className="primary" type="submit" disabled={create.isPending}>
+      <TextField
+        label="Source URL (optional)"
+        hint="A document needs a body, a source URL, or both."
+        type="url"
+        placeholder="https://…"
+        value={sourceUrl}
+        onChange={(e) => setSourceUrl(e.target.value)}
+      />
+      {create.error && <FieldMessage tone="error">{errorText(create.error)}</FieldMessage>}
+      <div className="resource-actions">
+        <Button variant="primary" type="submit" loading={create.isPending}>
           Create document
-        </button>
-        <button type="button" onClick={onCancel}>
-          Cancel
-        </button>
+        </Button>
+        <Button onClick={onCancel}>Cancel</Button>
       </div>
     </form>
   )

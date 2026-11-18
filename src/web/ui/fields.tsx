@@ -180,9 +180,13 @@ export function RadioGroup({
 }
 
 /** Inline form feedback next to the field it is about. Errors carry an icon, never colour alone. */
+/**
+ * Message under a field (with `id`, read through the field's aria-describedby) or on its own after an
+ * action (without `id`): a standalone error is announced immediately.
+ */
 export function FieldMessage({ id, tone, children }: { id?: string; tone: 'error' | 'success' | 'info'; children: ReactNode }) {
   return (
-    <p id={id} className={cx('ui-field-message', `ui-field-message--${tone}`)}>
+    <p id={id} className={cx('ui-field-message', `ui-field-message--${tone}`)} role={tone === 'error' && !id ? 'alert' : undefined}>
       {tone === 'error' && <Icon icon={AlertCircle} size="sm" />}
       {tone === 'success' && <Icon icon={CheckCircle2} size="sm" />}
       <span>{children}</span>
