@@ -182,6 +182,9 @@ jobs:
       - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v6
+        env:
+          # ไม่อัปโหลดบันทึกการ build เป็น artifact ของ run (ไม่มีใครใช้ และทำให้การรวบรวมไฟล์ release สับสน)
+          DOCKER_BUILD_RECORD_UPLOAD: 'false'
         with:
           context: .
           platforms: linux/${{ matrix.arch }}
@@ -242,10 +245,17 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      # เฉพาะไฟล์ที่ผู้ใช้ดาวน์โหลด: run นี้ยังมี digest ของ image และบันทึกการ build (.dockerbuild)
+      # ซึ่ง download-artifact ดาวน์โหลดไม่ได้ และไม่ควรอยู่ในหน้า release
       - uses: actions/download-artifact@v4
         with:
           path: dist-release
+          pattern: desktop-*
           merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist-release
+          name: cli
       - name: Updater manifest and checksums
         env:
           BASE_URL: ${{ vars.ALICE_DOWNLOAD_BASE_URL }}

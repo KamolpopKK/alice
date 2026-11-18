@@ -39,6 +39,16 @@ describe('client release workflow', () => {
     for (const name of ['APPLE_CERTIFICATE', 'APPLE_CERTIFICATE_PASSWORD', 'APPLE_SIGNING_IDENTITY', 'APPLE_PASSWORD', 'APPLE_TEAM_ID']) expect(names).not.toContain(name)
   })
 
+  it('puts only user downloads in the draft release (no image digests or .dockerbuild records)', () => {
+    const downloads = doc.jobs.publish.steps.filter((s: { uses?: string }) => s.uses?.startsWith('actions/download-artifact'))
+    // ไม่ดึงทุก artifact ของ run: .dockerbuild ดาวน์โหลดไม่ได้ (v0.2.0 ครั้งแรกล้มตรงนี้) และ digest ไม่ใช่ไฟล์ให้ผู้ใช้
+    expect(downloads.length).toBeGreaterThan(0)
+    for (const step of downloads) expect(step.with.pattern ?? step.with.name, 'download names an artifact or pattern').toBeTruthy()
+    expect(downloads.map((s: { with: { pattern?: string; name?: string } }) => s.with.pattern ?? s.with.name).sort()).toEqual(['cli', 'desktop-*'])
+    const build = doc.jobs.image.steps.find((s: { uses?: string }) => s.uses?.startsWith('docker/build-push-action'))
+    expect(build.env.DOCKER_BUILD_RECORD_UPLOAD).toBe('false')
+  })
+
   it('verifies contents and launches every desktop artifact', () => {
     const runs = doc.jobs.desktop.steps.map((s: { run?: string }) => s.run ?? '').join('\n')
     expect(runs).toContain('desktop-verify-artifacts.mjs')
