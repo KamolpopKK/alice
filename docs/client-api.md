@@ -19,7 +19,7 @@ validation, actor attribution, activity history and live invalidation are identi
   "serverVersion": "0.2.0",
   "publicUrl": "https://alice.example.com",
   "clientApi": { "current": 1, "minimum": 1, "prefix": "/client/v1" },
-  "capabilities": ["projects", "tasks", "documents", "comments", "relationships", "activity", "search", "admin", "idempotency", "events.resume", "device-auth", "client-sessions", "task-pads"],
+  "capabilities": ["projects", "tasks", "documents", "comments", "relationships", "activity", "search", "admin", "idempotency", "events.resume", "device-auth", "client-sessions", "task-pads", "saved-views"],
   "events": { "retentionHours": 24, "maxReplay": 1000 }
 }
 ```
@@ -60,6 +60,7 @@ All routes are below `/client/v1`. Bodies and queries use the shared zod schemas
 | Documents | `GET/POST /documents`, `GET/PATCH /documents/:id`, `POST /documents/:id/archive`, `POST /documents/:id/restore`, `GET /documents/:id/revisions`, `POST /documents/:id/revisions/:n/restore`, `POST/DELETE /documents/:id/links`, `GET /documents/:id/activity` |
 | Workspace | `GET /board`, `GET /search`, `GET /activity`, `GET /events` |
 | Task Pads (owner only) | See [Task Pads](#task-pads) |
+| Saved views (owner only) | `GET/POST /saved-views`, `DELETE /saved-views/:id`; see [Saved views](#saved-views) |
 
 Lists use keyset pagination: `{ items, nextCursor }`. Pass `cursor=<nextCursor>` until it is `null`. `limit`
 is between 1 and 200. Resource ids are opaque server-generated strings; client-supplied ids are never accepted.
@@ -108,6 +109,22 @@ Other actors never see these positions; their streams simply skip them.
 Resume with `Last-Event-ID: <position>` (EventSource sends this automatically) or `?after=<position>`. The
 header wins when both are present. Positions are kept for `ALICE_CLIENT_EVENT_RETENTION_HOURS` (default 24).
 They live in the database, so they survive a server restart.
+
+## Saved views
+
+Capability `saved-views`. A saved view is one person's named Tasks view: the view (`my-work`, `board` or
+`list`) and the rest of the Tasks query string (filters, search, sort). Views are private to the human who
+saved them and exist only under `/client/v1`; agents cannot use them, and they never appear in activity or
+search. Changes notify only the owner's own sessions (`saved_view` events).
+
+| Route | Purpose |
+|---|---|
+| `GET /saved-views` | The signed-in person's views, sorted by name. |
+| `POST /saved-views` | `{ name, view, query? }`. A view with the same name is replaced, so a name always means one view. |
+| `DELETE /saved-views/:id` | Removes one of your views. Another person's id answers exactly like an unknown id (`404 NOT_FOUND`). |
+
+Older servers without the capability keep saved views in the browser instead; the web app moves them to the
+server the first time it connects to one that supports them.
 
 ## Task Pads
 

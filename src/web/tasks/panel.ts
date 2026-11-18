@@ -9,10 +9,11 @@ type PanelState = { taskPanel?: true } | null
 /** Puts focus back on the task that opened the panel, once the view has re-rendered. */
 export function focusTaskTrigger(taskId: string) {
   let tries = 0
+  // sheet ที่กำลังปิดอาจย้ายโฟกัสไปที่ body หลังเรา: ลองจนกว่าโฟกัสจะอยู่ที่ task จริง
   const attempt = () => {
     const el = document.querySelector<HTMLElement>(`[data-task-link="${CSS.escape(taskId)}"]`)
     if (el) el.focus()
-    else if (++tries < 10) requestAnimationFrame(attempt)
+    if ((!el || document.activeElement !== el) && ++tries < 20) requestAnimationFrame(attempt)
   }
   requestAnimationFrame(attempt)
 }

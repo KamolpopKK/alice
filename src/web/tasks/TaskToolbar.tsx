@@ -4,7 +4,8 @@ import { Bookmark, Filter, LayoutGrid, List, Trash2, UserRound } from 'lucide-re
 import { STATUS_LABELS, TASK_PRIORITIES, TASK_STATUSES } from '../../shared/contracts'
 import { useActors } from '../hooks'
 import { useProjects } from '../pages/ProjectsPage'
-import { Button, IconButton, Popover, SegmentedControl, SelectField, TextField, type SelectOption } from '../ui'
+import { Button, FieldMessage, IconButton, Popover, SegmentedControl, SelectField, TextField, type SelectOption } from '../ui'
+import { errorText } from './TaskDetail'
 import { useFilterParams, type FilterKey } from './hooks'
 import { useSavedViews } from './savedViews'
 
@@ -86,7 +87,7 @@ function FilterPanel({ view }: { view: TaskView }) {
 function SavedViews() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { views, save, remove } = useSavedViews()
+  const { views, save, remove, onDevice, error, saving } = useSavedViews()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const submit = (e: FormEvent) => {
@@ -130,8 +131,9 @@ function SavedViews() {
           </ul>
         )}
         <form className="tasks-saved-form" onSubmit={submit}>
-          <TextField label="Name" hint="Saved on this device." value={name} onChange={(e) => setName(e.target.value)} maxLength={60} />
-          <Button size="sm" variant="primary" type="submit" disabled={!name.trim()}>
+          <TextField label="Name" hint={onDevice ? 'Saved on this device.' : 'Available on all your devices. Only you can see it.'} value={name} onChange={(e) => setName(e.target.value)} maxLength={60} />
+          {error && <FieldMessage tone="error">{errorText(error)}</FieldMessage>}
+          <Button size="sm" variant="primary" type="submit" disabled={!name.trim()} loading={saving}>
             Save current view
           </Button>
         </form>

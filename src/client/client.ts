@@ -1,3 +1,4 @@
+import { createSavedViewInput, type SavedView } from '../shared/saved-views'
 import * as z from 'zod'
 import type {
   ActivityEvent,
@@ -240,6 +241,13 @@ export class AliceClient {
     link: (id: string, target: { taskId?: string; projectId?: string }) => this.call<LinkResult>('POST', `/documents/${enc(id)}/links`, { body: target, idempotent: true }),
     unlink: (id: string, target: { taskId?: string; projectId?: string }) => this.call<LinkResult>('DELETE', `/documents/${enc(id)}/links`, { body: target }),
     activity: (id: string, page: { cursor?: string | null; limit?: number } = {}) => this.get<Page<ActivityEvent>>(`/documents/${enc(id)}/activity`, page),
+  }
+
+  /** Saved Tasks views (capability `saved-views`); private to the signed-in human. */
+  readonly savedViews = {
+    list: () => this.get<{ items: SavedView[] }>('/saved-views').then((r) => r.items),
+    save: (input: In<typeof createSavedViewInput>) => this.call<{ view: SavedView }>('POST', '/saved-views', { body: input }).then((r) => r.view),
+    remove: (id: string) => this.call<{ deleted: true; id: string }>('DELETE', `/saved-views/${enc(id)}`, { body: {} }),
   }
 
   /** Personal Task Pads (capability `task-pads`); every call is scoped to the signed-in human. */

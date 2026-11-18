@@ -496,6 +496,24 @@ export const MIGRATIONS: Migration[] = [
       ) STRICT;
     `,
   },
+  {
+    version: 13,
+    name: 'saved_views',
+    sql: `
+      -- มุมมอง Tasks ที่บันทึกไว้ของแต่ละคน: ข้อมูลส่วนตัว ไม่เขียน activity
+      CREATE TABLE saved_views (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL REFERENCES workspaces(id),
+        owner_id TEXT NOT NULL REFERENCES actors(id),
+        name TEXT NOT NULL,
+        view TEXT NOT NULL CHECK (view IN ('my-work', 'board', 'list')),
+        query TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE (owner_id, name)
+      ) STRICT;
+    `,
+  },
 ]
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version

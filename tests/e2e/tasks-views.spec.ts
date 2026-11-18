@@ -103,7 +103,7 @@ test('editing warns when an agent changes the task meanwhile, and agent changes 
   await expect(p.getByRole('region', { name: 'Activity' })).toContainText(botName)
 })
 
-test('filters, search and sort are shared across views, and saved views restore them on this device', async ({ app, owner, page }) => {
+test('filters, search and sort are shared across views, and saved views restore them on every device', async ({ app, owner, page, browser }) => {
   const s = stamp()
   await newTask(owner, { title: `Shared urgent ${s}`, priority: 'urgent', status: 'ready' })
   await newTask(owner, { title: `Shared low ${s}`, priority: 'low', status: 'ready' })
@@ -134,6 +134,15 @@ test('filters, search and sort are shared across views, and saved views restore 
   await expect(page.getByRole('radio', { name: 'Board' })).toHaveAttribute('aria-checked', 'true')
   await expect(page).toHaveURL(/priority=urgent/)
   await expect(page.getByLabel('Search tasks')).toHaveValue('Shared')
+  // อุปกรณ์อื่นของคนเดียวกันเห็น view เดียวกัน (เก็บที่ server)
+  const other = await browser.newContext()
+  const second = await other.newPage()
+  await signIn(second, app)
+  await second.goto(`${app.url}/tasks?view=list`)
+  await second.getByRole('button', { name: 'Saved views' }).click()
+  await expect(second.getByRole('dialog', { name: 'Saved views' }).getByRole('button', { name: `Urgent ${s}`, exact: true })).toBeVisible()
+  await expect(second.getByText('Available on all your devices. Only you can see it.')).toBeVisible()
+  await other.close()
   await page.getByRole('button', { name: 'Saved views' }).click()
   await page.getByRole('button', { name: `Delete saved view Urgent ${s}` }).click()
   await expect(page.getByRole('dialog', { name: 'Saved views' }).getByRole('button', { name: `Urgent ${s}`, exact: true })).toHaveCount(0)
@@ -237,9 +246,11 @@ test('List selection changes several tasks at once and keeps failures selected',
 })
 
 test('dragging a card to another Board column changes its status and says so', async ({ app, owner, page }) => {
-  const t = await newTask(owner, { title: `Drag me ${stamp()}`, status: 'ready' })
+  const s = stamp()
+  const t = await newTask(owner, { title: `Drag me ${s}`, status: 'ready' })
   await signIn(page, app)
-  await page.goto(`${app.url}/tasks?view=board`)
+  // กรองให้เหลือการ์ดของ test นี้ (server ใช้ร่วมกันหลาย test: คอลัมน์ยาวจนการ์ดหลุดจอได้)
+  await page.goto(`${app.url}/tasks?view=board&q=${s}`)
   const card = page.getByRole('region', { name: 'Ready' }).getByRole('listitem').filter({ has: page.getByRole('link', { name: t.title }) })
   await card.dragTo(page.getByRole('region', { name: 'In progress' }), { targetPosition: { x: 30, y: 20 } })
   await expect(page.getByRole('status').filter({ hasText: `Moved ${t.title} to In progress.` })).toBeVisible()

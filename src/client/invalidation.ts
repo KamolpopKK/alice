@@ -12,6 +12,7 @@ const LIST_KEYS: Record<string, string[][]> = {
   client_session: [['client-sessions']],
   pad: [['pads'], ['pad-search']],
   pad_block: [['pad-search']],
+  saved_view: [['saved-views']],
 }
 
 /**
@@ -22,5 +23,7 @@ export function invalidationKeys(event: Pick<ClientEvent, 'kind' | 'id'>): unkno
   // Pad เป็นข้อมูลส่วนตัว: ไม่กระทบ activity หรือ workspace search
   if (event.kind === 'pad') return [['pad', event.id], ['pad-blocks', event.id], ...LIST_KEYS.pad]
   if (event.kind === 'pad_block') return [[event.kind, event.id], ...LIST_KEYS.pad_block]
+  // saved view เป็นของคนคนเดียว: ไม่กระทบ activity หรือ search
+  if (event.kind === 'saved_view') return LIST_KEYS.saved_view
   return [['activity'], ['search'], [event.kind, event.id], ...(LIST_KEYS[event.kind] ?? [])]
 }
