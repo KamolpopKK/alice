@@ -50,6 +50,9 @@ that do not offer them.
 ### Agents, Activity and Settings
 
 - **Agents** lists the agents in the workspace and links to what each one did, above the setup guide.
+- **Set up an agent on this computer.** In a Local workspace, Agents gives Claude Code and Codex a
+  copyable prompt that sets them up with the `alice` command: no server, token or MCP. It also has the same
+  steps by hand and examples to try. First run opens this page once, right before Home.
 - **Activity** filters by person or agent and by tasks, projects or documents. Agents are labelled,
   not only coloured.
 - **Settings** is organised into categories. Administration (owners on a server) and Devices &

@@ -81,7 +81,7 @@ function OpenDefaultPad() {
   )
 }
 
-/** Last step of first run: once the first task is written down, show it on Home. */
+/** Last step of first run: once the first task is written down, connect an agent, then Home shows the task. */
 function FinishOnboarding({ padId }: { padId: string }) {
   const navigate = useNavigate()
   return (
@@ -90,8 +90,8 @@ function FinishOnboarding({ padId }: { padId: string }) {
         tone="info"
         title="Write your first task, then press Enter."
         action={
-          <Button size="sm" variant="primary" icon={ArrowRight} onClick={() => navigate('/', { state: { capturedPad: padId } })}>
-            Done, show me Home
+          <Button size="sm" variant="primary" icon={ArrowRight} onClick={() => navigate('/agents', { state: { afterOnboarding: true, capturedPad: padId } })}>
+            Done, connect an agent
           </Button>
         }
       >

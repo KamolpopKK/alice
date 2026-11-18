@@ -472,3 +472,28 @@
   flex: 1 1 10rem;
   min-width: 0;
 }
+
+/* Local agent setup guide */
+.local-guide,
+.local-guide-panel {
+  display: grid;
+  gap: var(--ui-space-4);
+  min-width: 0;
+}
+.local-guide > p {
+  margin: 0;
+}
+.local-guide-install {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2);
+  font-size: var(--ui-text-sm);
+}
+.local-guide-try {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--ui-space-2);
+}
