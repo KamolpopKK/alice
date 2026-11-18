@@ -367,3 +367,39 @@
   margin: 0;
   font-size: var(--ui-text-lg);
 }
+
+/* ---------- bulk selection ---------- */
+.tasks-bulk {
+  position: sticky;
+  top: 0;
+  z-index: var(--ui-z-sticky);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-2) var(--ui-space-3);
+  background: var(--ui-surface-raised);
+  border: 1px solid var(--ui-border-strong);
+  border-radius: var(--ui-radius-md);
+  box-shadow: var(--ui-shadow-float);
+}
+.tasks-bulk-field .ui-input {
+  min-height: var(--ui-control-sm);
+  padding-block: var(--ui-space-1);
+  width: auto;
+}
+.tasks-bulk-outcome {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+}
+.tasks-table-select {
+  width: 1%;
+}
+.tasks-select {
+  width: 20px;
+  height: 20px;
+  margin: 0 var(--ui-space-2) 0 0;
+  vertical-align: middle;
+  flex: none;
+}

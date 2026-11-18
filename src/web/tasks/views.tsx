@@ -8,6 +8,7 @@ import { useStatusChange, useTaskPages } from './hooks'
 import { STATUS_OPTIONS, STATUS_TONE, blockedLabel, dueInfo, isOpen, meaningfulPriority } from './model'
 import { useHasTaskPanel, useTaskPanel } from './panel'
 import { errorText } from './TaskDetail'
+import { BulkBar, SelectAll, SelectTask, SelectionProvider, useSelectionState, useTaskSelection } from './bulk'
 
 /**
  * Title link used by every view. A plain click opens Task Detail beside the view; modified clicks,
@@ -67,6 +68,7 @@ function TaskEntry({ task, layout, showProject = true }: { task: Task; layout: '
       project={showProject ? task.project.name : null}
       blocked={blockedLabel(task)}
       feedback={status.feedback}
+      select={<SelectTask task={task} />}
     />
   )
 }
@@ -184,6 +186,7 @@ export function BoardView({ filters }: { filters: Record<string, string> }) {
 }
 
 function TableRow({ task, showProject }: { task: Task; showProject: boolean }) {
+  const selectable = useTaskSelection() !== null
   const status = useRowStatus(task)
   const { taskId } = useTaskPanel()
   const due = dueInfo(task)
@@ -191,6 +194,11 @@ function TableRow({ task, showProject }: { task: Task; showProject: boolean }) {
   const blocked = blockedLabel(task)
   return (
     <tr className={taskId === task.id ? 'is-selected' : undefined}>
+      {selectable && (
+        <td className="tasks-table-select">
+          <SelectTask task={task} />
+        </td>
+      )}
       <td className="tasks-table-title">
         <TaskLink task={task} />
         {blocked && <BlockedBadge>{blocked}</BlockedBadge>}
@@ -215,6 +223,7 @@ function TableRow({ task, showProject }: { task: Task; showProject: boolean }) {
 /** Task table for wide screens; the same rows as My Work on narrow ones. */
 export function TaskTable({ tasks, showProject = true, caption = 'Tasks' }: { tasks: Task[]; showProject?: boolean; caption?: string }) {
   const narrow = useMediaQuery('(max-width: 719px)')
+  const selectable = useTaskSelection() !== null
   if (narrow)
     return (
       <ul className="tasks-rows" aria-label={caption}>
@@ -229,6 +238,11 @@ export function TaskTable({ tasks, showProject = true, caption = 'Tasks' }: { ta
     <Table caption={caption} className="tasks-table">
       <thead>
         <tr>
+          {selectable && (
+            <th scope="col" className="tasks-table-select">
+              <SelectAll ids={tasks.map((t) => t.id)} />
+            </th>
+          )}
           <th scope="col">Title</th>
           <th scope="col">Status</th>
           <th scope="col">Assignee</th>
@@ -249,10 +263,13 @@ export function TaskTable({ tasks, showProject = true, caption = 'Tasks' }: { ta
 export function ListView({ filters }: { filters: Record<string, string> }) {
   const query = useTaskPages('list', filters)
   const tasks = query.data?.pages.flatMap((p) => p.items) ?? []
+  const selection = useSelectionState(tasks.map((t) => t.id))
   if (query.isLoading) return <Skeleton lines={6} />
   if (query.error && !query.data) return <LoadError error={query.error} retry={() => void query.refetch()} />
   return (
+    <SelectionProvider value={selection}>
     <div className="tasks-list">
+      <BulkBar tasks={tasks} />
       <p className="tasks-count ui-text-muted" aria-live="polite">
         {`${tasks.length}${query.hasNextPage ? '+' : ''} ${tasks.length === 1 ? 'task' : 'tasks'}`}
       </p>
@@ -265,5 +282,6 @@ export function ListView({ filters }: { filters: Record<string, string> }) {
       )}
       <LoadMore query={query} />
     </div>
+    </SelectionProvider>
   )
 }

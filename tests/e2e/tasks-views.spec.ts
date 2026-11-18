@@ -202,3 +202,36 @@ for (const scheme of ['light', 'dark'] as const) {
     }
   })
 }
+
+test('List selection changes several tasks at once and keeps failures selected', async ({ app, owner, page }) => {
+  const s = stamp()
+  const a = await newTask(owner, { title: `Bulk A ${s}`, status: 'ready' })
+  const b = await newTask(owner, { title: `Bulk B ${s}`, status: 'ready' })
+  const c = await newTask(owner, { title: `Bulk C ${s}`, status: 'ready' })
+  await signIn(page, app)
+  await page.goto(`${app.url}/tasks?view=list&q=${s}`)
+  await expect(page.getByRole('link', { name: c.title })).toBeVisible()
+  // คีย์บอร์ด: Space เลือก
+  await page.getByLabel(`Select ${a.title}`).focus()
+  await page.keyboard.press('Space')
+  await page.getByLabel(`Select ${b.title}`).check()
+  const all = page.getByLabel('Select all shown tasks')
+  expect(await all.evaluate((el: HTMLInputElement) => el.indeterminate)).toBe(true)
+  const bar = page.getByRole('region', { name: 'Selected tasks' })
+  await expect(bar).toContainText('2 selected')
+  await bar.getByLabel('Set status of selected tasks').selectOption('done')
+  await expect(bar).toContainText('Status set to Done: 2 tasks.')
+  for (const t of [a, b]) expect((await owner.get(`${V1}/tasks/${t.id}`)).body.task.status).toBe('done')
+  expect((await owner.get(`${V1}/tasks/${c.id}`)).body.task.status).toBe('ready')
+
+  // งานที่เปลี่ยนไม่สำเร็จยังถูกเลือกไว้
+  await all.check()
+  await page.route(`**/client/v1/tasks/${c.id}`, (r) => (r.request().method() === 'PATCH' ? r.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { code: 'INTERNAL', message: 'boom' } }) }) : r.fallback()))
+  await bar.getByLabel('Assign selected tasks').selectOption({ label: 'Olivia Owner' })
+  await expect(bar).toContainText('2 done, 1 could not be changed and stay selected.')
+  await expect(page.getByLabel(`Select ${c.title}`)).toBeChecked()
+  await expect(page.getByLabel(`Select ${a.title}`)).not.toBeChecked()
+  await page.unroute(`**/client/v1/tasks/${c.id}`)
+  const act = (await owner.get(`${V1}/tasks/${a.id}/activity`)).body.items as Array<{ actor: { displayName: string } }>
+  expect(act[0].actor.displayName).toBe('Olivia Owner')
+})

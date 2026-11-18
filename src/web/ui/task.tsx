@@ -70,16 +70,21 @@ export type TaskItemProps = {
   selected?: boolean
   /** Pending or failed mutation feedback shown next to this task. */
   feedback?: ReactNode
+  /** A selection checkbox shown before the title (rows only). */
+  select?: ReactNode
 }
 
 /**
  * One task in a scan-friendly view. The content budget is fixed: title, status, assignee, meaningful
  * priority, relevant due date, project when needed and blocked state. Everything else is in Task Detail.
  */
-export function TaskItem({ title, status, assignee, priority, due, project, blocked, layout = 'card', selected, feedback }: TaskItemProps) {
+export function TaskItem({ title, status, assignee, priority, due, project, blocked, layout = 'card', selected, feedback, select }: TaskItemProps) {
   return (
     <div className={cx('ui-task', `ui-task--${layout}`, selected && 'is-selected')}>
-      <div className="ui-task-title">{title}</div>
+      <div className="ui-task-title">
+        {select}
+        {title}
+      </div>
       <div className="ui-task-meta">
         {status}
         {priority && <PriorityBadge priority={priority} />}

@@ -64,6 +64,15 @@ export const Rows: Story = {
   render: () => (
     <ul style={{ maxWidth: 760, listStyle: 'none', padding: 0, margin: 0 }} aria-label="In progress">
       <li>
+        <TaskItem
+          layout="row"
+          select={<input type="checkbox" className="ui-checkbox" aria-label="Select Plan the launch week" defaultChecked style={{ marginRight: 8 }} />}
+          title={title('Plan the launch week')}
+          status={<Status title="Plan the launch week" initial="ready" />}
+          assignee={{ name: 'Sample Person' }}
+        />
+      </li>
+      <li>
         <TaskItem layout="row" title={title('Update project timeline')} status={<Status title="Update project timeline" initial="in_progress" />} priority="urgent" assignee={{ name: 'Sample Person' }} project="Launch" due={{ label: 'Tomorrow' }} />
       </li>
       <li>
