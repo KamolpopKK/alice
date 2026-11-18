@@ -173,9 +173,20 @@ function Workspaces() {
 }
 
 function AgentsAndCli() {
+  const local = useLocalWorkspace()
   return (
     <div className="settings-stack">
-      <p>Agents connect through MCP with their own identity and token, so their work is attributed to them. People use the Alice CLI with their own sign-in.</p>
+      {local ? (
+        <p>
+          Agents on this computer, such as Claude Code and Codex, work through the <code>alice</code> command under their own names. There is no token: Agents has a
+          prompt that lets an agent set itself up, and turns each agent on or off.
+        </p>
+      ) : (
+        <p>
+          Agents connect to this server through MCP with their own identity and token, so their work is attributed to them. Agents has a setup prompt; the workspace
+          owner creates tokens in Administration. People use the Alice CLI with their own sign-in.
+        </p>
+      )}
       <div className="resource-actions">
         <LinkButton as={Link as never} to="/agents" icon={Bot}>
           Open Agents

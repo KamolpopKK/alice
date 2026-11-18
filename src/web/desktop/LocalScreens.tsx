@@ -489,7 +489,7 @@ export function AgentsSection() {
   }
   return (
     <section className="panel stack" aria-labelledby="agents-heading">
-      <h2 id="agents-heading">Agents</h2>
+      <h2 id="agents-heading">Agents on this computer</h2>
       <p className="muted small">
         Enabled agents work in your Local workspaces through the alice command, each under its own name. Disabling one stops it at once;
         its past work keeps its name.

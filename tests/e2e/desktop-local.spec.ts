@@ -46,9 +46,23 @@ test.describe('Alice Desktop with Local workspaces', () => {
         return ((await res.json()) as { items: Array<{ createdBy: { displayName: string } }> }).items[0]?.createdBy.displayName
       })
       .toBe('Kim')
-    // จบ onboarding ที่ Home และเห็นงานจริงที่เพิ่งจด
-    await page.getByRole('button', { name: 'Done, show me Home' }).click()
+    // หลังงานแรก: หน้าตั้งค่า agent ขึ้นก่อน (ครั้งเดียว) พร้อม prompt ที่ไม่ต้องใช้ token แล้วค่อยไป Home
+    await page.getByRole('button', { name: 'Done, connect an agent' }).click()
+    await expect(page.getByRole('status').or(page.getByRole('alert')).filter({ hasText: 'One more step: connect your agent' })).toBeVisible()
+    const guide = page.getByRole('region', { name: 'Set up your agent' })
+    await expect(guide.getByRole('tab', { name: 'Claude Code' })).toHaveAttribute('aria-selected', 'true')
+    await expect(guide).toContainText('alice integration enable claude-code')
+    await expect(guide).toContainText('alice --as claude-code workspace current --json')
+    await expect(guide).not.toContainText(/token file|Paste the Alice agent token|\/mcp\/v1/)
+    await guide.getByRole('tab', { name: 'Codex' }).click()
+    await expect(guide).toContainText('alice integration enable codex')
+    await expect(page.getByRole('region', { name: 'Agents on this computer' })).toBeVisible()
+    await page.getByRole('button', { name: 'Continue to Home' }).click()
     await expect(page.getByRole('region', { name: 'Just captured' }).getByRole('link', { name: 'First local task' })).toBeVisible()
+    // Agents เปิดเองภายหลังได้ แต่ไม่มีแถบ "One more step" อีก
+    await page.goto(`${app.url}/agents`)
+    await expect(page.getByRole('region', { name: 'Set up your agent' })).toBeVisible()
+    await expect(page.getByText('One more step: connect your agent')).toHaveCount(0)
 
     // เปิดใหม่: ไม่ onboarding ซ้ำ และไม่สร้าง Personal ซ้ำ
     await page.reload()
@@ -241,7 +255,7 @@ test.describe('Alice Desktop with Local workspaces', () => {
     const created = native.runCli(['task', 'create', '--workspace', ws.id, '--title', 'Codex has this', '--status', 'ready'])
     native.runCli(['--as', 'codex', '--workspace', ws.id, 'task', 'claim', created.id])
     await page.getByRole('button', { name: 'Switch workspace' }).click()
-    const agents = page.getByRole('region', { name: 'Agents' })
+    const agents = page.getByRole('region', { name: 'Agents on this computer' })
     await expect(agents).toContainText('Codex')
     await agents.getByRole('button', { name: 'Disable Codex' }).click()
     await expect(page.getByText('1 open task(s) in personal are still assigned to Codex')).toBeVisible()
@@ -324,7 +338,11 @@ test.describe('Alice Desktop with Local workspaces', () => {
     await page.keyboard.type('First team task')
     await page.keyboard.press('Enter')
     await expect.poll(async () => ((await owner.get('/client/v1/tasks?q=First%20team')).body.items as unknown[]).length).toBe(1)
-    await page.getByRole('button', { name: 'Done, show me Home' }).click()
+    await page.getByRole('button', { name: 'Done, connect an agent' }).click()
+    // บน server: คู่มือ MCP ของหน้า Agents (ไม่ใช่ของ Local)
+    await expect(page.getByRole('heading', { name: 'Connect an agent' })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Set up your agent' })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Continue to Home' }).click()
     await expect(page.getByRole('region', { name: 'Just captured' }).getByRole('link', { name: 'First team task' })).toBeVisible()
     // จบแล้ว: เปิดใหม่ไม่ย้อนกลับไป onboarding
     await page.reload()

@@ -214,3 +214,56 @@ export function agentSetupGuide(client: AgentGuideClient, originInput: string): 
     update: { steps: updateSteps(client, label, origin), prompt: buildUpdatePrompt(client, label, origin) },
   }
 }
+
+// ---------- Local workspaces (Alice Desktop on this computer) ----------
+// ไม่มี server, URL, token หรือ MCP: คำสั่ง alice มากับ Alice Desktop และอ่าน credential เองจาก OS
+
+export interface LocalAgentGuide {
+  client: AgentGuideClient
+  label: string
+  /** Pasted into the agent: it checks the alice command, enables itself and confirms the workspace. */
+  prompt: string
+  /** The same setup by hand, for people who prefer to run the commands. */
+  steps: GuideStep[]
+  /** First things to ask the agent once it is set up. */
+  tryPrompts: string[]
+}
+
+export const LOCAL_CLI_MISSING = 'Open Alice Desktop › Agents and choose “Install the alice command”, then ask me again.'
+
+export function localAgentSetupGuide(client: AgentGuideClient): LocalAgentGuide {
+  const label = AGENT_GUIDE_CLIENTS.find((c) => c.id === client)!.label
+  const as = `alice --as ${client}`
+  const steps: GuideStep[] = [
+    { title: 'Check the alice command', description: 'Alice Desktop installs it. If it is missing, choose “Install the alice command” on this page.', code: 'alice version' },
+    {
+      title: `Give ${label} its own identity and the Alice skills`,
+      description: `Installs the alice and alice-plan skills for ${label} and lets it work in every Local workspace under its own name.`,
+      code: `alice integration enable ${client}`,
+    },
+    { title: 'Check the connection', description: `${label} should see the workspace it will change.`, code: `${as} workspace current --json` },
+  ]
+  const prompt = [
+    `Set up Alice for ${label} on this computer.`,
+    '',
+    'Alice is a taskboard that runs privately on this Mac in Alice Desktop. You work in it with the `alice` command, under your own name. There is no server, URL, token or MCP to configure.',
+    '',
+    'Rules:',
+    '- Never use sudo, and never ask for, read or print passwords, tokens or credentials. The `alice` command reads your credential itself.',
+    '- Stop and tell me if a step fails: show the command and its error.',
+    '',
+    'Steps:',
+    `1. Run \`alice version\`. If the command is not found, stop and tell me: "${LOCAL_CLI_MISSING}"`,
+    `2. Run \`alice integration enable ${client}\`. It installs the Alice skills for you and gives you your own identity in every Local workspace.`,
+    `3. Run \`${as} workspace current --json\` and tell me the workspace name and alias.`,
+    `4. Run \`${as} task list --status ready --json\` and summarise what is ready, or say that nothing is.`,
+    `5. From now on, use the alice skill for anything about Alice tasks, projects or documents, and always pass \`--as ${client}\`. If the skill is not available in this session yet, tell me to restart you.`,
+  ].join('\n')
+  const tryPrompts = [
+    'Look at the ready tasks in Alice and take one to work on.',
+    'Create a task in Alice: “Write the install section of the README”, priority high.',
+    'Use alice-plan to break “Sign-in with email” into tasks in Alice.',
+    'Summarise which Alice tasks are blocked and why.',
+  ]
+  return { client, label, prompt, steps, tryPrompts }
+}
