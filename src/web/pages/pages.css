@@ -151,6 +151,7 @@
 /* Settings: category list beside the detail; one column on narrow screens */
 .settings-layout {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--ui-space-6);
   align-items: start;
   max-width: var(--ui-content-max);

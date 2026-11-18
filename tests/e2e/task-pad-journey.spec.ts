@@ -161,13 +161,15 @@ test.describe('Task Pads accessibility, reflow, motion and compatibility', () =>
     const h2 = (await owner.post(`${V1}/pads/${pad.id}/blocks`, { type: 'heading', parentId: h.id, content: [{ type: 'text', text: 'Deeper' }] })).body.block
     const h3 = (await owner.post(`${V1}/pads/${pad.id}/blocks`, { type: 'text', parentId: h2.id, content: [{ type: 'text', text: 'Third level with a fairly long sentence that wraps' }] })).body.block
     await owner.post(`${V1}/pads/${pad.id}/blocks`, { type: 'task', parentId: h3.id, title: 'Fourth level task with a long title that must wrap nicely' })
+    // ตัวเลือกยาว ๆ ใน select ของค่าเริ่มต้น (ชื่อ agent ยาว) ต้องไม่ดันหน้ากว้างเกินจอ
+    await owner.post(`${V1}/agents`, { displayName: 'An agent with a really quite long display name' })
     const ctx = await browser.newContext({ viewport: { width: 320, height: 640 }, reducedMotion: 'reduce' })
     const page = await ctx.newPage()
     await signIn(page, app)
     await page.goto(`${app.url}/pads/${pad.id}`)
     await expect(page.locator('input[value^="Fourth level task"]')).toBeVisible()
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
-    expect(overflow).toBeLessThanOrEqual(0)
+    // shell สลับเป็นแบบมือถือหลังโหลด: รอให้ layout นิ่งก่อนวัด
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
     await page.getByRole('button', { name: /Open task details: Fourth level/ }).click()
     const animation = await page.locator('.ui-sheet').evaluate((el) => getComputedStyle(el).animationName)
     expect(animation).toBe('none')

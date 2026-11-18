@@ -30,6 +30,20 @@ the CLI are unchanged.
 - **Projects** have Overview, Tasks, Documents and Activity tabs. **Documents** and **Search** share
   one result style, and quick search now finds documents too.
 
+- **Select and drag.** In List, select several tasks to change their status, assignee or archive them
+  together. On the Board, drag a card to another column to change its status.
+- **Saved views follow you.** On servers that support it, saved Tasks views are kept on the server and
+  appear on all your devices, visible only to you.
+- **Project plans.** Projects can have start and target dates, members (informational, no access change),
+  milestones you complete by hand, and a progress bar from their tasks.
+
+### Approvals
+
+- **Agents ask before risky steps.** An agent (or a person) can ask for approval on a task, naming one
+  person or anyone. It appears under **Waiting for you** on Home with Approve and Reject and an optional
+  note. Only people decide, never the one who asked. Agents use `request_approval` over MCP or
+  `alice task ask` in Local workspaces.
+
 ### Agents, Activity and Settings
 
 - **Agents** lists the agents in the workspace and links to what each one did, above the setup guide.
@@ -39,7 +53,9 @@ the CLI are unchanged.
   Sessions (servers) are categories in it. Revoking an agent token or deactivating an agent now asks
   first.
 - **First run in Desktop** has four steps (welcome, workspace, agents, first task) and picks up where
-  you left off.
+  you left off. Choosing a team server continues the steps after you sign in, and the first run ends on
+  Home with the tasks you just wrote down.
+- **Guided tour.** Take a short tour from Help in the account menu, or "Help: take the tour" in Ctrl K.
 
 ## 0.2.0 — 2026-11-17
 

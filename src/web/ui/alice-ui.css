@@ -515,6 +515,8 @@
   color: var(--ui-text-muted);
 }
 .ui-table-wrap {
+  /* positioned: ข้อความ visually-hidden ในตาราง (position: absolute) ต้องถูกตัดในกล่องนี้ ไม่ดันหน้ากว้างออก */
+  position: relative;
   max-width: 100%;
   overflow-x: auto;
   border: 1px solid var(--ui-border);

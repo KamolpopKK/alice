@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright'
-import { agentClient, createAgent, inviteHuman } from '../helpers/client'
+import { agentClient, createAgent, deviceLogin, inviteHuman } from '../helpers/client'
 import { expect, signIn, test } from './fixtures'
 
 /** Agents, Activity and Settings: role-aware categories, confirmations, attribution and privacy. */
@@ -83,6 +83,8 @@ test('Activity tells people and agents apart, filters by who and what, and links
 for (const scheme of ['light', 'dark'] as const) {
   test(`Agents, Activity and every Settings category pass axe and reflow at 320 px (${scheme})`, async ({ app, owner, page }) => {
     await createAgent(owner, `Axe Agent ${stamp()}`)
+    // ตารางที่มีข้อมูลจริง (session ที่ชื่ออุปกรณ์ยาว) ต้องเลื่อนในกรอบของตัวเอง ไม่ดันหน้ากว้าง
+    await deviceLogin(app, owner, { deviceName: `a-very-long-device-name-for-the-build-box-${stamp()}` })
     await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' })
     await signIn(page, app)
     const paths = ['/agents', '/activity', ...['general', 'appearance', 'agents', 'devices', 'backup', 'advanced', 'admin'].map((s) => `/settings/${s}`), '/device']
