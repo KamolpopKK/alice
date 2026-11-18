@@ -71,7 +71,6 @@ release for each tag:
 | Artifact | Signing |
 |---|---|
 | `Alice_<version>_aarch64.dmg` and `Alice_aarch64.app.tar.gz` (with the Local runtime) | Self-signed or ad-hoc code signature, **not notarized**, updater-signed. See [macOS Local release](#macos-local-release-apple-silicon). |
-| `Alice_<version>_x64.dmg` and `Alice_x86_64.app.tar.gz` (Remote only) | Same self-signed or ad-hoc code signature as arm64, **not notarized**, updater-signed |
 | `install-macos.sh` | Installs `Alice_aarch64.app.tar.gz` after checking `SHA256SUMS`; no quarantine and no sudo |
 | `Alice_<version>_x64-setup.exe`, `Alice_<version>_x64_en-US.msi` | Not code-signed yet (SmartScreen warns on first run), updater-signed |
 | `Alice_<version>_amd64.AppImage`, `.deb`, `.rpm` (x64 and arm64) | Updater-signed |
@@ -142,8 +141,8 @@ A Developer ID and notarization remain an optional later upgrade. The release do
   and the schema expectation are one exact version. A mismatch shows Repair or Update instead of opening
   the workspace.
 - **Remote compatibility** is still negotiated through the Client API version range.
-- **Other platforms.** Windows, Linux and macOS Intel builds remain Remote-only. Local installers for them
-  are future work.
+- **Other platforms.** Windows and Linux builds remain Remote-only. Local installers for them are future
+  work. Macs with Intel processors are no longer built (the last build is 0.2.0).
 
 Before publishing, run the clean-machine checks in
 [release-checklist-local-macos.md](release-checklist-local-macos.md).

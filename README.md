@@ -37,7 +37,8 @@ Alice is code-signed but not notarized by Apple, so the first launch is blocked 
 2. Open **System Settings → Privacy & Security**, scroll down, and click **Open Anyway** next to Alice.
 3. Confirm with **Open Anyway** and your password. Later launches open normally.
 
-Intel Mac, Windows or Linux? The no-server mode needs Apple Silicon for now; use path 2 or 3.
+Windows or Linux? The no-server mode needs a Mac with Apple Silicon for now; use path 2 or 3.
+Alice Desktop no longer supports Macs with Intel processors.
 More: [Local workspaces](docs/local-workspaces.md).
 
 ### 2. Host Alice for your team (Docker)
@@ -79,7 +80,6 @@ Use the web app at your team's address, or install **Alice Desktop** from the
 | Your computer | Download |
 |---|---|
 | Mac with Apple Silicon | `Alice_<version>_aarch64.dmg` (also runs without a server, see path 1) |
-| Mac with Intel | `Alice_<version>_x64.dmg` |
 | Windows | `Alice_<version>_x64-setup.exe` (or the `.msi`) |
 | Linux | `.AppImage`, `.deb` or `.rpm` for amd64 or arm64 |
 

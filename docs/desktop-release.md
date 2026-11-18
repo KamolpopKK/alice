@@ -13,7 +13,6 @@ these hold:
 | Platform | Runner | Installers | Updater artifact |
 |---|---|---|---|
 | macOS arm64 | macos-15 | `.dmg`, `.app` | `Alice_aarch64.app.tar.gz` + `.sig` |
-| macOS x64 | macos-15-intel | `.dmg`, `.app` | `Alice_x64.app.tar.gz` + `.sig` |
 | Windows x64 | windows-latest | NSIS `-setup.exe`, `.msi` | the NSIS installer + `.sig` |
 | Linux x64 | ubuntu-22.04 | `.AppImage`, `.deb`, `.rpm` | the AppImage + `.sig` |
 | Linux arm64 | ubuntu-22.04-arm | `.AppImage`, `.deb`, `.rpm` | the AppImage + `.sig` |
@@ -29,7 +28,7 @@ separately from the server and container image.
 | `ALICE_UPDATE_URL` | variable | HTTPS URL of `latest.json` |
 | `ALICE_DOWNLOAD_BASE_URL` | variable | Base URL that `latest.json` points at for the artifacts |
 | `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | **secrets** | Sign updater artifacts |
-| `ALICE_MACOS_CERTIFICATE`, `ALICE_MACOS_CERTIFICATE_PASSWORD` | secrets | Self-signed macOS code-signing certificate (base64 `.p12`) for every macOS build (arm64 and x64) |
+| `ALICE_MACOS_CERTIFICATE`, `ALICE_MACOS_CERTIFICATE_PASSWORD` | secrets | Self-signed macOS code-signing certificate (base64 `.p12`) for every macOS build (Apple Silicon only) |
 | `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY` | secrets, optional | macOS Developer ID signing, if you add an Apple Developer account later |
 | `APPLE_ID`, `APPLE_PASSWORD` (app-specific), `APPLE_TEAM_ID` | secrets, optional | macOS notarization, same |
 
