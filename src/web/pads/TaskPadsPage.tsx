@@ -1,9 +1,9 @@
-import { Navigate, useLocation, useParams } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useEffect } from 'react'
 import { isRecoverable, FullPageError } from '../brand'
 import { ErrorMessage } from '../components/ui'
 import { Banner, Button, EmptyState, Skeleton } from '../ui'
-import { NotebookPen } from 'lucide-react'
+import { ArrowRight, NotebookPen } from 'lucide-react'
 import { NARROW_QUERY, lastPadId, rememberLastPad, useMediaQuery, usePad, usePads } from './hooks'
 import { PadEditor, activePadModel } from './PadEditor'
 import { PadHeader } from './PadHeader'
@@ -81,6 +81,26 @@ function OpenDefaultPad() {
   )
 }
 
+/** Last step of first run: once the first task is written down, show it on Home. */
+function FinishOnboarding({ padId }: { padId: string }) {
+  const navigate = useNavigate()
+  return (
+    <div className="pad-onboarding">
+      <Banner
+        tone="info"
+        title="Write your first task, then press Enter."
+        action={
+          <Button size="sm" variant="primary" icon={ArrowRight} onClick={() => navigate('/', { state: { capturedPad: padId } })}>
+            Done, show me Home
+          </Button>
+        }
+      >
+        Lines here become real tasks right away. You can come back to this pad any time.
+      </Banner>
+    </div>
+  )
+}
+
 function PadScreen({ padId, narrow }: { padId: string; narrow: boolean }) {
   const pad = usePad(padId)
   const location = useLocation()
@@ -100,7 +120,7 @@ function PadScreen({ padId, narrow }: { padId: string; narrow: boolean }) {
     return <FullPageError error={pad.error} onRetry={() => void pad.refetch()} />
   }
   if (!pad.data) return null
-  const state = (location.state ?? {}) as { focusCapture?: boolean; focusToken?: string; expand?: string[]; capture?: unknown }
+  const state = (location.state ?? {}) as { focusCapture?: boolean; focusToken?: string; expand?: string[]; capture?: unknown; onboarding?: boolean }
   return (
     <>
       <PadHeader
@@ -120,6 +140,7 @@ function PadScreen({ padId, narrow }: { padId: string; narrow: boolean }) {
               ]
         }
       />
+      {state.onboarding && <FinishOnboarding padId={padId} />}
       <PadEditor pad={pad.data} focusCapture={state.focusCapture === true} focusToken={state.focusToken ?? null} expand={state.expand ?? []} />
     </>
   )

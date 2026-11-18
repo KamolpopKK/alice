@@ -195,3 +195,25 @@ for (const scheme of ['light', 'dark'] as const) {
     }
   })
 }
+
+test('Help in the account menu and the palette opens a short guided tour', async ({ app, owner, page }) => {
+  void owner
+  await signIn(page, app)
+  await page.getByRole('button', { name: /^Account: / }).click()
+  await page.getByRole('menuitem', { name: 'Take the tour' }).click()
+  const tour = page.getByRole('dialog', { name: 'Everything starts in the sidebar' })
+  await expect(tour).toContainText('Step 1 of 6')
+  await expect(tour.getByRole('button', { name: 'Next' })).toBeFocused()
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'))
+  const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag22aa']).include('[role="dialog"]').analyze()
+  expect(axe.violations.map((v) => v.id)).toEqual([])
+  for (let i = 0; i < 5; i++) await page.getByRole('dialog').getByRole('button', { name: 'Next' }).click()
+  await expect(page.getByRole('dialog', { name: 'Make it yours' })).toContainText('Step 6 of 6')
+  await page.getByRole('button', { name: 'Done' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await page.keyboard.press('ControlOrMeta+k')
+  await page.keyboard.type('tour')
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('dialog', { name: 'Everything starts in the sidebar' })).toBeVisible()
+  await page.keyboard.press('Escape')
+})

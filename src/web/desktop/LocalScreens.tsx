@@ -15,8 +15,10 @@ export interface OnboardingResult {
   tools: { cli: boolean; codex: boolean; claude: boolean }
 }
 
-type Stage = 'welcome' | 'workspace' | 'agents' | 'first-task'
-const STAGES: Stage[] = ['welcome', 'workspace', 'agents', 'first-task']
+// 'remote' = เลือก server ของทีมแล้วออกไปตั้งค่า/sign in; กลับมาที่ขั้นที่ 3 เมื่อเชื่อมต่อแล้ว
+type Stage = 'welcome' | 'workspace' | 'agents' | 'remote' | 'first-task'
+const STAGES: Stage[] = ['welcome', 'workspace', 'agents', 'remote', 'first-task']
+const STEP: Record<Stage, number> = { welcome: 1, workspace: 2, agents: 3, remote: 3, 'first-task': 4 }
 const PROGRESS_KEY = 'alice.onboarding'
 interface Progress {
   stage: Stage
@@ -51,6 +53,12 @@ export function onboardingPending(): boolean {
   return readProgress()?.stage === 'first-task'
 }
 
+/** True after someone chose a team server during first run: once signed in, onboarding continues. */
+export function remoteOnboardingPending(): boolean {
+  const stage = readProgress()?.stage
+  return stage === 'remote' || (stage === 'first-task' && readProgress()?.workspaceName === '')
+}
+
 /**
  * Alice-guided first run in four stages: Welcome, Workspace (Local, or Remote through the server
  * switcher), Agents (optional) and First task in a real Task Pad. Progress survives a restart.
@@ -62,6 +70,7 @@ export function Onboarding({
   onFail,
   onRemote,
   applyTools,
+  connected = false,
 }: {
   /** Called before the first native change, so profile events do not leave onboarding half-way. */
   onBegin: () => void
@@ -70,10 +79,13 @@ export function Onboarding({
   /** Leaves onboarding for the Remote server setup (add a server and sign in through the browser). */
   onRemote?: () => void
   applyTools?: (tools: OnboardingResult['tools']) => Promise<void>
+  /** Signed in to a team server chosen during this first run: continue from the Remote stage. */
+  connected?: boolean
 }) {
   const saved = useRef(readProgress()).current
-  const [stage, setStage] = useState<Stage>(saved?.stage ?? 'welcome')
-  const [where, setWhere] = useState<'local' | 'remote'>('local')
+  // เลือก Remote ไว้แต่ยังไม่ได้เชื่อมต่อ (เช่น ปิดหน้าตั้งค่า server): กลับไปเลือกที่เก็บงานใหม่
+  const [stage, setStage] = useState<Stage>(saved?.stage === 'remote' && !connected ? 'workspace' : (saved?.stage ?? 'welcome'))
+  const [where, setWhere] = useState<'local' | 'remote'>(saved?.stage === 'remote' ? 'remote' : 'local')
   const [workspaceName, setWorkspaceName] = useState(saved?.workspaceName ?? 'Personal')
   // ไม่ดึงชื่อบัญชีของ OS มาใส่เอง: ค่าเริ่มต้นเป็นชื่อกลาง ๆ ที่แก้ได้
   const [ownerName, setOwnerName] = useState(saved?.ownerName ?? 'Local Owner')
@@ -84,7 +96,7 @@ export function Onboarding({
   useEffect(() => heading.current?.focus(), [stage])
   useEffect(() => {
     // กลับมาที่ขั้นสุดท้ายหลังเปิดแอปใหม่: workspace มีอยู่แล้ว ให้ shell ข้าม evaluate จนกว่าจะจบ
-    if (saved?.stage === 'first-task') onBegin()
+    if (saved?.stage === 'first-task' || (saved?.stage === 'remote' && connected)) onBegin()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const go = (next: Stage) => {
@@ -115,7 +127,7 @@ export function Onboarding({
       onFail()
     }
   }
-  const index = STAGES.indexOf(stage) + 1
+  const index = STEP[stage]
   const submit = (fn: () => void) => (e: FormEvent) => {
     e.preventDefault()
     fn()
@@ -143,7 +155,14 @@ export function Onboarding({
             </form>
           )}
           {stage === 'workspace' && (
-            <form className="onboarding-form" onSubmit={submit(() => (where === 'remote' ? onRemote?.() : go('agents')))}>
+            <form
+              className="onboarding-form"
+              onSubmit={submit(() => {
+                if (where !== 'remote') return go('agents')
+                saveProgress({ stage: 'remote', workspaceName: '', ownerName, tools })
+                onRemote?.()
+              })}
+            >
               <h1 id="onboarding-heading" tabIndex={-1} ref={heading}>
                 Where should your work live?
               </h1>
@@ -196,6 +215,28 @@ export function Onboarding({
                 </Button>
                 <Button disabled={busy} onClick={() => go('workspace')}>
                   Back
+                </Button>
+              </div>
+            </form>
+          )}
+          {stage === 'remote' && (
+            <form
+              className="onboarding-form"
+              onSubmit={submit(() => {
+                setStage('first-task')
+                saveProgress({ stage: 'first-task', workspaceName: '', ownerName, tools })
+              })}
+            >
+              <h1 id="onboarding-heading" tabIndex={-1} ref={heading}>
+                You’re connected
+              </h1>
+              <p className="onboarding-alice">You’re signed in to your team’s server. Everyone there sees the same board.</p>
+              <p className="ui-text-muted">
+                Agents connect to a team server with their own token. When you want one, open Agents: it has a setup prompt you can paste into Claude Code or Codex.
+              </p>
+              <div className="onboarding-actions">
+                <Button variant="primary" type="submit">
+                  Continue
                 </Button>
               </div>
             </form>

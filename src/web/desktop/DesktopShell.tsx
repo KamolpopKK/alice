@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { setTransport } from '../api'
 import { ErrorMessage, Loading, TextInput } from '../components/ui'
 import { isNativeError, native, workspaceLabel, type AuthEvent, type ConnectionTest, type DesktopProfile, type ProfilesView } from './native'
-import { AgentsSection, LocalRecovery, LocalWorkspacesSection, Onboarding, onboardingPending } from './LocalScreens'
+import { AgentsSection, LocalRecovery, LocalWorkspacesSection, Onboarding, onboardingPending, remoteOnboardingPending } from './LocalScreens'
 import { LocalWorkspaceContext } from '../workspace-mode'
 import { ShellWorkspaceContext, type ShellWorkspace } from '../shell/workspace'
 import { TauriTransport } from './transport'
@@ -18,7 +18,7 @@ type Phase =
   | { kind: 'incompatible'; profile: DesktopProfile; test: ConnectionTest }
   | { kind: 'sign-in'; profile: DesktopProfile }
   | { kind: 'ready'; profile: DesktopProfile }
-  | { kind: 'onboarding' }
+  | { kind: 'onboarding'; connected?: boolean }
   | { kind: 'local-failed'; profile: DesktopProfile; message: string; code: string | null }
 
 function messageOf(err: unknown): string {
@@ -93,6 +93,8 @@ export function DesktopShell({ children }: { children: ReactNode }) {
       if (active.local) return setPhase({ kind: 'local-failed', profile: active, message: messageOf(err), code: isNativeError(err) ? err.code : null })
       return setPhase({ kind: 'unreachable', profile: active, message: messageOf(err) })
     }
+    // เลือก server ของทีมระหว่าง onboarding แล้ว sign in สำเร็จ: กลับเข้า onboarding ขั้นต่อไป
+    if (active.signedIn && !active.local && remoteOnboardingPending()) return setPhase({ kind: 'onboarding', connected: true })
     setPhase(active.signedIn ? { kind: 'ready', profile: active } : { kind: 'sign-in', profile: active })
   }, [qc])
 
@@ -162,11 +164,12 @@ export function DesktopShell({ children }: { children: ReactNode }) {
       <Onboarding
         onBegin={() => (onboarding.current = true)}
         onFail={() => (onboarding.current = false)}
+        connected={phase.connected === true}
         onRemote={() => setPhase({ kind: 'profiles' })}
         onFinish={() => {
           onboarding.current = false
-          // จบ onboarding ใน Task Pad ใหม่ที่โฟกัสบรรทัดแรก
-          void evaluate().then(() => navigate('/pads', { state: { capture: { id: `onboarding-${Date.now()}`, intent: 'new-pad' } } }))
+          // งานแรกใน Task Pad ใหม่ที่โฟกัสบรรทัดแรก แล้ว Pad พาไปที่ Home ที่เห็นงานนั้น
+          void evaluate().then(() => navigate('/pads', { state: { capture: { id: `onboarding-${Date.now()}`, intent: 'new-pad', onboarding: true } } }))
         }}
         applyTools={async (tools) => {
           if (tools.cli || tools.codex || tools.claude) await native.toolsApply(tools)

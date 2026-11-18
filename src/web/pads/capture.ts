@@ -8,6 +8,8 @@ export type CaptureIntent = 'open-last' | 'new-pad'
 export interface CaptureRequest {
   id: string
   intent: CaptureIntent
+  /** The first capture of onboarding: the Pad offers to finish on Home. */
+  onboarding?: boolean
 }
 
 const HANDLED_KEY = 'alice.capture.handled'
@@ -44,7 +46,7 @@ export function useCaptureIntent(): void {
   const capture = (location.state as { capture?: CaptureRequest } | null)?.capture
   useEffect(() => {
     if (!capture || !claim(capture.id)) return
-    const open = (padId: string) => navigate(`/pads/${padId}`, { replace: true, state: { focusCapture: true, focusToken: capture.id } })
+    const open = (padId: string) => navigate(`/pads/${padId}`, { replace: true, state: { focusCapture: true, focusToken: capture.id, onboarding: capture.onboarding === true } })
     const create = async () => {
       const { pad } = await client.pads.create({ name: defaultPadName(), mutationId: `capture-${capture.id}`.replace(/[^A-Za-z0-9_.:-]/g, '-').slice(0, 128) })
       void qc.invalidateQueries({ queryKey: ['pads'] })

@@ -51,6 +51,8 @@ function readCollapsed(): boolean {
 
 export function HomePage() {
   const me = useMe()
+  const location = useLocation()
+  const captured = (location.state as { capturedPad?: string } | null)?.capturedPad ?? null
   const taskPads = useCapability('task-pads')
   const mine = useTaskPages('home-mine', { assigneeId: 'me', sort: 'due' }, 200)
   const tasks = (mine.data?.pages.flatMap((p) => p.items) ?? []).filter(isOpen)
@@ -94,6 +96,8 @@ export function HomePage() {
 
       <WhatsNew />
 
+      {captured && <JustCaptured padId={captured} />}
+
       <QuickCreate taskPads={taskPads} />
 
       <div className="home-grid">
@@ -119,6 +123,30 @@ export function HomePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+/** After first run: the tasks just written in the onboarding Pad, so the person sees them are real. */
+function JustCaptured({ padId }: { padId: string }) {
+  const blocks = useQuery({ queryKey: ['pad', padId, 'captured'], queryFn: () => client.pads.blocks(padId, { limit: 200 }) })
+  const tasks = (blocks.data?.items ?? []).flatMap((b) => (b.type === 'task' && b.task ? [b.task] : []))
+  return (
+    <section aria-labelledby="home-captured" className="home-section home-captured">
+      <SectionHeader title={<span id="home-captured">Just captured</span>} level={2} actions={<Link to={`/pads/${padId}`}>Back to the pad</Link>} />
+      {blocks.isLoading ? (
+        <Skeleton lines={2} />
+      ) : tasks.length === 0 ? (
+        <EmptyState title="No tasks in that pad yet">Lines you mark as tasks in a pad appear here and in Tasks.</EmptyState>
+      ) : (
+        <List label="Just captured">
+          {tasks.map((t) => (
+            <ListItem key={t.id} trailing={<Badge>{t.project.name}</Badge>}>
+              <Link to={`/tasks/${t.id}`}>{t.title}</Link>
+            </ListItem>
+          ))}
+        </List>
+      )}
+    </section>
   )
 }
 

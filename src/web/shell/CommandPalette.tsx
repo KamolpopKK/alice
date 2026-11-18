@@ -1,6 +1,7 @@
 import * as RDialog from '@radix-ui/react-dialog'
 import { useQuery } from '@tanstack/react-query'
 import { CircleHelp, FilePlus2, FolderPlus, Monitor, Moon, NotebookPen, Repeat, Search, SquarePlus, Sun, type LucideIcon } from 'lucide-react'
+import { openTour } from './Tour'
 import { SEARCH_KIND, searchResultLink } from '../search/results'
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -79,6 +80,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
       { id: 'theme:dark', group: 'Theme', label: 'Dark theme', icon: Moon, keywords: 'appearance', run: () => setPreference('dark') },
       { id: 'theme:system', group: 'Theme', label: 'System theme', icon: Monitor, keywords: 'appearance auto', run: () => setPreference('system') },
       { id: 'help', group: 'Help', label: 'Help: connect an agent', icon: CircleHelp, keywords: 'docs guide', run: go('/agents') },
+      { id: 'help:tour', group: 'Help', label: 'Help: take the tour', icon: CircleHelp, keywords: 'guide introduction what is new', run: openTour },
     ]
     if (ws.onSwitch) list.push({ id: 'workspace:switch', group: 'Workspace', label: ws.kind === 'local' ? 'Switch workspace' : 'Switch server', icon: Repeat, run: ws.onSwitch })
     return list

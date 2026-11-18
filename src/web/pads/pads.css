@@ -570,3 +570,6 @@ kbd {
   margin: 0;
   accent-color: var(--ui-link);
 }
+.pad-onboarding {
+  margin: 0 0 var(--ui-space-3);
+}

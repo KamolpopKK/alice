@@ -571,3 +571,21 @@
     display: none;
   }
 }
+
+/* ---------- guided tour ---------- */
+.tour-body {
+  display: flex;
+  gap: var(--ui-space-4);
+  align-items: flex-start;
+}
+.tour-body p {
+  margin: 0;
+}
+.tour-mascot {
+  flex: none;
+}
+@media (max-width: 420px) {
+  .tour-mascot {
+    display: none;
+  }
+}

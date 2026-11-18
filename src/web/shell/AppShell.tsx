@@ -1,4 +1,4 @@
-import { ChevronsLeft, ChevronsRight, FilePlus2, FolderPlus, LogOut, Menu as MenuIcon, NotebookPen, Plus, Search, SquarePlus } from 'lucide-react'
+import { ChevronsLeft, ChevronsRight, Compass, FilePlus2, FolderPlus, LogOut, Menu as MenuIcon, NotebookPen, Plus, Search, SquarePlus } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth, useMe } from '../auth'
@@ -11,6 +11,7 @@ import { isDesktop } from '../platform'
 import { Avatar, Badge, Button, IconButton, Menu, Sheet, Tooltip, type MenuItem } from '../ui'
 import { useLocalWorkspace } from '../workspace-mode'
 import { CommandPalette, usePaletteShortcut } from './CommandPalette'
+import { Tour, openTour } from './Tour'
 import { available, isCurrent, PRIMARY, SECONDARY, type Destination } from './nav'
 import { useShellWorkspace } from './workspace'
 
@@ -122,6 +123,7 @@ export function AppShell() {
         </main>
       </div>
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      <Tour />
     </div>
   )
 }
@@ -250,7 +252,8 @@ function AccountMenu({ compact }: { compact?: boolean }) {
   const { signOut } = useAuth()
   const local = useLocalWorkspace()
   const items: MenuItem[] = [{ kind: 'label', label: me.displayName }]
-  if (!local) items.push({ label: 'Sign out', icon: LogOut, onSelect: () => void signOut() })
+  items.push({ kind: 'label', label: 'Help' }, { label: 'Take the tour', icon: Compass, onSelect: openTour })
+  if (!local) items.push({ kind: 'separator' }, { label: 'Sign out', icon: LogOut, onSelect: () => void signOut() })
   return (
     <Menu
       trigger={

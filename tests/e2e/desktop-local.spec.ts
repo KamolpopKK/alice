@@ -46,6 +46,9 @@ test.describe('Alice Desktop with Local workspaces', () => {
         return ((await res.json()) as { items: Array<{ createdBy: { displayName: string } }> }).items[0]?.createdBy.displayName
       })
       .toBe('Kim')
+    // จบ onboarding ที่ Home และเห็นงานจริงที่เพิ่งจด
+    await page.getByRole('button', { name: 'Done, show me Home' }).click()
+    await expect(page.getByRole('region', { name: 'Just captured' }).getByRole('link', { name: 'First local task' })).toBeVisible()
 
     // เปิดใหม่: ไม่ onboarding ซ้ำ และไม่สร้าง Personal ซ้ำ
     await page.reload()
@@ -298,13 +301,33 @@ test.describe('Alice Desktop with Local workspaces', () => {
     await expect(page.getByRole('heading', { name: 'Capture your first task' })).toHaveCount(0)
   })
 
-  test('choosing a team server leaves onboarding for the server setup', async ({ app, page }) => {
-    await FakeNativeCore.attach(page, { localHome: localHome() })
+  test('choosing a team server signs in there, then onboarding continues to the first task and Home', async ({ app, owner, page }) => {
+    const native = await FakeNativeCore.attach(page, { localHome: localHome() })
     await page.goto(app.url)
     await page.getByRole('button', { name: 'Get started' }).click()
     await page.getByRole('radio', { name: /On a team server/ }).check()
     await expect(page.getByLabel('Your name')).toHaveCount(0)
     await page.getByRole('button', { name: 'Connect to a server' }).click()
-    await expect(page.getByLabel(/Server URL|Server address/i).first()).toBeVisible()
+    await page.getByLabel('Profile name').fill('team')
+    await page.getByLabel('Server URL').fill(app.url)
+    await page.getByRole('button', { name: 'Add server' }).click()
+    await page.getByRole('button', { name: 'Sign in with browser' }).click()
+    await expect(page.getByLabel('Sign-in code')).toBeVisible()
+    await owner.post('/client/v1/device/approve', { userCode: native.pendingUserCode })
+    // กลับเข้า onboarding ขั้นที่ 3 หลัง sign in
+    await expect(page.getByRole('heading', { name: 'You’re connected' })).toBeFocused({ timeout: 15_000 })
+    await expect(page.getByText('Step 3 of 4')).toBeVisible()
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await expect(page.getByRole('heading', { name: 'Capture your first task' })).toBeFocused()
+    await page.getByRole('button', { name: 'Open my Task Pad' }).click()
+    await expect(page.getByRole('textbox', { name: 'New task' }).first()).toBeFocused({ timeout: 15_000 })
+    await page.keyboard.type('First team task')
+    await page.keyboard.press('Enter')
+    await expect.poll(async () => ((await owner.get('/client/v1/tasks?q=First%20team')).body.items as unknown[]).length).toBe(1)
+    await page.getByRole('button', { name: 'Done, show me Home' }).click()
+    await expect(page.getByRole('region', { name: 'Just captured' }).getByRole('link', { name: 'First team task' })).toBeVisible()
+    // จบแล้ว: เปิดใหม่ไม่ย้อนกลับไป onboarding
+    await page.reload()
+    await expect(page.getByRole('heading', { level: 1, name: /^Good (morning|afternoon|evening)/ })).toBeVisible()
   })
 })
