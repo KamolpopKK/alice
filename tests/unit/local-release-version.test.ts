@@ -12,7 +12,7 @@ describe('one Local release version', () => {
     expect(JSON.parse(read('package.json')).version).toBe(APP_VERSION)
     expect(/^version = "([^"]+)"/m.exec(read('src-tauri/Cargo.toml'))![1]).toBe(APP_VERSION)
     expect(JSON.parse(read('src-tauri/tauri.conf.json')).version).toBe(APP_VERSION)
-    for (const skill of fs.readdirSync(path.join(ROOT, 'skill'))) {
+    for (const skill of fs.readdirSync(path.join(ROOT, 'skill')).filter((d) => !d.startsWith('_'))) {
       expect([skill, /^version:\s*(\S+)/m.exec(read(`skill/${skill}/SKILL.md`))![1]]).toEqual([skill, APP_VERSION])
     }
   })

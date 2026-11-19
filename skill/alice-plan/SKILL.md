@@ -8,8 +8,8 @@ version: 0.2.0
 
 You turn a planning input into a work breakdown on the shared Alice board. The result must let any
 person or agent pick up a leaf task, call `get_task_context`, and start immediately — no follow-up
-questions, no hunting for files. You act through the `alice` MCP server or the `alice` command under
-your own agent identity.
+questions, no hunting for files. You act through the `alice` MCP server, the `alice` command or the
+project's `.alice/` files, under your own agent identity.
 Requires an Alice server speaking MCP contract v1.
 
 Templates and the pre-creation checklist are in [TEMPLATE.md](TEMPLATE.md). Read it before drafting.
@@ -25,17 +25,21 @@ Templates and the pre-creation checklist are in [TEMPLATE.md](TEMPLATE.md). Read
 ## Choose where you work first
 
 The `alice` MCP tools reach the one server in your MCP configuration; the `alice` command reaches Local
-workspaces on this computer. They may be different boards. At the start of every conversation, before
+workspaces on this computer; **project files** are a board kept as Markdown in this repository's `.alice/`
+folder, with no app. They may be different boards. At the start of every conversation, before
 reading or drafting anything:
 
 1. List what you can reach: `alice --as <you> workspace list --json` if the command exists, plus the `alice`
-   MCP tools if available (call `whoami`), unless they are the same server as a Remote entry in the list.
-2. One workspace: use it and name it (name and alias, or server) to the user.
-3. Two or more: ask the user which one before you read or draft anything, even when one is active or
+   MCP tools if available (call `whoami`), unless they are the same server as a Remote entry in the list,
+   plus project files if `.alice/tasks/` exists.
+2. None: offer project files, and create `.alice/` only after the user agrees.
+3. One workspace: use it and name it (name and alias, or server) to the user.
+4. Two or more: ask the user which one before you read or draft anything, even when one is active or
    bound to this project. List each one and mention the active or bound one as a suggestion only. Skip
    the question only when the user already named the workspace in this conversation.
-4. Use the answer for the whole plan: add `--workspace ALIAS` to every command, or use the MCP tools.
-5. If the MCP tools cannot connect or return `UNAUTHENTICATED` while a Local workspace exists, tell the
+5. Use the answer for the whole plan: add `--workspace ALIAS` to every command, use the MCP tools, or
+   follow "Planning in project files".
+6. If the MCP tools cannot connect or return `UNAUTHENTICATED` while a Local workspace exists, tell the
    user and offer to plan there instead of stopping.
 
 Never change the active workspace or write a binding file unless the user asks.
@@ -51,6 +55,18 @@ Do the same steps with the `alice` command:
   - `search`
   - `task update ID --status ready`
 - Results use the `{ "ok", "workspace", "data" }` envelope.
+
+### Planning in project files
+
+Before you use project files, read [PROJECT-FILES.md](PROJECT-FILES.md) in this skill's folder: the file
+format, setting up `.alice/`, what to tell the user the first time, and moving to the app. Then follow the
+same steps, writing files instead of calling Alice:
+- **Reference document:** `.alice/docs/D-<n>-<slug>.md`.
+- **Tasks:** one `.alice/tasks/T-<n>-<slug>.md` per parent and leaf, `status: backlog`, `assignee: none`,
+  `labels: [plan:<slug>]`, `parent`, `docs: [D-<n>]`, and the template sections as the body.
+- **Order:** `blocked_by: [T-<n>]` on the task that waits. Check for cycles yourself.
+- **Release:** set `status: ready` on leaves whose `blocked_by` tasks are all `done`.
+- Commit the plan as one commit (`Plan <slug>`) after the person approves it, not before.
 
 ## 1. Identify the input
 

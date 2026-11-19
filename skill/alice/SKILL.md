@@ -1,6 +1,6 @@
 ---
 name: alice
-description: Work on the team's Alice taskboard through its MCP tools or the alice command — find ready tasks, claim them atomically, load task context, post progress comments and complete work with a summary. Use when asked to pick up, work on, update or report on Alice tasks, projects or documents.
+description: Work on the team's Alice taskboard through its MCP tools, the alice command or Markdown files in the project's .alice/ folder — find ready tasks, claim them atomically, load task context, post progress comments and complete work with a summary. Use when asked to pick up, work on, update or report on Alice tasks, projects or documents.
 version: 0.2.0
 ---
 
@@ -19,24 +19,28 @@ to you and visible to the team immediately. Requires an Alice server speaking MC
 
 ## Choose where you work first
 
-You can reach Alice in two ways, and they may point at different boards:
+You can reach Alice in three ways, and they may point at different boards:
 - the `alice` MCP tools, which talk to the one server in your MCP configuration;
-- the `alice` command, which reaches Local workspaces that run privately on this computer.
+- the `alice` command, which reaches Local workspaces that run privately on this computer;
+- **project files**: a board kept as Markdown in this repository's `.alice/` folder, with no app at all.
 
 Check this at the start of every conversation, before your first read or change:
 
 1. **List what you can reach.** If the `alice` command exists, run `alice --as <you> workspace list --json`;
    each entry is a workspace. If the `alice` MCP tools are available, they are one more (call `whoami` to
-   name them), unless they are the same server as a Remote entry in that list.
-2. **One workspace:** use it, and tell the user its name and alias (or server) before your first change.
-3. **Two or more:** ask the user which one to use before you read or change anything, even when one is
+   name them), unless they are the same server as a Remote entry in that list. If this repository has
+   `.alice/tasks/`, the project files are one more.
+2. **None:** offer project files. Create `.alice/` only after the user agrees.
+3. **One workspace:** use it, and tell the user its name and alias (or server) before your first change.
+4. **Two or more:** ask the user which one to use before you read or change anything, even when one is
    active or this project has a binding file. List each one (name, alias, Local or Remote, or the MCP
-   server) and mention the active or bound one as a suggestion, not a decision. Skip the question only
+   server, or project files) and mention the active or bound one as a suggestion, not a decision. Skip the question only
    when the user already named the workspace in this conversation.
-4. **Use the answer for the rest of the conversation.** For a workspace from the list, add
-   `--workspace ALIAS` to every command; for the MCP server, use the MCP tools. Ask again only when the
+5. **Use the answer for the rest of the conversation.** For a workspace from the list, add
+   `--workspace ALIAS` to every command; for the MCP server, use the MCP tools; for project files, follow
+   "Working in project files". Ask again only when the
    user wants to switch.
-5. **When the MCP tools fail.** If they cannot connect or return `UNAUTHENTICATED` while a Local workspace
+6. **When the MCP tools fail.** If they cannot connect or return `UNAUTHENTICATED` while a Local workspace
    exists, tell the user and offer to continue there instead of stopping.
 
 Never change the active workspace (`alice workspace use`) or write a binding file (`alice workspace
@@ -60,6 +64,24 @@ Other commands work the same way: `project`, `document`, `search` and `task pare
 `alice --help`. Every result is `{ "ok", "workspace", "data" }` or `{ "ok": false, "error": { "code",
 "message" } }` with the codes below, and the exit status is non-zero on errors. `UNAUTHENTICATED`
 means the person disabled your integration: stop and tell them.
+
+## Working in project files
+
+Before you use project files, read [PROJECT-FILES.md](PROJECT-FILES.md) in this skill's folder: the file
+format, setting up `.alice/`, what to tell the user the first time, claiming through git, and moving to
+the app.
+
+1. **Find work.** Pull first. Pick a task with `status: ready`, `assignee: none`, and every `blocked_by`
+   task `done`.
+2. **Claim.** Set `status: in_progress` and `assignee: <you>`, add `- <date> <you>: claimed`, then commit
+   and push only that file, as PROJECT-FILES.md describes. Back off if someone else got it first.
+3. **Context.** Read the task, its parent, its `blocked_by` tasks and its `docs` files.
+4. **Comment.** Append `- <date> <you>: <what you did, found or need>` to Activity.
+5. **Complete.** Set `status: done` and append `- <date> <you>: completed — <what was delivered and where>`.
+   The summary is required, as with `complete`.
+6. **Ask before risky steps.** Append `- <date> <you>: asks <person>: <question>`, set `status: blocked`,
+   tell the user, and wait for their answer in chat before going on. Record the answer as an Activity line.
+7. **Blocked.** Set `status: blocked` and say why in Activity.
 
 ## Working through the MCP tools
 

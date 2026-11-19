@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Added
+
+- **A board without the app.** Agents can keep an Alice board as Markdown files in the project's `.alice/`
+  folder and commit it with the code: one file per task and per document, with status, assignee, parent,
+  blockers, labels and an Activity history. The `alice` and `alice-plan` skills work this way when the
+  person chooses it, and offer it when no workspace is reachable. Setting up `.alice/` also writes a
+  `README.md` for people and a `.gitignore` for machine files. The first time, the agent says where the
+  board is, the good practice, and that it can set up the app and import the board on request. Both
+  skills ship this guidance as the same `PROJECT-FILES.md`, so it does not matter which one runs first.
+  See `docs/project-files.md`.
+- **`alice import`** brings such a folder into any workspace, Local or Remote. It checks every file
+  first, creates the project, documents and tasks with their relationships and links, turns each task's
+  Activity into a comment, and records the new ids in `.alice/imported.json`. `--dry-run` shows what
+  would be created.
+
 ### Changed
 
 - **Alice Desktop no longer supports Macs with Intel processors.** Releases build macOS for Apple Silicon

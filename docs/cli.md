@@ -121,6 +121,8 @@ alice doc restore-revision doc_… 1 --yes
 alice search "onboarding" --kind task
 alice activity --limit 20
 alice open task tsk_…                # Desktop if installed, otherwise the Web page
+alice import --dry-run               # check a Markdown board in .alice/ (see docs/project-files.md)
+alice import                         # create a project with its tasks, documents and relationships
 ```
 
 - **Identifiers win.** Mutation targets are opaque ids (`tsk_…`, `prj_…`, `doc_…`). Where a name is
@@ -133,6 +135,10 @@ alice open task tsk_…                # Desktop if installed, otherwise the Web
   on stderr says so. Use `--limit N` (up to 10 000) or `--all`.
 - **Confirmation.** `archive` and `doc restore-revision` ask before acting. In scripts and other
   non-interactive use, pass `--yes`; without it they exit with code 2 and change nothing.
+- **`alice import [DIR]`.** Reads a board kept as Markdown files (`.alice/` by default), checks every file
+  first, and creates nothing when one is invalid. It creates a project named after `board.md` unless
+  `--project` names an existing one, records the new ids in `DIR/imported.json`, and refuses a second
+  import of the same folder unless `--force`. File format: [project-files.md](project-files.md).
 - **`alice open`.** It uses the `alice://open/<kind>/<id>?profile=<name>` deep link when Alice Desktop is
   registered on this machine. Otherwise it opens `<server>/<kind>s/<id>` in the browser. `--web` and
   `--desktop` force one or the other, `--print` only prints the URL, and `ALICE_DESKTOP=0|1` overrides
