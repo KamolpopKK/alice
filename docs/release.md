@@ -74,7 +74,7 @@ release for each tag:
 | `install-macos.sh` | Installs `Alice_aarch64.app.tar.gz` after checking `SHA256SUMS`; no quarantine and no sudo |
 | `Alice_<version>_x64-setup.exe`, `Alice_<version>_x64_en-US.msi` | Not code-signed yet (SmartScreen warns on first run), updater-signed |
 | `Alice_<version>_amd64.AppImage`, `.deb`, `.rpm` (x64 and arm64) | Updater-signed |
-| `alice-cli-v<version>.js` | Standalone CLI, listed in `SHA256SUMS` |
+| `alice-cli-v<version>.js` and `alice-cli.js` | Standalone CLI (the same file; the second name is stable for `releases/latest/download/`), listed in `SHA256SUMS` |
 | `latest.json` | Updater manifest with `aliceClientApi` |
 | `SHA256SUMS` | SHA-256 of every file |
 

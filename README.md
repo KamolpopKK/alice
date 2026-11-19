@@ -15,8 +15,8 @@ shows who made it, and everyone sees the same board live.
 
 ## Get started
 
-Pick the path that fits you. Just want your agents to keep a board in the repository, with nothing
-installed? Use [project files](docs/project-files.md): Markdown in `.alice/` that you can import later.
+Pick the path that fits you. Just want your agents to keep a board in the repository, with no app or
+server? See path 4.
 
 ### 1. Use Alice on your Mac (no server)
 
@@ -91,6 +91,23 @@ code-signed yet, so SmartScreen may say *Windows protected your PC*: click **Mor
 **`alice` command and AI agents:** open your team's Alice and go to **Agents**. It shows the install
 commands for the CLI, the agent skills and MCP, with your server's address filled in, and a prompt you
 can paste into your agent to set itself up. The CLI needs Node.js 22 or later.
+
+### 4. Only the agent skills (no app, no server)
+
+Your agents keep the board as Markdown files in the project's `.alice/` folder, committed with the code.
+You need Node.js 22 or later to install the skills:
+
+```bash
+curl -fsSLo alice-cli.js https://github.com/KamolpopKK/alice/releases/latest/download/alice-cli.js
+node alice-cli.js install-skill --client claude-code      # or: --client codex
+```
+
+This installs the `alice` and `alice-plan` skills for you. Add `--scope project` to put them in this
+repository instead (`.claude/skills/` or `.codex/skills/`), so everyone who clones it gets them. Then ask
+your agent to plan or pick up work; it asks before creating `.alice/`.
+
+Keep `alice-cli.js` if you may want the app later: `node alice-cli.js import` brings the board into Alice.
+More: [project files](docs/project-files.md).
 
 ## What Alice is
 

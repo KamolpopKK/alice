@@ -16,6 +16,9 @@
   first, creates the project, documents and tasks with their relationships and links, turns each task's
   Activity into a comment, and records the new ids in `.alice/imported.json`. `--dry-run` shows what
   would be created.
+- **Skills without the app.** Every release also attaches the CLI as `alice-cli.js`, so the README's new
+  path 4 installs the `alice` and `alice-plan` skills from `releases/latest/download/alice-cli.js` with one
+  command and Node.js 22.
 
 ### Changed
 

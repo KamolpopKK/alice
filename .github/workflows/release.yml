@@ -144,6 +144,8 @@ jobs:
           ! grep -q better-sqlite3 dist/alice.js
           REF="${GITHUB_REF_NAME:-dev}"
           cp dist/alice.js "out/alice-cli-${REF//\//-}.js"
+          # ชื่อคงที่ให้ README ลิงก์ผ่าน releases/latest/download/alice-cli.js ได้ทุก version
+          cp dist/alice.js out/alice-cli.js
       - uses: actions/upload-artifact@v4
         with:
           name: cli

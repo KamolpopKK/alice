@@ -7,6 +7,19 @@ when the person chooses it, or when `.alice/tasks/` exists and nothing else is a
 
 When you want the web dashboard later, `alice import` brings the files into a workspace.
 
+## Getting the skills without the app
+
+With Node.js 22 or later:
+
+```bash
+curl -fsSLo alice-cli.js https://github.com/KamolpopKK/alice/releases/latest/download/alice-cli.js
+node alice-cli.js install-skill --client claude-code      # or: --client codex
+```
+
+`--scope project` installs them into the repository (`.claude/skills/` or `.codex/skills/`) instead of your
+home folder, so they travel with the code. `--skill alice` or `--skill alice-plan` installs one of them;
+each still gets the full project files guidance. Keep `alice-cli.js` for `node alice-cli.js import` later.
+
 ## Layout
 
 ```

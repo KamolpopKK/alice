@@ -17,7 +17,8 @@ these hold:
 | Linux x64 | ubuntu-22.04 | `.AppImage`, `.deb`, `.rpm` | the AppImage + `.sig` |
 | Linux arm64 | ubuntu-22.04-arm | `.AppImage`, `.deb`, `.rpm` | the AppImage + `.sig` |
 
-The CLI is released as a single file, `alice-cli-<tag>.js`, which needs only Node.js 22+. It is built
+The CLI is released as a single file, `alice-cli-<tag>.js`, which needs only Node.js 22+. The same file is
+also attached as `alice-cli.js`, so `releases/latest/download/alice-cli.js` always fetches the latest one. It is built
 separately from the server and container image.
 
 ## Keys and secrets
