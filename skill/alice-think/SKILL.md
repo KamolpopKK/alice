@@ -104,7 +104,11 @@ otherwise stop here.
 
 ## 3. Question until you share an understanding
 
-- Ask **one question at a time**, each with your recommended answer and the alternatives.
+- Ask in **rounds of up to 5 questions**. Number them, and give each your recommended answer and the
+  alternatives. Put in one round only questions that do not depend on each other's answers; a question
+  that depends on an answer waits for the next round. When only one question is open, ask just that one.
+- The person may answer by number, answer only some, or accept all your recommendations at once ("ok").
+  Record each answer, then ask the next round built on them.
 - Explore instead of asking whenever the answer is in the code (when you run inside the repository) or
   in Alice. Never ask what you could look up.
 - Resolve decisions in the order they depend on each other: the problem and who has it, the outcome and

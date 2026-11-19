@@ -115,7 +115,7 @@ describe('alice-think skill', () => {
 
   // งานเล็กต้องออกได้ทันทีโดยไม่ถามอะไร ก่อนจะถึงขั้นซักถามและเขียน brief
   it('triages first, hands small work to one task without questions, and questions only the rest', () => {
-    const steps = ['## 1. Triage', '**Small and clear**', '## 2. Small and clear: one task, no questions', '## 3. Question', 'one question at a time', '## 4. Write the brief', '## 5. Approve', 'explicit approval', '`create_document']
+    const steps = ['## 1. Triage', '**Small and clear**', '## 2. Small and clear: one task, no questions', '## 3. Question', 'rounds of up to 5 questions', '## 4. Write the brief', '## 5. Approve', 'explicit approval', '`create_document']
     const at = steps.map((s) => think.indexOf(s))
     expect(at.every((i) => i > 0)).toBe(true)
     expect(at).toEqual([...at].sort((a, b) => a - b))

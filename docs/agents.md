@@ -129,8 +129,10 @@ Give your agent a new idea, request, bug report or piece of feedback that has no
 2. **Small and clear work** (one reviewable change, nothing left for you to decide) becomes one `ready`
    task straight away, with no questions. Ask the agent to do it now and it continues with the `alice`
    skill.
-3. Anything else gets questioned, one question at a time with a recommendation. The agent looks in the
-   code and in Alice before asking, and stops once someone could plan the work without asking you again.
+3. Anything else gets questioned in rounds of up to five, each question with a recommended answer that
+   you can accept all at once. Questions that depend on an earlier answer wait for the next round. The
+   agent looks in the code and in Alice before asking, and stops once someone could plan the work
+   without asking you again.
 4. It writes a brief as one Alice document with only the sections the work needs: problem and goal,
    source and decisions always; user journey, requirements, spec, out of scope and open questions when
    they apply.
