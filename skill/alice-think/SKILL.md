@@ -82,12 +82,19 @@ same steps, writing files instead of calling Alice:
 
 ## 1. Triage (always, before any question)
 
-Restate the request in one line, then look for existing work: `search` and `search_documents` for tasks,
-plans and briefs on the same subject. Then take the first route that fits:
+Restate the request in one line. Then check what already exists, by meaning rather than by the words
+used:
+- **Alice:** `search` and `search_documents` for tasks, plans and briefs on the same subject, including
+  canceled tasks: work that was turned down before, and why.
+- **The code** (when you run inside the repository): whether the behaviour already exists.
+- **A bug:** try to reproduce it from what you were told, and note the result: reproduced (with the code
+  path), not reproduced, or not enough detail to try.
+
+Then take the first route that fits:
 
 | Route | When | What you do |
 |---|---|---|
-| **Already on the board** | A task, plan or brief covers it | Point the person to it (id and title). Add to it only if they ask. |
+| **Already there** | A task, plan or brief covers it, or the code already does it | Point the person to it (id and title, or the code path). Add to it only if they ask. If it was turned down before, say why. |
 | **Small and clear** | One reviewable change (one commit or pull request, at most about a day), the outcome fits in a line or two, and no decision is left for the person | Go to step 2. Ask nothing. |
 | **Needs thinking** | Anything else: an idea, a feature, feedback or a bug whose cause or wanted outcome is unclear, work that touches several parts or needs a decision | Go to step 3. |
 
@@ -104,21 +111,40 @@ otherwise stop here.
 
 ## 3. Question until you share an understanding
 
-- Ask in **rounds of up to 5 questions**. Number them, and give each your recommended answer and the
-  alternatives. Put in one round only questions that do not depend on each other's answers; a question
-  that depends on an answer waits for the next round. When only one question is open, ask just that one.
-- The person may answer by number, answer only some, or accept all your recommendations at once ("ok").
-  Record each answer, then ask the next round built on them.
-- Explore instead of asking whenever the answer is in the code (when you run inside the repository) or
-  in Alice. Never ask what you could look up.
-- Resolve decisions in the order they depend on each other: the problem and who has it, the outcome and
-  how to tell it worked, scope and what is out of it, constraints, then technical choices.
+Map the work as decisions that hang off each other: the problem and who has it, the outcome and how to
+tell it worked, scope and what is out of it, constraints, then technical choices. Ask in **rounds**. A
+round holds every open question whose prerequisites are already settled, and nothing else: a question
+that depends on an answer still open waits for a later round. Wait for the answers, record them, then
+work out the next round afresh from what is now settled.
+
+Format every question the same way, so the person can answer a whole round by number
+("1 yes, 2 the second option, 3 no, because …"):
+
+```
+❓ **Q1 - <short title>**: <the question, with the alternatives>
+
+➡️ <your recommended answer>
+```
+
+- Word each question so that "yes" accepts your recommendation.
+- Mark a question **trade-off** when your recommendation gives up something the person may care about,
+  and say what. Accepting a round wholesale must never hide one.
+- **Facts are your job; decisions are the person's.** Look up whatever the code, the repository or Alice
+  can answer instead of asking. Do not hold a round for it: ask the questions that do not need that fact
+  now, and the ones that do once you have it. Never answer a decision yourself.
+- **"I don't know" is an answer.** Record it as an open question with who decides. When a decision
+  belongs to someone who is not in the conversation, record it with their name instead of guessing.
+- **Questions talk cannot settle**, such as how something should look or feel or which of two flows works
+  better: stop asking about them. Propose a spike task or a throwaway prototype, and keep the question
+  open until then.
 - Point out contradictions with earlier answers, the code or existing documents as soon as you see them.
 - **Stop when enough is decided**: someone could plan the work, or do it, without asking the person
-  again. Do not ask about details that belong in the work itself.
+  again. Do not ask about details that belong in the work itself. If the rounds keep growing, the work is
+  too big for one brief: say so, propose how to split it, and think the parts through one at a time.
 
-If the answers show the work is one task after all, create it as in step 2 with what you learned as the
-description, and skip the brief.
+Then sum up what you agreed in a few lines and ask the person to confirm that you share the same
+understanding before you write anything. If the work turns out to be one task, create it as in step 2
+after that confirmation, with what you learned as the description, and skip the brief.
 
 ## 4. Write the brief
 
@@ -132,8 +158,8 @@ One Alice document, titled after the work, with only the sections this work need
 | **Requirements** | A feature: each requirement with its acceptance condition |
 | **Spec** | Several parts of the system or a technical choice: the design, interfaces, data, what was rejected and why |
 | **Out of scope** | Something was explicitly left out |
-| **Decisions** | Always: each decision from step 3 as "question → answer", so later readers know why |
-| **Open questions** | Only questions that can wait for planning or design, each with who decides |
+| **Decisions** | Always: each decision from step 3 as "question → answer", so later readers know why. Keep the exact terms agreed (numbers, limits, order, what must not happen); never soften them into general prose |
+| **Open questions** | Only questions that can wait for planning or design ("I don't know" answers, decisions for people outside the conversation, questions waiting on a spike), each with who decides |
 
 Keep it short: under ~20,000 characters, so planning tools can read it in full. Write no "TBD"; an
 unknown is an open question with an owner, or it goes back to step 3.

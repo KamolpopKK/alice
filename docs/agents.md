@@ -124,15 +124,17 @@ older CLI) is fixed by the same steps.
 Give your agent a new idea, request, bug report or piece of feedback that has no Alice task yet. The
 `alice-think` skill decides how much thinking it needs, and no more:
 
-1. It restates the request in one line and searches Alice for a task, plan or brief that already covers
-   it.
+1. It restates the request in one line and checks, by meaning rather than wording, whether a task, plan
+   or brief in Alice, or the code itself, already covers it, including work that was turned down before.
+   It tries to reproduce a bug.
 2. **Small and clear work** (one reviewable change, nothing left for you to decide) becomes one `ready`
    task straight away, with no questions. Ask the agent to do it now and it continues with the `alice`
    skill.
-3. Anything else gets questioned in rounds of up to five, each question with a recommended answer that
-   you can accept all at once. Questions that depend on an earlier answer wait for the next round. The
-   agent looks in the code and in Alice before asking, and stops once someone could plan the work
-   without asking you again.
+3. Anything else gets questioned in rounds. A round holds every question that can be asked now; one that
+   depends on an earlier answer waits for the next round. Each question is numbered with a recommended
+   answer, worded so that "yes" accepts it, so you can answer a round by number. The agent looks up facts
+   itself, leaves every decision to you, records "I don't know" as an open question with an owner, and
+   asks you to confirm the shared understanding before it writes anything.
 4. It writes a brief as one Alice document with only the sections the work needs: problem and goal,
    source and decisions always; user journey, requirements, spec, out of scope and open questions when
    they apply.

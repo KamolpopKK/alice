@@ -115,7 +115,7 @@ describe('alice-think skill', () => {
 
   // งานเล็กต้องออกได้ทันทีโดยไม่ถามอะไร ก่อนจะถึงขั้นซักถามและเขียน brief
   it('triages first, hands small work to one task without questions, and questions only the rest', () => {
-    const steps = ['## 1. Triage', '**Small and clear**', '## 2. Small and clear: one task, no questions', '## 3. Question', 'rounds of up to 5 questions', '## 4. Write the brief', '## 5. Approve', 'explicit approval', '`create_document']
+    const steps = ['## 1. Triage', '**Small and clear**', '## 2. Small and clear: one task, no questions', '## 3. Question', 'Ask in **rounds**', '## 4. Write the brief', '## 5. Approve', 'explicit approval', '`create_document']
     const at = steps.map((s) => think.indexOf(s))
     expect(at.every((i) => i > 0)).toBe(true)
     expect(at).toEqual([...at].sort((a, b) => a - b))
@@ -123,6 +123,12 @@ describe('alice-think skill', () => {
     expect(small).toContain('status: "ready"')
     expect(small).not.toMatch(/approv|create_document/)
     expect(think).toMatch(/Stop when enough is decided/)
+    // คำถามตอบได้ทั้งรอบด้วยเลข, ข้อเท็จจริงไปหาเอง, การตัดสินใจเป็นของคน และยืนยันความเข้าใจก่อนเขียน
+    const grill = think.slice(think.indexOf('## 3. Question'), think.indexOf('## 4. Write the brief'))
+    for (const rule of ['every open question whose prerequisites are already settled', '❓ **Q1', '➡️', 'so that "yes" accepts your recommendation', 'Facts are your job; decisions are the person\'s', '"I don\'t know" is an answer', 'confirm that you share the same\nunderstanding']) {
+      expect(grill).toContain(rule)
+    }
+    expect(grill).not.toMatch(/up to \d+ questions/)
   })
 
   it('never saves a brief before approval and never works the tasks itself', () => {
