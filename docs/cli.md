@@ -185,7 +185,7 @@ The Agent onboarding helpers are part of the CLI. The skill files are embedded i
 `alice.js`, so these also work from the standalone file:
 
 ```bash
-alice install-skill --client claude-code      # or codex; --scope project; --skill alice|alice-plan (default: both)
+alice install-skill --client claude-code      # or codex; --scope project; --skill alice|alice-plan|alice-think (default: all)
 alice mcp-config --client claude-code         # defaults to the active profile's server URL
 ```
 

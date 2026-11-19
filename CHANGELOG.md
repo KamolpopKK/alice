@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **`alice-think` skill: think new work through before planning it.** Give an agent an idea, a request,
+  a bug report or feedback with no task yet. Small, clear work becomes one `ready` task straight away,
+  with no questions. Everything else is questioned one point at a time, with a recommended answer, until
+  someone could plan it without asking again; the result is a brief (problem and goal, plus user journey,
+  requirements or spec only when the work needs them) saved as an Alice document after approval, ready
+  for `alice-plan` or architecture design. `alice install-skill` and `alice integration enable` install
+  it with the other skills.
+
 ## 0.2.1 — 2026-11-19
 
 ### Added

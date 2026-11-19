@@ -92,6 +92,47 @@ describe('alice-plan skill', () => {
   })
 })
 
+describe('alice-think skill', () => {
+  const think = fs.readFileSync(path.join(ROOT, 'skill/alice-think/SKILL.md'), 'utf8')
+
+  it('has front matter that tracks the server and sends other work to the other skills', () => {
+    const front = /^---\n([\s\S]*?)\n---\n/.exec(think)![1]
+    expect(front).toMatch(/^name: alice-think$/m)
+    expect(front).toContain(`version: ${APP_VERSION}`)
+    const description = /^description: (.+)$/m.exec(front)![1]
+    expect(description).toMatch(/use alice-plan/)
+    expect(description).toMatch(/use alice\)/)
+    expect(think).toContain(`MCP contract v${MCP_CONTRACT_VERSION}`)
+  })
+
+  it('names only MCP tools that exist in the contract', () => {
+    const named = new Set([...think.matchAll(/`([a-z]+(?:_[a-z]+)+)\b/g)].map((m) => m[1]).filter((n) => /^(get|list|create|update|archive|restore|claim|complete|add|link|unlink|search|set|remove)_/.test(n)))
+    for (const name of named) expect(ALL_TOOLS).toContain(name)
+    for (const tool of ['search_documents', 'create_task', 'create_document', 'update_document', 'link_document', 'list_projects']) {
+      expect(think).toContain(`\`${tool}`)
+    }
+  })
+
+  // งานเล็กต้องออกได้ทันทีโดยไม่ถามอะไร ก่อนจะถึงขั้นซักถามและเขียน brief
+  it('triages first, hands small work to one task without questions, and questions only the rest', () => {
+    const steps = ['## 1. Triage', '**Small and clear**', '## 2. Small and clear: one task, no questions', '## 3. Question', 'one question at a time', '## 4. Write the brief', '## 5. Approve', 'explicit approval', '`create_document']
+    const at = steps.map((s) => think.indexOf(s))
+    expect(at.every((i) => i > 0)).toBe(true)
+    expect(at).toEqual([...at].sort((a, b) => a - b))
+    const small = think.slice(think.indexOf('## 2. Small'), think.indexOf('## 3. Question'))
+    expect(small).toContain('status: "ready"')
+    expect(small).not.toMatch(/approv|create_document/)
+    expect(think).toMatch(/Stop when enough is decided/)
+  })
+
+  it('never saves a brief before approval and never works the tasks itself', () => {
+    expect(think).toMatch(/Never save a brief to Alice before the person approves it/)
+    expect(think).toMatch(/Never claim, start or complete tasks while thinking/)
+    expect(think).not.toMatch(/claim_task|complete_task/)
+    expect(think).toMatch(/token is a secret/i)
+  })
+})
+
 describe('documented installation in a clean environment', () => {
   it('installs the skill for Claude Code and Codex without touching the source', () => {
     const home = tempDataDir('home')
@@ -110,7 +151,7 @@ describe('documented installation in a clean environment', () => {
     const home = tempDataDir('skills-home')
     const all = runCli(['install-skill', '--client', 'claude-code'], { HOME: home })
     expect(all.status).toBe(0)
-    for (const skill of ['alice', 'alice-plan']) {
+    for (const skill of ['alice', 'alice-plan', 'alice-think']) {
       expect(all.stdout).toContain(`Installed the ${skill} skill to ${path.join(home, '.claude/skills', skill)}`)
       expect(fs.readFileSync(path.join(home, '.claude/skills', skill, 'SKILL.md'), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, 'skill', skill, 'SKILL.md'), 'utf8'))
     }
@@ -121,11 +162,11 @@ describe('documented installation in a clean environment', () => {
     // ไฟล์กลาง (skill/_shared/) ติดไปกับทุก skill แม้ติดตั้งตัวเดียว
     const guide = fs.readFileSync(path.join(ROOT, 'skill/_shared/PROJECT-FILES.md'), 'utf8')
     expect(fs.readFileSync(path.join(only, '.codex/skills/alice-plan/PROJECT-FILES.md'), 'utf8')).toBe(guide)
-    for (const skill of ['alice', 'alice-plan']) expect(fs.readFileSync(path.join(home, '.claude/skills', skill, 'PROJECT-FILES.md'), 'utf8')).toBe(guide)
+    for (const skill of ['alice', 'alice-plan', 'alice-think']) expect(fs.readFileSync(path.join(home, '.claude/skills', skill, 'PROJECT-FILES.md'), 'utf8')).toBe(guide)
 
     const unknown = runCli(['install-skill', '--client', 'codex', '--skill', 'alice-ops'], { HOME: only })
     expect(unknown.status).toBe(1)
-    expect(unknown.stderr).toContain('--skill must be one of: alice, alice-plan')
+    expect(unknown.stderr).toContain('--skill must be one of: alice, alice-plan, alice-think')
   })
 
   it('Claude Code config connects over remote MCP using the token from the environment', async () => {

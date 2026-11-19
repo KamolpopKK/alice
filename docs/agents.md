@@ -27,14 +27,15 @@ versions separately:
 
 The adapter refuses to start against a server that speaks a different MCP contract and says which
 contract it needs. The `install-skill` and `mcp-config` helpers are part of the `alice` CLI. They also
-work from the standalone `alice.js`, which has both skills embedded.
+work from the standalone `alice.js`, which has every skill embedded.
 
-Alice ships two skills, and `install-skill` installs both unless you pass `--skill alice` or
-`--skill alice-plan`:
+Alice ships three skills, and `install-skill` installs all of them unless you pass `--skill` with one
+name:
 
 | Skill | Use it to |
 |---|---|
 | `alice` | Work on the board: find ready tasks, claim, load context, comment and complete. |
+| `alice-think` | Think new work through first: hand small, clear work straight to a task, question the rest until you agree, and write a brief. |
 | `alice-plan` | Break an idea, an Alice document or a large task into ready-to-pick-up tasks. |
 
 ## Downloading the tools from your server
@@ -58,7 +59,7 @@ The recommended setup (the one the Agents page uses) runs the stdio adapter, whi
 from a file every time it connects:
 
 ```bash
-alice install-skill --client claude-code            # ~/.claude/skills/{alice,alice-plan} (use --scope project for ./.claude)
+alice install-skill --client claude-code            # ~/.claude/skills/{alice,alice-plan,alice-think} (use --scope project for ./.claude)
 mkdir -p ~/.config/alice && (umask 077; printf 'Paste the Alice agent token: '; read -rs t; printf %s "$t" > ~/.config/alice/token; echo)
 claude mcp add --scope user -e ALICE_URL=https://alice.example.com -e ALICE_TOKEN_FILE=$HOME/.config/alice/token --transport stdio alice -- alice-mcp-stdio
 claude mcp get alice                                # Status: ✔ Connected
@@ -80,7 +81,7 @@ needs a restart.
 ## Codex
 
 ```bash
-alice install-skill --client codex                  # ~/.codex/skills/{alice,alice-plan}
+alice install-skill --client codex                  # ~/.codex/skills/{alice,alice-plan,alice-think}
 mkdir -p ~/.config/alice && (umask 077 && printf %s "$ALICE_TOKEN" > ~/.config/alice/token)
 alice mcp-config --client codex --url https://alice.example.com >> ~/.codex/config.toml
 ```
@@ -117,6 +118,24 @@ alice install-skill --client claude-code                        # or codex; also
 Then start a new agent session so it loads the updated skills. The token file and MCP configuration do
 not change. A skill that `alice version` reports as "not installed" (for example `alice-plan` after an
 older CLI) is fixed by the same steps.
+
+## Thinking new work through with alice-think
+
+Give your agent a new idea, request, bug report or piece of feedback that has no Alice task yet. The
+`alice-think` skill decides how much thinking it needs, and no more:
+
+1. It restates the request in one line and searches Alice for a task, plan or brief that already covers
+   it.
+2. **Small and clear work** (one reviewable change, nothing left for you to decide) becomes one `ready`
+   task straight away, with no questions. Ask the agent to do it now and it continues with the `alice`
+   skill.
+3. Anything else gets questioned, one question at a time with a recommendation. The agent looks in the
+   code and in Alice before asking, and stops once someone could plan the work without asking you again.
+4. It writes a brief as one Alice document with only the sections the work needs: problem and goal,
+   source and decisions always; user journey, requirements, spec, out of scope and open questions when
+   they apply.
+5. It shows the brief in chat, saves it after your approval, and names the next step: planning it with
+   `alice-plan`, or designing the architecture first.
 
 ## Planning work with alice-plan
 
@@ -158,7 +177,7 @@ alice integration unassign codex --workspace personal --yes
 ```
 
 Enabling an agent does three things:
-1. It installs the `alice` and `alice-plan` skills for that client.
+1. It installs the `alice`, `alice-plan` and `alice-think` skills for that client.
 2. It gives the agent its own identity in every Local workspace. Workspaces created later get it when
    they first open.
 3. It stores the agent's credential in the OS credential store.
