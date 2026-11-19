@@ -141,6 +141,12 @@ Give your agent a new idea, request, bug report or piece of feedback that has no
 5. It shows the brief in chat, saves it after your approval, and names the next step: planning it with
    `alice-plan`, or designing the architecture first.
 
+A question that talk cannot settle, such as how a screen should feel, becomes a **spike** when you agree:
+a `ready` task labelled `spike`, linked to the brief, whose answer later turns the open question into a
+decision. Nothing is saved while you are being questioned; if you need to stop first, ask for a draft
+(the agent offers once). It is saved as a document titled `Draft: …` with the next round of questions,
+and the agent picks up from there in a later conversation.
+
 ## Planning work with alice-plan
 
 Ask your agent to "plan" or "break down" a feature, an Alice document or a large Alice task. The

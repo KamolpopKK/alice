@@ -9,7 +9,9 @@
   with no questions. Everything else is questioned in rounds of every question that can be asked
   so far, numbered and each with a recommended answer, until someone could plan it without asking again; the result is a brief (problem and goal, plus user journey,
   requirements or spec only when the work needs them) saved as an Alice document after approval, ready
-  for `alice-plan` or architecture design. `alice install-skill` and `alice integration enable` install
+  for `alice-plan` or architecture design. Questions that talk cannot settle become spike tasks linked to
+  the brief when the person agrees, and an unfinished session can be saved as a draft on request and
+  resumed later. `alice install-skill` and `alice integration enable` install
   it with the other skills.
 
 ## 0.2.1 — 2026-11-19

@@ -131,6 +131,15 @@ describe('alice-think skill', () => {
     expect(grill).not.toMatch(/up to \d+ questions/)
   })
 
+  // ระหว่างถามไม่บันทึกอะไร: draft เฉพาะเมื่อคนขอ, spike สร้างเมื่อคนตกลงและลิงก์กับ brief
+  it('saves a draft only on request and creates agreed spikes linked to the brief', () => {
+    const draft = think.slice(think.indexOf('**Stopping before the brief is done.**'), think.indexOf('Then sum up'))
+    for (const rule of ['Save a draft only when the person asks for one', '`Draft: <title>`', '**Next round**', 'To resume']) expect(draft).toContain(rule)
+    const spikes = think.slice(think.indexOf('## Spikes'), think.indexOf('## Recovering from errors'))
+    for (const rule of ['only after the person agrees', 'labels: ["spike"]', '`link_document { id: <brief id>, taskId: <spike id> }`', 'the open question\nbecomes a decision']) expect(spikes).toContain(rule)
+    expect(think).toMatch(/or a draft before they ask for one/)
+  })
+
   it('never saves a brief before approval and never works the tasks itself', () => {
     expect(think).toMatch(/Never save a brief to Alice before the person approves it/)
     expect(think).toMatch(/Never claim, start or complete tasks while thinking/)

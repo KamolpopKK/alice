@@ -17,7 +17,7 @@ Requires an Alice server speaking MCP contract v1.
 
 - Your token is a secret. Never print it, paste it into comments or documents, or commit it.
   It comes from the environment or a secret store configured by your operator.
-- Never save a brief to Alice before the person approves it in chat.
+- Never save a brief to Alice before the person approves it in chat, or a draft before they ask for one.
 - Never claim, start or complete tasks while thinking. When the person wants the work done now, switch
   to the `alice` skill for that.
 - Archive instead of deleting; there is no permanent delete for agents.
@@ -77,8 +77,10 @@ format, setting up `.alice/`, what to tell the user the first time, and moving t
 same steps, writing files instead of calling Alice:
 - **Look for existing work** in `.alice/tasks/` and `.alice/docs/`.
 - **A small task:** `.alice/tasks/T-<n>-<slug>.md` with `status: ready` and `assignee: none`.
-- **A brief:** `.alice/docs/D-<n>-<slug>.md`, after the person approves it.
-- Commit the new file on its own (`Add T-<n>: <title>` or `Brief <slug>`).
+- **A brief:** `.alice/docs/D-<n>-<slug>.md`, after the person approves it. A draft is the same file with
+  `title: "Draft: <title>"`.
+- **A spike:** a task file with `labels: [spike]` and `docs: [D-<n>]` for the brief.
+- Commit each change on its own (`Add T-<n>: <title>`, `Brief <slug>` or `Draft brief <slug>`).
 
 ## 1. Triage (always, before any question)
 
@@ -135,12 +137,20 @@ Format every question the same way, so the person can answer a whole round by nu
 - **"I don't know" is an answer.** Record it as an open question with who decides. When a decision
   belongs to someone who is not in the conversation, record it with their name instead of guessing.
 - **Questions talk cannot settle**, such as how something should look or feel or which of two flows works
-  better: stop asking about them. Propose a spike task or a throwaway prototype, and keep the question
-  open until then.
+  better: stop asking about them and propose a **spike**: a task that answers one question with a
+  prototype or an investigation. Keep the question open, and create the spike only if the person agrees
+  (see "Spikes").
 - Point out contradictions with earlier answers, the code or existing documents as soon as you see them.
 - **Stop when enough is decided**: someone could plan the work, or do it, without asking the person
   again. Do not ask about details that belong in the work itself. If the rounds keep growing, the work is
   too big for one brief: say so, propose how to split it, and think the parts through one at a time.
+
+**Stopping before the brief is done.** Nothing is saved while you question, so an unfinished conversation
+keeps its answers only in the chat. Save a draft only when the person asks for one; when they want to stop
+before the brief is done, offer it once. A draft is an Alice document titled `Draft: <title>` that holds
+the sections settled so far, the Decisions so far, and a section **Next round** with the questions still
+open. To resume, read the draft (the person names it, or triage finds it), say where you left off, and
+ask its Next round. The finished brief replaces the draft in the same document.
 
 Then sum up what you agreed in a few lines and ask the person to confirm that you share the same
 understanding before you write anything. If the work turns out to be one task, create it as in step 2
@@ -169,11 +179,26 @@ unknown is an open question with an owner, or it goes back to step 3.
 1. Show the complete brief in chat. Apply the person's edits and show the changed parts again. Save only
    on explicit approval.
 2. Save it with `create_document { title, body }`, and `link_document { id, projectId }` when it belongs to
-   a project (ask which, recommending an existing one from `list_projects`). For an existing brief, use
-   `update_document` with the complete new body; every edit keeps a revision.
-3. Report the document id and title, and name the next step without taking it: "Next: plan it with
+   a project (ask which, recommending an existing one from `list_projects`). For an existing brief or a
+   draft, use `update_document` with the complete new body and title (drop `Draft: `); every edit keeps a
+   revision.
+3. Create the spikes the person agreed to (see "Spikes") and name each one under its open question.
+4. Report the document id and title, and name the next step without taking it: "Next: plan it with
    `alice-plan` from <document id>", or design the architecture from its Spec section first when the
-   brief leaves technical choices open.
+   brief leaves technical choices open. When open questions wait on spikes, the next step is the spikes.
+
+## Spikes
+
+A spike answers one question that talk cannot settle. Create it only after the person agrees, once the
+brief or draft it belongs to is saved:
+- `create_task { title: "Spike: <question>", description, projectId, status: "ready", labels: ["spike"] }`,
+  in the brief's project. The description states the question, what to build or look into, and what
+  answers it (a prototype to look at, a short finding in a comment, or a document), with a time limit.
+- `link_document { id: <brief id>, taskId: <spike id> }`, so whoever picks it up reads the brief.
+- In the brief, the open question names the spike's id and title.
+
+When the spike is done, think the answer through with the person and update the brief: the open question
+becomes a decision.
 
 ## Recovering from errors
 
