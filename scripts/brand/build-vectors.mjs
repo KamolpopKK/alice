@@ -4,7 +4,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import sharp from 'sharp'
-import { COLORS, headArt, monochromeArt } from './mark-art.mjs'
+import { COLORS, desktopAppIconArt, headArt, monochromeArt } from './mark-art.mjs'
 import { WORDMARK } from './wordmark.mjs'
 
 const OUT = 'src/web/public/brand'
@@ -43,6 +43,11 @@ await icon('favicon-32.png', 32, null, 0)
 await icon('apple-touch-icon.png', 180, COLORS.navy900, 0.12)
 await icon('icon-192.png', 192, COLORS.navy900, 0.12)
 await icon('icon-512.png', 512, COLORS.navy900, 0.12)
-// ไอคอนแอป Desktop (Tauri) ใช้ต้นฉบับเดียวกัน
-await icon('../../../../src-tauri/app-icon.png', 1024, COLORS.navy900, 0.12)
+// ไอคอนแอป Desktop (Tauri) ใช้ภาพ close-up เฉพาะสำหรับการอ่านบน Dock ขนาดเล็ก
+await sharp(Buffer.from(svg('0 0 64 64', desktopAppIconArt())), { density: 1152 })
+  .resize(1024, 1024)
+  .flatten({ background: COLORS.appIconBlue })
+  .removeAlpha()
+  .png({ compressionLevel: 9 })
+  .toFile('src-tauri/app-icon.png')
 console.log('vectors and icons written to', OUT)

@@ -25,7 +25,7 @@ details (paths, sizes, intended surfaces, colour schemes and palette) are listed
 | `alice-mascot-concerned.webp` | Bust, mildly worried, no tears (404, full-page error) | same |
 | `alice-auth-workspace-dark.webp` | Subdued Board-and-desk background plate for dark authentication pages | Built-in ImageGen from the approved workspace-peek reference; optimized with `sharp` |
 | `alice-auth-workspace-light.webp` | Warm ivory version of the same plate for light mode | `scripts/brand/derive-auth-light.mjs` (from the dark plate) |
-| `src-tauri/app-icon.png` → `src-tauri/icons/*` | Desktop app icons | `build-vectors.mjs`, then `cargo tauri icon` |
+| `src-tauri/app-icon.png` → `src-tauri/icons/*` | Desktop app icons: close crop of Alice's bow, hair and eyes | `desktopAppIconArt()` in `mark-art.mjs`, then `build-vectors.mjs` and `cargo tauri icon` |
 
 ## Palette
 
@@ -37,6 +37,7 @@ details (paths, sizes, intended surfaces, colour schemes and palette) are listed
 | `brand-cocoa` | `#4A312E` | Hair and outline |
 | `brand-coral` | `#EE715F` | Decoration only (the i dot, cheeks). Never body text on ivory. |
 | `brand-coral-accessible` | `#B64336` | Coral wherever text contrast is required |
+| `app-icon-blue` | `#1447D8` | High-chroma background used only by the Desktop app icon |
 
 Character colours (skin `#FCE5D4`, eyes `#2E201E`) are fixed. They are never inverted or filtered in dark
 mode.
@@ -54,8 +55,9 @@ modelled on the approved logo board:
 
 The wordmark in `scripts/brand/wordmark.mjs` is built from geometric stroked paths with round caps. It
 uses no font, so it renders the same everywhere. The i has a decorative coral dot, as on the board.
-`build-vectors.mjs` assembles the files and renders the PNG icons from the same vectors with `sharp`
-(librsvg).
+`build-vectors.mjs` assembles the files and renders the PNG icons with `sharp` (librsvg). Web icons use
+the complete head mark. The Desktop icon uses `desktopAppIconArt()`: a tighter upper-face crop designed
+to remain distinctive in the Dock while keeping the same bow, hair, skin and eye colours.
 
 The SVGs contain no bitmaps, scripts, external references, fonts or metadata. `tests/unit/brand-assets.test.ts`
 enforces this.
@@ -101,6 +103,7 @@ npx vitest run tests/unit/brand-assets.test.ts
 
 - **Mascot crop.** Edit its rectangle in `POSES`, regenerate, then check the preview on white and on navy.
 - **Head mark.** Edit `headArt()` in `mark-art.mjs`. Every logo, favicon and icon uses it.
+- **Desktop app icon.** Edit `desktopAppIconArt()` in `mark-art.mjs`, run `npm run brand:build`, then regenerate `src-tauri/icons/*` with the Tauri icon command below.
 - **Wordmark spacing.** Edit `wordmark.mjs`. The width of the horizontal logo follows automatically.
 - **New expression.** Add a pose, add it to `ASSETS` in `build-manifest.mjs`, and add it to the typed asset
   map in `src/web/brand/`.
