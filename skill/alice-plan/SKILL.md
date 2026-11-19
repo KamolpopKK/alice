@@ -8,15 +8,16 @@ version: 0.2.0
 
 You turn a planning input into a work breakdown on the shared Alice board. The result must let any
 person or agent pick up a leaf task, call `get_task_context`, and start immediately — no follow-up
-questions, no hunting for files. You act through the `alice` MCP server or the `alice` command under
-your own agent identity.
+questions, no hunting for files. You act through the `alice` MCP server, the `alice` command or the
+project's `.alice/` files, under your own agent identity.
 Requires an Alice server speaking MCP contract v1.
 
 Templates and the pre-creation checklist are in [TEMPLATE.md](TEMPLATE.md). Read it before drafting.
 
 ## Safety
 
-- Your token is a secret. Never print it or put it in tasks, documents or comments.
+- Your token is a secret. Never print it, paste it into comments or documents, or commit it.
+  It comes from the environment or a secret store configured by your operator.
 - Never create, change or archive anything in Alice before the person approves the draft in chat.
 - Never claim, start or complete the tasks you create unless the person separately asks you to work on one
   (then follow the `alice` skill).
@@ -24,33 +25,65 @@ Templates and the pre-creation checklist are in [TEMPLATE.md](TEMPLATE.md). Read
 
 ## Choose where you work first
 
-The `alice` MCP tools reach the one server in your MCP configuration; the `alice` command reaches Local
-workspaces on this computer. They may be different boards. At the start of every conversation, before
-reading or drafting anything:
+You can reach Alice in three ways, and they may point at different boards:
+- the `alice` MCP tools, which talk to the one server in your MCP configuration;
+- the `alice` command, which reaches Local workspaces that run privately on this computer;
+- **project files**: a board kept as Markdown in this repository's `.alice/` folder, with no app at all.
 
-1. List what you can reach: `alice --as <you> workspace list --json` if the command exists, plus the `alice`
-   MCP tools if available (call `whoami`), unless they are the same server as a Remote entry in the list.
-2. One workspace: use it and name it (name and alias, or server) to the user.
-3. Two or more: ask the user which one before you read or draft anything, even when one is active or
-   bound to this project. List each one and mention the active or bound one as a suggestion only. Skip
-   the question only when the user already named the workspace in this conversation.
-4. Use the answer for the whole plan: add `--workspace ALIAS` to every command, or use the MCP tools.
-5. If the MCP tools cannot connect or return `UNAUTHENTICATED` while a Local workspace exists, tell the
-   user and offer to plan there instead of stopping.
+Check this at the start of every conversation, before your first read, draft or change:
 
-Never change the active workspace or write a binding file unless the user asks.
+1. **List what you can reach.** If the `alice` command exists, run `alice --as <you> workspace list --json`;
+   each entry is a workspace. If the `alice` MCP tools are available, they are one more (call `whoami` to
+   name them), unless they are the same server as a Remote entry in that list. If this repository has
+   `.alice/tasks/`, the project files are one more.
+2. **None:** offer project files. Create `.alice/` only after the user agrees.
+3. **One workspace:** use it, and tell the user its name and alias (or server) before your first change.
+4. **Two or more:** ask the user which one to use before you read or change anything, even when one is
+   active or this project has a binding file. List each one (name, alias, Local or Remote, the MCP server,
+   or project files) and mention the active or bound one as a suggestion, not a decision. Skip the
+   question only when the user already named the workspace in this conversation.
+5. **Use the answer for the rest of the conversation.** For a workspace from the list, add
+   `--workspace ALIAS` to every command; for the MCP server, use the MCP tools; for project files, read
+   PROJECT-FILES.md and follow this skill's project files section. Ask again only when the user wants to
+   switch.
+6. **When the MCP tools fail.** If they cannot connect or return `UNAUTHENTICATED` while a Local workspace
+   exists, tell the user and offer to continue there instead of stopping.
 
-### Planning through the `alice` command
+Never change the active workspace (`alice workspace use`) or write a binding file (`alice workspace
+bind`) unless the user asks.
 
-Do the same steps with the `alice` command:
-- Add `--as claude-code` or `--as codex`, plus `--json`, to every command.
-- Use these commands:
-  - `task create --title … --description-file - --status backlog --label plan:<slug> --parent ID`
-  - `task block ID --by BLOCKER_ID`
-  - `document create`, `document link`
-  - `search`
-  - `task update ID --status ready`
-- Results use the `{ "ok", "workspace", "data" }` envelope.
+## Using the `alice` command
+
+Act as yourself on every command: add `--as claude-code` if you are Claude Code, `--as codex` if you are
+Codex, plus `--json`. Never run Alice commands without `--as`, and never open the credential store: the
+CLI reads your credential itself. Add `--workspace ALIAS` when more than one workspace exists.
+
+Every result is `{ "ok", "workspace", "data" }` or `{ "ok": false, "error": { "code", "message" } }` with
+the codes in "Recovering from errors", and the exit status is non-zero on errors. `UNAUTHENTICATED` from
+the command means the person disabled your integration: stop and tell them. `alice --help` and
+`alice <group> help` list every command and option.
+
+## Planning through the `alice` command
+
+Do the same steps with the `alice` command, following "Using the `alice` command"
+(`alice --as <you> … --json`):
+- `task create --title … --description-file - --status backlog --label plan:<slug> --parent ID`
+- `task block ID --by BLOCKER_ID`
+- `document create`, `document link`
+- `search`
+- `task update ID --status ready`
+
+## Planning in project files
+
+Before you use project files, read [PROJECT-FILES.md](PROJECT-FILES.md) in this skill's folder: the file
+format, setting up `.alice/`, what to tell the user the first time, and moving to the app. Then follow the
+same steps, writing files instead of calling Alice:
+- **Reference document:** `.alice/docs/D-<n>-<slug>.md`.
+- **Tasks:** one `.alice/tasks/T-<n>-<slug>.md` per parent and leaf, `status: backlog`, `assignee: none`,
+  `labels: [plan:<slug>]`, `parent`, `docs: [D-<n>]`, and the template sections as the body.
+- **Order:** `blocked_by: [T-<n>]` on the task that waits. Check for cycles yourself.
+- **Release:** set `status: ready` on leaves whose `blocked_by` tasks are all `done`.
+- Commit the plan as one commit (`Plan <slug>`) after the person approves it, not before.
 
 ## 1. Identify the input
 
@@ -180,3 +213,27 @@ When asked to change a plan that already exists in Alice:
    - `done` tasks are not touched; further work becomes new tasks;
    - update the reference document with `update_document` (complete new body; the revision is kept).
 4. Release new or newly unblocked leaves as in step 5, after confirmation.
+
+## Recovering from errors
+
+The MCP tools return `{ "error": { "code", "message" } }` and the `alice` command returns
+`{ "ok": false, "error": { "code", "message" } }`, with the same stable codes:
+
+| Code | What to do |
+|---|---|
+| `CLAIM_FAILED` | Someone else claimed it or it is not `ready`. Pick other work. |
+| `VALIDATION_ERROR` | Fix the arguments using the message/details. |
+| `NOT_FOUND` | Re-list to get a valid id. |
+| `INVALID_STATE` | E.g. archived task or archived destination project — restore first or choose another. |
+| `RELATIONSHIP_CYCLE` / `INVALID_RELATIONSHIP` | The parent/blocker change is invalid; choose a different relationship. |
+| `PROTECTED_RESOURCE` | The `Untitled` project cannot be renamed or archived. Do not retry. |
+| `UNAUTHENTICATED` | Your token was revoked or rotated, or the person disabled your integration. Stop and tell them. |
+| `RATE_LIMITED` | Wait before retrying. |
+
+## Quick reference
+
+- Statuses: `backlog`, `ready`, `in_progress`, `blocked`, `done`, `canceled` (any → any, except that agents finish work only with a completion summary, never by setting `done`).
+- Priorities: `none`, `low`, `medium`, `high`, `urgent`.
+- Tasks without a project go to the protected `Untitled` project.
+- Edits are last-write-wins; re-read the task before large changes to avoid overwriting a teammate.
+- `search { q }` or `alice search QUERY` finds tasks, documents and comments (3+ character substrings, any language).

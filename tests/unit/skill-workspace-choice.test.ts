@@ -16,6 +16,63 @@ describe('distributed skills choose a workspace before the first change', () => 
       expect(section).toContain('--workspace ALIAS')
       expect(section).toContain('UNAUTHENTICATED')
       expect(text).not.toContain('Local workspaces (no MCP)')
+      // project files: บอร์ดเป็น markdown ใน .alice/ ไม่ต้องมี app
+      expect(section).toContain('.alice/tasks/')
+      expect(section).toContain('Create `.alice/` only after the user agrees')
+      expect(text).toContain(skill === 'alice' ? '## Working in project files' : '## Planning in project files')
+      // คำแนะนำครั้งแรก, การตั้ง .alice/ และการย้ายไป app อยู่ในไฟล์กลางที่ทุก skill อ่าน
+      expect(text).toContain('read [PROJECT-FILES.md](PROJECT-FILES.md)')
     })
   }
+})
+
+describe('the shared project files guide', () => {
+  const guide = fs.readFileSync(path.join(ROOT, 'skill/_shared/PROJECT-FILES.md'), 'utf8')
+
+  it('sets up .alice/ with a .gitignore and a README, and covers first use and moving to the app', () => {
+    for (const point of [
+      '## Setting up .alice/',
+      'workspace.local.json\n   imported.json',
+      "do\n   not edit the repository's own `.gitignore`",
+      '`.alice/README.md` with this text',
+      '## The first time in a conversation',
+      '## Moving to the app',
+      'install-macos.sh',
+      'alice import --dry-run',
+    ]) {
+      expect(guide).toContain(point)
+    }
+  })
+
+  it('is not a skill of its own', () => {
+    expect(fs.existsSync(path.join(ROOT, 'skill/_shared/SKILL.md'))).toBe(false)
+  })
+})
+
+// ส่วนที่ทุก skill ต้องมีเหมือนกันทุกตัวอักษร: ซ้ำสองที่โดยตั้งใจ (SKILL.md โหลดทุกครั้ง) แต่ห้ามขาดหรือเพี้ยน
+describe('sections every skill carries word for word', () => {
+  const read = (skill: string) => fs.readFileSync(path.join(ROOT, 'skill', skill, 'SKILL.md'), 'utf8')
+  const section = (text: string, heading: string) => {
+    const start = text.indexOf(`${heading}\n`)
+    if (start < 0) return null
+    const next = text.indexOf('\n## ', start + heading.length)
+    return text.slice(start, next < 0 ? undefined : next + 1)
+  }
+  const skills = fs.readdirSync(path.join(ROOT, 'skill')).filter((d) => !d.startsWith('_'))
+
+  for (const heading of ['## Choose where you work first', '## Using the `alice` command', '## Recovering from errors', '## Quick reference']) {
+    it(heading, () => {
+      const [first, ...rest] = skills.map((s) => [s, section(read(s), heading)] as const)
+      expect(first[1], `${first[0]} has ${heading}`).not.toBeNull()
+      for (const [skill, text] of rest) expect(text, `${skill} matches ${first[0]}`).toBe(first[1])
+    })
+  }
+
+  it('the shared safety rules', () => {
+    for (const skill of skills) {
+      const safety = section(read(skill), '## Safety')!
+      expect(safety).toContain('- Your token is a secret. Never print it, paste it into comments or documents, or commit it.')
+      expect(safety).toContain('- Archive instead of deleting; there is no permanent delete for agents.')
+    }
+  })
 })

@@ -10,6 +10,9 @@ export type AgentClient = (typeof CLIENTS)[number]
 export const SKILLS = ['alice', 'alice-plan'] as const
 export type SkillName = (typeof SKILLS)[number]
 
+/** Files under skill/_shared/ ship inside every skill, so whichever skill an agent uses has them. */
+export const SHARED_DIR = '_shared'
+
 export function skillSourceDir(skill: SkillName = 'alice'): string {
   const here = path.dirname(fileURLToPath(import.meta.url))
   const candidates = [path.resolve(here, '../../skill', skill), path.resolve(here, '../skill', skill)]
@@ -35,7 +38,10 @@ export function skillFiles(skill: SkillName = 'alice'): Record<string, string> {
     return files
   }
   const dir = skillSourceDir(skill)
-  return Object.fromEntries(fs.readdirSync(dir).map((file) => [file, fs.readFileSync(path.join(dir, file), 'utf8')]))
+  const read = (d: string) => Object.fromEntries(fs.readdirSync(d).map((file) => [file, fs.readFileSync(path.join(d, file), 'utf8')]))
+  // skill/_shared/ คือไฟล์ที่ทุก skill ต้องมี (เช่น PROJECT-FILES.md): ติดตั้งลงในโฟลเดอร์ของแต่ละ skill
+  const shared = path.join(dir, '..', SHARED_DIR)
+  return { ...(fs.existsSync(shared) ? read(shared) : {}), ...read(dir) }
 }
 
 export function installSkill(client: AgentClient, scope: 'user' | 'project', home?: string, cwd?: string, skill: SkillName = 'alice'): string {

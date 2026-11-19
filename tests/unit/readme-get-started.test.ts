@@ -15,12 +15,12 @@ const slug = (heading: string) =>
 const anchors = (file: string) => new Set([...read(file).matchAll(/^#{1,6}\s+(.+)$/gm)].map((m) => slug(m[1])))
 
 describe('README Get started', () => {
-  it('opens with the three paths before any project paperwork', () => {
+  it('opens with the four paths before any project paperwork', () => {
     const start = readme.indexOf('## Get started')
     expect(start).toBeGreaterThan(0)
     expect(readme.indexOf('## Project documentation')).toBeGreaterThan(start)
     const paths = [...readme.slice(start).matchAll(/^### (\d)\. (.+)$/gm)].map((m) => m[1])
-    expect(paths.slice(0, 3)).toEqual(['1', '2', '3'])
+    expect(paths.slice(0, 4)).toEqual(['1', '2', '3', '4'])
     for (const text of ['Apple Silicon', 'not notarized', 'Open Anyway', 'SmartScreen', 'Agents']) expect(readme).toContain(text)
   })
 
@@ -28,7 +28,13 @@ describe('README Get started', () => {
     const release = read('.github/workflows/release.yml')
     const assets = [...readme.matchAll(/releases\/latest\/download\/([\w.-]+)/g)].map((m) => m[1])
     expect(assets).toContain('install-macos.sh')
-    for (const asset of assets) expect(release, `${asset} is not produced by the release workflow`).toContain(`dist-release/${asset}`)
+    expect(assets).toContain('alice-cli.js')
+    // ไฟล์ที่ publish ได้: เขียนลง dist-release/ ตรง ๆ หรือเป็นไฟล์ out/ ของ job cli ซึ่งถูกดาวน์โหลดลง dist-release/
+    const cliArtifact = /name: cli\s*\n/.test(release) && release.includes('path: dist-release\n          name: cli')
+    for (const asset of assets) {
+      const produced = release.includes(`dist-release/${asset}`) || (cliArtifact && release.includes(`out/${asset}\n`))
+      expect(produced, `${asset} is not produced by the release workflow`).toBe(true)
+    }
     // อะไรที่มีเลขเวอร์ชันในชื่อไฟล์ ต้องลิงก์ไปหน้า release ไม่ใช่ latest/download
     expect(assets.some((a) => /\d+\.\d+\.\d+|<version>/.test(a))).toBe(false)
     const collected = /const WANTED = (\/.+\/)/.exec(read('scripts/desktop-collect.mjs'))![1]

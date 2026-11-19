@@ -9,6 +9,7 @@ import { integrationCommand } from './commands/integration'
 import { projectCommand } from './commands/project'
 import { taskCommand } from './commands/task'
 import { documentCommand } from './commands/document'
+import { importCommand } from './commands/import'
 import { activityCommand, actorCommand, openCommand, searchCommand } from './commands/workspace'
 import { CliError, EXIT, codeFor, exitCodeFor, messageFor } from './errors'
 import { SelectionError } from './workspaces'
@@ -33,6 +34,7 @@ Work
   task list|show|create|update|assign|claim|comment|comments|complete|archive|restore|parent|block|unblock|relations|activity
   document list|search|show|create|update|link|unlink|archive|restore|revisions|restore-revision   (alias: doc)
   search QUERY [--kind task|document|comment]
+  import [DIR] [--project ID|NAME] [--dry-run]   Bring a board kept as Markdown files (.alice/) into this workspace
   activity [--actor ID] [--type task|project|document] [--limit N | --all]
   actor list
   open task|project|document ID [--web | --desktop] [--print]
@@ -132,6 +134,8 @@ export async function main(argv: string[], env: NodeJS.ProcessEnv = process.env)
       case 'doc':
       case 'docs':
         return await documentCommand(ctx, args)
+      case 'import':
+        return await importCommand(ctx, args)
       case 'activity':
         return await activityCommand(ctx, args)
       case 'actor':

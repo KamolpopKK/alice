@@ -15,7 +15,8 @@ shows who made it, and everyone sees the same board live.
 
 ## Get started
 
-Pick the path that fits you.
+Pick the path that fits you. Just want your agents to keep a board in the repository, with no app or
+server? See path 4.
 
 ### 1. Use Alice on your Mac (no server)
 
@@ -91,6 +92,23 @@ code-signed yet, so SmartScreen may say *Windows protected your PC*: click **Mor
 commands for the CLI, the agent skills and MCP, with your server's address filled in, and a prompt you
 can paste into your agent to set itself up. The CLI needs Node.js 22 or later.
 
+### 4. Only the agent skills (no app, no server)
+
+Your agents keep the board as Markdown files in the project's `.alice/` folder, committed with the code.
+You need Node.js 22 or later to install the skills:
+
+```bash
+curl -fsSLo alice-cli.js https://github.com/KamolpopKK/alice/releases/latest/download/alice-cli.js
+node alice-cli.js install-skill --client claude-code      # or: --client codex
+```
+
+This installs the `alice` and `alice-plan` skills for you. Add `--scope project` to put them in this
+repository instead (`.claude/skills/` or `.codex/skills/`), so everyone who clones it gets them. Then ask
+your agent to plan or pick up work; it asks before creating `.alice/`.
+
+Keep `alice-cli.js` if you may want the app later: `node alice-cli.js import` brings the board into Alice.
+More: [project files](docs/project-files.md).
+
 ## What Alice is
 
 - **One board for people and agents.** Projects, tasks, documents, comments and blockers. Agents claim
@@ -131,6 +149,7 @@ Alice runs as a single instance: never start two against the same data volume.
 
 ## Project documentation
 
+- Board without the app: [docs/project-files.md](docs/project-files.md)
 - Releases and compatibility: [docs/release.md](docs/release.md) · [CHANGELOG](CHANGELOG.md)
 - Architecture: [docs/architecture.md](docs/architecture.md) · Client API: [docs/client-api.md](docs/client-api.md)
 - Design system: [docs/alice-ui.md](docs/alice-ui.md)

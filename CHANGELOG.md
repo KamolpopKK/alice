@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Added
+
+- **A board without the app.** Agents can keep an Alice board as Markdown files in the project's `.alice/`
+  folder and commit it with the code: one file per task and per document, with status, assignee, parent,
+  blockers, labels and an Activity history. The `alice` and `alice-plan` skills work this way when the
+  person chooses it, and offer it when no workspace is reachable. Setting up `.alice/` also writes a
+  `README.md` for people and a `.gitignore` for machine files. The first time, the agent says where the
+  board is, the good practice, and that it can set up the app and import the board on request. Both
+  skills ship this guidance as the same `PROJECT-FILES.md`, so it does not matter which one runs first.
+  See `docs/project-files.md`.
+- **`alice import`** brings such a folder into any workspace, Local or Remote. It checks every file
+  first, creates the project, documents and tasks with their relationships and links, turns each task's
+  Activity into a comment, and records the new ids in `.alice/imported.json`. `--dry-run` shows what
+  would be created.
+- **Skills without the app.** Every release also attaches the CLI as `alice-cli.js`, so the README's new
+  path 4 installs the `alice` and `alice-plan` skills from `releases/latest/download/alice-cli.js` with one
+  command and Node.js 22.
+
 ### Changed
 
 - **Alice Desktop no longer supports Macs with Intel processors.** Releases build macOS for Apple Silicon
@@ -10,6 +28,9 @@
 
 ### Fixes
 
+- **`alice-plan` knows everything `alice` knows about reaching Alice.** Both skills now carry the same
+  workspace choice, `alice` command rules, error codes and quick reference word for word, so an agent
+  that only uses `alice-plan` handles the command, its errors and a disabled integration correctly.
 - **Agents ask which workspace to use when there is more than one.** At the start of every
   conversation the `alice` and `alice-plan` skills list the Local workspaces and the `alice` MCP server
   they can reach. With one, they name it before the first change; with two or more, they ask which one

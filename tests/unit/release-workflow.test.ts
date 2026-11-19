@@ -18,6 +18,8 @@ describe('client release workflow', () => {
     const platforms = doc.jobs.desktop.strategy.matrix.include.map((m: { platform: string }) => m.platform)
     expect(platforms.sort()).toEqual(['darwin-aarch64', 'linux-aarch64', 'linux-x86_64', 'windows-x86_64'])
     expect(doc.jobs.cli.steps.some((s: { run?: string }) => s.run?.includes('node alice.js version'))).toBe(true)
+    // README ลิงก์ CLI ผ่าน releases/latest/download/alice-cli.js: ต้องมีชื่อคงที่นี้ทุก release
+    expect(doc.jobs.cli.steps.some((s: { run?: string }) => s.run?.includes('cp dist/alice.js out/alice-cli.js'))).toBe(true)
     expect(doc.jobs.publish.needs).toEqual(['desktop', 'cli', 'image-manifest'])
   })
 
