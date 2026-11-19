@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 — 2026-11-19
 
 ### Added
 
@@ -22,12 +22,15 @@
 
 ### Changed
 
+- **A new Alice Desktop app icon** that stands out in the Dock, the taskbar and the app switcher.
 - **Alice Desktop no longer supports Macs with Intel processors.** Releases build macOS for Apple Silicon
   only. 0.2.0 is the last Intel build; it keeps working with servers that support its Client API, but it
   will not be offered updates. Use the web app or the `alice` command on those Macs.
 
 ### Fixes
 
+- **Completing a milestone no longer flickers.** The checkbox kept the new value only until the server
+  answered, so it could briefly flip back before the milestone list reloaded.
 - **`alice-plan` knows everything `alice` knows about reaching Alice.** Both skills now carry the same
   workspace choice, `alice` command rules, error codes and quick reference word for word, so an agent
   that only uses `alice-plan` handles the command, its errors and a disabled integration correctly.

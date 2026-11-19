@@ -1,6 +1,6 @@
 [package]
 name = "alice-desktop"
-version = "0.2.0"
+version = "0.2.1"
 description = "Alice Desktop — remote client for an Alice server"
 authors = ["Alice contributors"]
 license = "AGPL-3.0-only"

@@ -1,7 +1,7 @@
 ---
 name: alice-plan
 description: Break a feature idea, an Alice document or an oversized Alice task into a reviewed, linked and ordered work breakdown in Alice whose tasks can be picked up without asking anyone. Use when asked to plan, break down, decompose or scope work in Alice — not for working on an existing task (use the alice skill).
-version: 0.2.0
+version: 0.2.1
 ---
 
 # Planning work in Alice
