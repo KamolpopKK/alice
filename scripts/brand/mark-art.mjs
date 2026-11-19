@@ -7,6 +7,7 @@ export const COLORS = {
   cocoa: '#4A312E',
   coral: '#EE715F',
   coralAccessible: '#B64336',
+  appIconBlue: '#1447D8',
   skin: '#FCE5D4',
   eye: '#2E201E',
   shine: '#6E4C47',
@@ -41,6 +42,17 @@ export function headArt({ halo = null } = {}) {
   <ellipse cx="23.4" cy="43.6" rx="2.1" ry="1.2" fill="${C.coral}" opacity="0.6"/>
   <ellipse cx="40.8" cy="43.6" rx="2.1" ry="1.2" fill="${C.coral}" opacity="0.6"/>
   <path fill="#C2493B" d="M29.6 44.8c.5 1.9 1.3 2.8 2.4 2.8s1.9-.9 2.4-2.8z"/>`
+}
+
+/** Desktop-only app icon: a close crop of Alice's bow, hair, forehead and eyes. */
+export function desktopAppIconArt() {
+  return `<rect width="64" height="64" fill="${C.appIconBlue}"/>
+  <path fill="${C.cocoa}" d="M1 64V45.5C1 26.9 13.5 17 32 17s31 9.9 31 28.5V64z"/>
+  <path fill="${C.skin}" d="M12.5 64V50.4c11.3-.6 26.2-4.8 33.2-14.2 1.4 4.4 4.2 8.3 7.8 10.9V64z"/>
+  <path fill="${C.coral}" d="M9.8 19.4c0-4.9 4.4-7.3 8.2-4.3l5.8 4.5-5.8 4.5c-3.8 3-8.2.2-8.2-4.7zM23.8 19.6l6.4-5.1c3.8-3 8-.4 8 4.7 0 5-4.2 7.7-8 4.7z"/>
+  <ellipse cx="23.8" cy="19.6" rx="3.1" ry="3.4" fill="${C.coral}"/>
+  <ellipse cx="24.6" cy="55.6" rx="3.1" ry="4.4" fill="${C.eye}"/>
+  <ellipse cx="43.2" cy="55.6" rx="3.1" ry="4.4" fill="${C.eye}"/>`
 }
 
 /** One-colour mark: silhouette in currentColor with the face knocked out (even-odd), features filled. */

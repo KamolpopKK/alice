@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 const ROOT = path.resolve(import.meta.dirname, '../..')
 const BRAND = path.join(ROOT, 'src/web/public/brand')
+const DESKTOP_ICON = path.join(ROOT, 'src-tauri/app-icon.png')
 const manifest = JSON.parse(fs.readFileSync(path.join(BRAND, 'brand-assets.json'), 'utf8'))
 
 // รายชื่อไฟล์ตาม production asset contract ของแบรนด์
@@ -53,6 +54,13 @@ describe('production brand assets', () => {
       expect(size, f).toBeLessThan(300 * 1024)
       if (f.endsWith('.webp')) expect(size, f).toBeLessThan(180 * 1024)
     }
+  })
+
+  it('exports the desktop app icon as an opaque 1024px square', async () => {
+    const metadata = await sharp(DESKTOP_ICON).metadata()
+    expect(metadata.width).toBe(1024)
+    expect(metadata.height).toBe(1024)
+    expect(metadata.hasAlpha).toBe(false)
   })
 
   it('uses clean, self-contained vectors', () => {
