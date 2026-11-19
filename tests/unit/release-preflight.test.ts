@@ -64,7 +64,8 @@ describe('release preflight', () => {
 
   it('release notes hold only the version being released', () => {
     const notes: string = releaseNotes(fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8'), version)
-    expect(notes).toContain('### Public release and getting started')
+    // ใช้ได้กับทุกเวอร์ชัน: มีหัวข้อย่อย (### …) ของเวอร์ชันนี้ แต่ไม่มีหัวข้อของเวอร์ชันอื่น
+    expect(notes).toMatch(/^### /m)
     expect(notes).not.toMatch(/^## /m)
     expect(notes).not.toContain('first release')
     expect(releaseNotes('# Changelog\n\n## 1.0.0\n\nA\n\n## 0.9.0\n\nB\n', '1.0.0')).toBe('A\n')

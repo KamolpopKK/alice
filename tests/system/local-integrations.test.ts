@@ -5,6 +5,7 @@ import { alice, buildCli, cliHome, type CliEnv } from '../helpers/cli'
 import { readLocator } from '../../src/local/locator'
 import { workspacePaths } from '../../src/local/paths'
 import { listWorkspaces } from '../../src/local/registry'
+import { APP_VERSION } from '../../src/shared/version'
 
 /** Codex and Claude through the CLI only, with skills, identities and revocation. */
 const homes: CliEnv[] = []
@@ -61,7 +62,7 @@ describe('Local agent integrations', () => {
 
     const list = json((await alice(h, ['integration', 'list', '--json'])).stdout).data
     const codex = list.find((a: { client: string }) => a.client === 'codex')
-    expect(codex).toMatchObject({ optedIn: true, skills: { alice: '0.2.0', 'alice-plan': '0.2.0' } })
+    expect(codex).toMatchObject({ optedIn: true, skills: { alice: APP_VERSION, 'alice-plan': APP_VERSION } })
     expect(codex.credentials.sort()).toEqual(['personal', 'side'])
     expect(JSON.stringify(list)).not.toContain('alice_lc_')
     // agent เปลี่ยน integration เองไม่ได้
@@ -102,12 +103,12 @@ describe('Local agent integrations', () => {
     fs.writeFileSync(path.join(h.env.HOME, '.claude/skills/alice/SKILL.md'), 'version: 0.1.0\n')
     const refreshed = json((await alice(h, ['integration', 'refresh', '--json'])).stdout).data.refreshed
     expect(refreshed).toEqual([{ client: 'codex', installed: ['alice'] }])
-    expect(fs.readFileSync(file, 'utf8')).toContain('version: 0.2.0')
+    expect(fs.readFileSync(file, 'utf8')).toContain(`version: ${APP_VERSION}`)
     // Claude ไม่ได้เปิด: ไม่ถูกแตะ
     expect(fs.readFileSync(path.join(h.env.HOME, '.claude/skills/alice/SKILL.md'), 'utf8')).toBe('version: 0.1.0\n')
 
     fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace(/^version: .*$/m, 'version: 0.0.1'))
     expect((await alice(h, ['doctor', '--repair', '--yes'])).code).toBe(0)
-    expect(fs.readFileSync(file, 'utf8')).toContain('version: 0.2.0')
+    expect(fs.readFileSync(file, 'utf8')).toContain(`version: ${APP_VERSION}`)
   })
 })
