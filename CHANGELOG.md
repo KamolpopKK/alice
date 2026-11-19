@@ -25,6 +25,9 @@
 
 ### Fixes
 
+- **`alice-plan` knows everything `alice` knows about reaching Alice.** Both skills now carry the same
+  workspace choice, `alice` command rules, error codes and quick reference word for word, so an agent
+  that only uses `alice-plan` handles the command, its errors and a disabled integration correctly.
 - **Agents ask which workspace to use when there is more than one.** At the start of every
   conversation the `alice` and `alice-plan` skills list the Local workspaces and the `alice` MCP server
   they can reach. With one, they name it before the first change; with two or more, they ask which one

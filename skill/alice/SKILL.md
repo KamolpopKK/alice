@@ -24,7 +24,7 @@ You can reach Alice in three ways, and they may point at different boards:
 - the `alice` command, which reaches Local workspaces that run privately on this computer;
 - **project files**: a board kept as Markdown in this repository's `.alice/` folder, with no app at all.
 
-Check this at the start of every conversation, before your first read or change:
+Check this at the start of every conversation, before your first read, draft or change:
 
 1. **List what you can reach.** If the `alice` command exists, run `alice --as <you> workspace list --json`;
    each entry is a workspace. If the `alice` MCP tools are available, they are one more (call `whoami` to
@@ -33,24 +33,31 @@ Check this at the start of every conversation, before your first read or change:
 2. **None:** offer project files. Create `.alice/` only after the user agrees.
 3. **One workspace:** use it, and tell the user its name and alias (or server) before your first change.
 4. **Two or more:** ask the user which one to use before you read or change anything, even when one is
-   active or this project has a binding file. List each one (name, alias, Local or Remote, or the MCP
-   server, or project files) and mention the active or bound one as a suggestion, not a decision. Skip the question only
-   when the user already named the workspace in this conversation.
+   active or this project has a binding file. List each one (name, alias, Local or Remote, the MCP server,
+   or project files) and mention the active or bound one as a suggestion, not a decision. Skip the
+   question only when the user already named the workspace in this conversation.
 5. **Use the answer for the rest of the conversation.** For a workspace from the list, add
-   `--workspace ALIAS` to every command; for the MCP server, use the MCP tools; for project files, follow
-   "Working in project files". Ask again only when the
-   user wants to switch.
+   `--workspace ALIAS` to every command; for the MCP server, use the MCP tools; for project files, read
+   PROJECT-FILES.md and follow this skill's project files section. Ask again only when the user wants to
+   switch.
 6. **When the MCP tools fail.** If they cannot connect or return `UNAUTHENTICATED` while a Local workspace
    exists, tell the user and offer to continue there instead of stopping.
 
 Never change the active workspace (`alice workspace use`) or write a binding file (`alice workspace
 bind`) unless the user asks.
 
-## Working through the `alice` command
+## Using the `alice` command
 
 Act as yourself on every command: add `--as claude-code` if you are Claude Code, `--as codex` if you are
 Codex, plus `--json`. Never run Alice commands without `--as`, and never open the credential store: the
 CLI reads your credential itself. Add `--workspace ALIAS` when more than one workspace exists.
+
+Every result is `{ "ok", "workspace", "data" }` or `{ "ok": false, "error": { "code", "message" } }` with
+the codes in "Recovering from errors", and the exit status is non-zero on errors. `UNAUTHENTICATED` from
+the command means the person disabled your integration: stop and tell them. `alice --help` and
+`alice <group> help` list every command and option.
+
+## Working through the `alice` command
 
 1. **Find work.** `alice --as <you> task list --status ready --assignee none --json`
 2. **Claim.** `alice --as <you> task claim ID --json` (`CLAIM_FAILED` → pick other work).
@@ -60,10 +67,7 @@ CLI reads your credential itself. Add `--workspace ALIAS` when more than one wor
 6. **Ask before risky steps.** `alice --as <you> task ask ID --question "…" [--of PERSON] --json`, then
    wait until `alice --as <you> task approval APPROVAL_ID --json` shows `approved` (follow its `note`).
 
-Other commands work the same way: `project`, `document`, `search` and `task parent|block|update`. See
-`alice --help`. Every result is `{ "ok", "workspace", "data" }` or `{ "ok": false, "error": { "code",
-"message" } }` with the codes below, and the exit status is non-zero on errors. `UNAUTHENTICATED`
-means the person disabled your integration: stop and tell them.
+Other commands work the same way: `project`, `document`, `search` and `task parent|block|update`.
 
 ## Working in project files
 
@@ -113,7 +117,8 @@ the app.
 
 ## Recovering from errors
 
-Errors return `{ "error": { "code", "message" } }` with a stable code:
+The MCP tools return `{ "error": { "code", "message" } }` and the `alice` command returns
+`{ "ok": false, "error": { "code", "message" } }`, with the same stable codes:
 
 | Code | What to do |
 |---|---|
@@ -123,13 +128,13 @@ Errors return `{ "error": { "code", "message" } }` with a stable code:
 | `INVALID_STATE` | E.g. archived task or archived destination project — restore first or choose another. |
 | `RELATIONSHIP_CYCLE` / `INVALID_RELATIONSHIP` | The parent/blocker change is invalid; choose a different relationship. |
 | `PROTECTED_RESOURCE` | The `Untitled` project cannot be renamed or archived. Do not retry. |
-| `UNAUTHENTICATED` | Your token was revoked or rotated. Stop and tell your operator. |
+| `UNAUTHENTICATED` | Your token was revoked or rotated, or the person disabled your integration. Stop and tell them. |
 | `RATE_LIMITED` | Wait before retrying. |
 
 ## Quick reference
 
-- Statuses: `backlog`, `ready`, `in_progress`, `blocked`, `done`, `canceled` (any → any, except agents finish via `complete_task`).
+- Statuses: `backlog`, `ready`, `in_progress`, `blocked`, `done`, `canceled` (any → any, except that agents finish work only with a completion summary, never by setting `done`).
 - Priorities: `none`, `low`, `medium`, `high`, `urgent`.
-- Tasks without `projectId` go to the protected `Untitled` project.
-- Edits are last-write-wins; re-read with `get_task` before large changes to avoid overwriting a teammate.
-- `search { q }` finds tasks, documents and comments (3+ character substrings, any language).
+- Tasks without a project go to the protected `Untitled` project.
+- Edits are last-write-wins; re-read the task before large changes to avoid overwriting a teammate.
+- `search { q }` or `alice search QUERY` finds tasks, documents and comments (3+ character substrings, any language).
