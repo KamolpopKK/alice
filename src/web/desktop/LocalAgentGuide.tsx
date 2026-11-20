@@ -43,6 +43,7 @@ function GuidePanel({ client }: { client: AgentGuideClient }) {
         <p>
           Copy this prompt and paste it into {guide.label} on this computer. It checks the <code>alice</code> command, gives itself its own identity and the Alice
           skills, and confirms which workspace it will use. No token or password is involved.
+          {' '}Approve any filesystem or app-control access it requests so setup can continue.
         </p>
         <CodeBlock code={guide.prompt} label={`Setup prompt for ${guide.label}`} primary />
       </section>
@@ -87,7 +88,8 @@ export function LocalAgentGuide() {
         Set up your agent
       </h2>
       <p className="resource-meta">
-        Agents on this computer work through the <code>alice</code> command, each under its own name. If the command is missing, install it first:
+        Agents on this computer work through the <code>alice</code> command, each under its own name. Copy the setup prompt below; it requests any access it needs.
+        You can also install the command yourself:
       </p>
       <InstallCli />
       <Tabs label="Agent" items={AGENT_GUIDE_CLIENTS.map((c) => ({ value: c.id, label: c.label, content: <GuidePanel client={c.id} /> }))} />

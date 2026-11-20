@@ -46,38 +46,66 @@ More: [Local workspaces](docs/local-workspaces.md).
 an Apple Silicon Mac. It installs the standalone Local app and enables only the agent you are using:
 
 ```text
-Set up standalone Alice Desktop and its agent skills on this Mac for me.
+Install and finish setting up standalone Alice Desktop and its agent skills on this Mac.
 Repository: https://github.com/KamolpopKK/alice
 
-1. Identify yourself: use client "codex" for Codex or "claude-code" for Claude Code.
-   If you are neither, ask which supported client to set up. Enable only that client.
-2. Read the OS and architecture. Continue only on macOS with Apple Silicon (arm64).
-   Reuse Alice.app if it is already installed. Otherwise run the official installer:
-   curl -fsSL https://github.com/KamolpopKK/alice/releases/latest/download/install-macos.sh | sh
-   The installer verifies the archive checksum and app signature. Do not use sudo.
-3. Open Alice.app from the installation location. Ask me to finish first-run setup
-   if needed, including choosing "Install the alice command" and enabling this agent.
-   Wait for me to say I am done before continuing. I will enter any personal details.
-4. Use the installed alice command, or ~/.local/bin/alice if it is not on PATH.
-   Run `alice integration enable codex` or `alice integration enable claude-code`
-   for the client chosen above. This setup command runs without --as; it installs
-   the bundled skills and creates the agent's Local identity. Do not configure MCP,
-   a Remote server or tokens, and never read or print credentials.
-5. Run `alice version` to report the installed versions. In the chosen client's
-   ~/.codex/skills or ~/.claude/skills directory, confirm all four skills have SKILL.md:
-   alice, alice-think, alice-spec and alice-plan. Each needs PROJECT-FILES.md and
-   OUTPUT-FORMATS.md; think, spec and plan also need TEMPLATE.md.
-   Run `alice --as <client> workspace list --json`, replacing <client> with your identity.
-   Choose a Local workspace; if several Local workspaces exist, ask me which to use.
-   Then read its ready tasks with
-   `alice --as <client> --workspace <alias> task list --status ready --json`.
-   Do not claim tasks or start work as part of setup.
-6. Summarize the app location, CLI/skill versions, selected workspace and ready work.
-   Tell me to start a new agent session so the installed skills are loaded.
+Finish the setup, not just the download. This request authorizes installing Alice,
+its alice command and the integration for the agent I am using. Preserve existing
+workspaces and settings; do not claim tasks or start project work.
 
-If a step fails or a bundled skill/supporting file is missing, stop and explain the
-specific problem instead of claiming setup succeeded. Preserve existing workspaces
-and settings. Do not build from source or install extra runtimes to complete setup.
+Permissions:
+- Request specific filesystem, network, Local daemon or app-control access through
+  your host permission system whenever an action needs it. In Codex use command
+  approval/escalation; in Claude Code use its permission request. Do not stop just
+  because permission is needed or tell me to paste the whole prompt again.
+- If EPERM, EACCES or a sandbox restriction occurs, explain the blocked action/path,
+  request the required permission and retry that action once after approval.
+  Installation writes outside the project, including Applications, ~/.local/bin,
+  the client skill directory and Local agent registration.
+- Never assume approval, use sudo, change filesystem permissions or disable sandbox
+  protections to bypass a refusal. Never ask for, read or print credentials.
+- If access is declined/unavailable or the approved retry still fails, explain the
+  exact blocker and ask for only the smallest manual action needed. Continue from
+  there after confirmation, without repeating successful steps.
+
+Steps:
+1. Identify the client: codex for Codex, claude-code for Claude Code. Ask only if
+   neither applies. Enable only that client. Check that this is macOS arm64;
+   otherwise explain that standalone Local mode needs an Apple Silicon Mac.
+2. Reuse an installed Alice.app, or install it with the official command:
+   curl -fsSL https://github.com/KamolpopKK/alice/releases/latest/download/install-macos.sh | sh
+   The installer verifies the archive checksum and app signature. Open the app
+   from its actual install location, requesting app-control access if needed.
+3. Complete first-run setup using your app-control tools when available. Preserve
+   existing choices, use displayed defaults for new non-sensitive settings, and
+   enable only the selected client. Ask me only for personal choices or a UI action
+   you cannot perform. Do not pause for a generic "done" if setup is already complete.
+4. Find alice on PATH or at ~/.local/bin/alice. If missing, use Alice Desktop's
+   Agents page to choose "Install the alice command", requesting app-control access.
+   If you cannot control the UI, ask me only to click that button and then continue.
+   Use the working command path below; do not install extra runtimes or build source.
+5. Run `alice integration enable codex` or `alice integration enable claude-code`
+   for the selected client. This setup command runs without --as and installs the
+   bundled skills and Local identity. Request write permission if needed. Do not
+   configure a Remote server, MCP or tokens.
+6. Run `alice version`. Inspect the selected client's ~/.codex/skills or ~/.claude/skills:
+   alice, alice-think, alice-spec and alice-plan must each have SKILL.md,
+   PROJECT-FILES.md and OUTPUT-FORMATS.md; think, spec and plan also need TEMPLATE.md.
+   If the installed release bundles an older set, explain which skills are missing
+   and that an updated release is needed. Do not repeatedly reinstall the same bundle
+   or fetch unverified replacements. Do not report complete setup with missing files.
+7. Run `alice --as <client> workspace list --json`, using your actual client name.
+   Use the only Local workspace; if several exist, ask once which to use. Read ready
+   tasks with `alice --as <client> --workspace <alias> task list --status ready --json`,
+   replacing both placeholders with the selected identity and actual workspace alias.
+8. Report the app location, CLI/skill versions, selected workspace and ready task count.
+   Show a pasteable invocation: `$alice-plan` for Codex, `/alice-plan` for Claude Code,
+   or "Use the alice-plan skill to plan this work" in plain language. If this session
+   has not loaded new skills, tell me once to start a new session after verification.
+
+For other errors, inspect the cause and fix routine setup issues supported by evidence;
+ask before an uncertain repair. Never reset workspaces, weaken system protections,
+or silently skip failed installation, permission or verification steps.
 ```
 
 ### 2. Host Alice for your team (Docker)
