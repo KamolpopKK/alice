@@ -1,6 +1,7 @@
 # alice-spec output templates
 
-Read [OUTPUT-FORMATS.md](OUTPUT-FORMATS.md) for requirement references, Mermaid conventions and spikes.
+Read [OUTPUT-FORMATS.md](OUTPUT-FORMATS.md) for the shared document header, splitting rules, requirement
+references, Mermaid conventions and spikes.
 Default to one technical design separate from its source brief. The core sections are Purpose, scope
 and references; Decisions and alternatives; and Verification and evidence. Select other sections using
 SKILL.md. Keep selected sections in the order below with the same headings and field order. Replace
@@ -13,10 +14,11 @@ of empty headings or `N/A`.
 # <Title>
 
 ## Purpose, scope and references
-- Purpose: <what is being designed>.
-- Source requirements: <brief/document id or path and title; requirement ids where present>.
-- Related designs: <id/path and title; what is reused or superseded by agreement>.
+- Type: Technical design.
 - Scope: <technical boundaries>.
+- Source: <brief/document title + id/path + section/requirement ids, task or agreed needs in chat>.
+- Related documents: <title + id/path + section — how it is used and what is reused or superseded by agreement>.
+- Purpose: <what is being designed>.
 - Constraints: <agreed requirements and existing technical decisions>.
 - Repository evidence: <repository/revision when available; paths and symbols inspected>.
 
@@ -118,6 +120,11 @@ of empty headings or `N/A`.
 Omit unavailable optional references and inapplicable contract/operational fields. Use a diagram only
 where it adds clarity; component responsibilities and precise contracts remain in text/tables. For
 decisions without significant alternatives, omit Alternatives rather than inventing options.
+
+Split architecture, contracts, data models or other topics only under the shared splitting criteria.
+The extracted document uses the shared header and the relevant section format above. Its detail is
+authoritative; the main design keeps the summary, affected decisions and a precise reference rather
+than a duplicate specification. Show all document changes in the existing content approval.
 
 Verification and evidence is always present. Keep only its relevant subsections; if no check was run,
 state "No checks executed" under Limitations and why. Never fill Checks performed with proposed work.

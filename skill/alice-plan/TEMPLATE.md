@@ -28,7 +28,7 @@ Plan: plan:<slug> · Parent: <parent title>.
   - `<path>` → `<symbol>` — <what to change there> <(permalink)>
 - Prior art: `<path>` → `<symbol>` — <the pattern to follow>
 - Tests: `<path>` — <the cases to add or extend>
-- Docs: <Alice document title> (<doc id>) § <section>
+- Docs: <title> (<id/path>) § <section> — <why this task needs it; repeat for relevant extracted documents>
 - Requirements: <source brief id/path / REQ-001, …; include when the source has ids>
 - External: <url> — <why it matters>
 - Excerpt (only if critical, ≤ 20 lines):
@@ -80,12 +80,16 @@ recommend `alice-spec` before producing the plan.
 ```markdown
 # <Title>
 
+- Type: Planning reference.
+- Scope: <the agreed work covered by this plan>.
+- Source: <requirements/design title + id/path + section, or the agreement in chat>.
+- Related documents: <title + id/path + section — why it is needed; include relevant extracted topics>.
+
 ## Problem
 <What is wrong or missing today, and for whom.>
 
 ## Solution
 <What will exist when the plan is done, using the agreed design or established project patterns.>
-Source requirements/design: <document ids/paths, or the agreement in chat and relevant code patterns>.
 
 ## Decisions
 - <Planning decisions within the agreed design: task boundaries, sequencing, dependencies and verification, with reasons. Reference existing design decisions without rewriting them.>
@@ -129,3 +133,36 @@ Run this on the draft and report the result before asking for approval:
 - [ ] Each leaf description is under ~8,000 characters; the reference document is under ~20,000.
 - [ ] Every task carries `plan:<slug>`; statuses are `backlog`; no assignees.
 - [ ] Source requirement ids, when present, are preserved and cited by relevant tasks and acceptance criteria; supporting work cites its design decision or spike question.
+- [ ] Every in-scope requirement maps to one or more leaf tasks, or has an evidence-based reason why no system change is needed; source sections are used when ids are absent.
+- [ ] Leaf acceptance criteria collectively cover the source acceptance conditions. Planning gaps are fixed before approval; gaps requiring main technical design follow the readiness rule and are recommended to `alice-spec` before planning continues.
+- [ ] Relevant extracted documents have been read, conflicting sources resolved, and each task cites and links the documents/sections it needs with a reason; no separate artifact index is created.
+
+## Closing prompts after creation
+
+Use the person's language and keep the questions short. Replace the counts with actual leaf counts;
+keep the status approval separate from choosing to work. Do not ask these prompts before successful
+plan creation, or repeat a question already explicitly answered for this same plan.
+
+First ask:
+
+> สร้างแผน <จำนวน> งานเรียบร้อยแล้ว เปลี่ยนสถานะงานที่พร้อมทั้งหมดเป็น **ready (พร้อมทำ)** เลยไหมครับ?
+> สถานะนี้เปิดให้คนหรือ agent หยิบงานไปทำได้ ส่วนงานที่ยังรอ dependency จะอยู่ใน backlog ก่อนครับ
+
+On approval, change only eligible leaves and report the result. If there is available work, then ask:
+
+> เปลี่ยนสถานะ <จำนวน> งานเป็น **ready (พร้อมทำ)** แล้ว อยากเริ่มทำต่อแบบไหนครับ?
+>
+> **1. ทำต่อเนื่อง** — ไล่ทำทีละงานจนจบแผน
+> **2. ทำทีละงาน** — จบงานแล้วถามก่อนเริ่มงานถัดไป
+> **3. ยังไม่เริ่ม**
+>
+> ตอบแค่เลขได้เลย หรืออยากให้ทำเฉพาะ task ไหน พิมพ์ชื่อหรือรหัสมาได้ครับ
+
+After each completed task in one-at-a-time mode, report the outcome briefly and ask:
+
+> งาน “<ชื่องาน>” เสร็จแล้วครับ ต่อไป “<ชื่องานถัดไป>” — ทำต่อไหมครับ?
+
+If the next task is still backlog but its blockers are done, add that yes will change it to
+**ready (พร้อมทำ)** and start it. For a requested task that cannot start, state the blocking task and
+ask whether to work on that prerequisite instead; do not silently expand the selection. At the end
+of all leaves, report completion rather than asking for another task.

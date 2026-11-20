@@ -1,7 +1,7 @@
 # alice-think output templates
 
 Read [OUTPUT-FORMATS.md](OUTPUT-FORMATS.md) for requirement ids, Mermaid conventions, small tasks and
-spikes. Use one brief by default. The core sections are Problem and goal, Source and references, and
+spikes, plus the shared document header and splitting rules. Use one brief by default. The core sections are Problem and goal, Source and references, and
 Decisions. Select other sections using SKILL.md; keep selected sections in the order below with the
 same headings and field order. Repeat entries as needed, replace every placeholder and omit irrelevant
 sections or optional fields rather than writing empty headings or `N/A`.
@@ -11,15 +11,17 @@ sections or optional fields rather than writing empty headings or `N/A`.
 ```markdown
 # <Title>
 
+## Source and references
+- Type: Brief.
+- Scope: <the subject and boundaries of this brief>.
+- Source: <the request, feedback or link>.
+- Related documents: <title + id/path + section — what remains applicable and any agreed change>.
+
 ## Problem and goal
 - Users: <who has the problem>.
 - Problem: <what happens today and why it matters>.
 - Goal: <the change people need>.
 - Success measure: <how to tell it worked>.
-
-## Source and references
-- Source: <the request, feedback or link>.
-- Related document: <id/path and title> — <what remains applicable and any agreed change>.
 
 ## Scope and out of scope
 - In: <included users, cases and capabilities>.
@@ -90,6 +92,10 @@ Related document entries, business rules, exclusions, journey alternatives and U
 when they do not apply. Requirement numbers above are examples, not reserved ranges per section.
 Existing ids take precedence over the sample numbering. A question that could change the agreed
 problem, goal, scope or acceptance conditions stays in discovery rather than this Open questions table.
+
+Keep a journey or UI flow in the brief unless the shared splitting criteria apply. An extracted topic
+uses the shared header and its section format above; the brief retains a summary and a reference to
+the authoritative detail. Include all proposed document changes in the existing content approval.
 
 After saving, report the brief id/title or path, the content included, and the recommended next skill
 with the reason and input references. For a task or spike, report its id/title and the next step. Do

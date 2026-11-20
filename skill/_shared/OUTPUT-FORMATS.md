@@ -4,6 +4,42 @@ These conventions apply to selected content, not a requirement to create every d
 existing Alice document metadata and project-file front matter unchanged. Do not introduce a second
 approval status or revision counter in the Markdown body; Alice maintains revisions.
 
+## Document identity and splitting
+
+At the start of each document body, use these fields in this order. They may sit inside the template's
+opening references section; use the same labels for a brief, design, planning reference or a separate
+supporting document. Task descriptions keep their existing task templates.
+
+```markdown
+# <Title>
+- Type: <Brief | Technical design | Planning reference | Architecture | Contract | Data model | other relevant type>.
+- Scope: <the subject and boundaries of this document>.
+- Source: <originating request/agreement, or source document/task title and id/path, with section/requirement ids when relevant>.
+- Related documents: <title + id/path + section — why the reader needs it; repeat when needed>.
+```
+
+Type, Scope and Source are required; omit Related documents when none apply. Keep this header short,
+with detailed constraints and explanations in the relevant sections. These are Markdown fields, not
+new application metadata or front-matter keys. Existing documents need not be reformatted unless an
+update is requested.
+
+Default to a brief and a separate technical design. Split a topic out only when it is shared across
+several pieces of work, needs to be updated independently, or makes the main document difficult to
+read. Do not generate a file per topic automatically or create a separate artifact index. A supporting
+document uses the header above and the relevant section format from the originating skill's template.
+Apply the same content approval before saving a split or changing an existing source.
+
+Keep the full detail in one authoritative source. The main document retains a useful summary and a
+reference explicitly naming where the full detail lives, for example "Contract details: Notifications
+API (D-099) § Create notification". The extracted document references its parent/source document when
+available. Use a title while a new document is awaiting its id, then resolve actual ids/paths before
+finishing the save; do not invent ids. If only part of a multi-document save succeeds, report what was
+saved and which references remain to be resolved.
+
+Do not copy evolving details into several documents. Read relevant sections of the referenced source
+before relying on them; if sources conflict, surface the discrepancy and agree which is correct before
+continuing. Reuse existing requirements and technical decisions rather than rewriting them elsewhere.
+
 ## Requirement references
 
 - Assign `REQ-001`, `REQ-002`, … within the source brief, including quality and transition requirements.

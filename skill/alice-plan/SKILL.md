@@ -25,7 +25,7 @@ Templates and the pre-creation checklist are in [TEMPLATE.md](TEMPLATE.md). Read
   It comes from the environment or a secret store configured by your operator.
 - Never create, change or archive anything in Alice before the person approves the draft in chat.
 - Never claim, start or complete the tasks you create unless the person separately asks you to work on one
-  (then follow the `alice` skill).
+  or selects an execution mode after release (then follow the `alice` skill within that authorization).
 - Archive instead of deleting; there is no permanent delete for agents.
 
 ## Choose where you work first
@@ -110,6 +110,10 @@ label `plan:<slug>`; it is how you find the plan again.
 1. **Alice.** Look for related, duplicate or prerequisite work: `search` (tasks, documents, comments),
    `search_documents`, and `list_tasks` filtered by `projectId` and `label`. Note what to link or reuse
    and what already exists — never create a duplicate task.
+   Read the source brief/design and the relevant sections of supporting documents they reference,
+   including extracted architecture, contracts and data models. A main document's summary does not
+   replace its authoritative detail. Resolve conflicting sources before planning dependent work;
+   do not silently choose one or assume missing referenced content.
 2. **Codebase** (when you run inside the repository). Find, for each part of the work:
    - the files and symbols to change;
    - prior art to follow (a similar route, component, test);
@@ -136,6 +140,15 @@ The finished plan contains no "TBD", "to be decided", "ask someone", "see the co
 
 ## 3. Draft in chat and get approval
 
+Before presenting the plan for approval, use the existing pre-creation checklist to compare every
+in-scope requirement and its acceptance conditions with the proposed leaf tasks and their acceptance
+criteria. Each requirement needs task coverage or an evidence-based reason why no system change is
+needed; use source sections when ids are absent. Fix planning omissions before presenting the plan.
+If coverage needs a missing main technical design decision, follow the readiness rule and recommend
+`alice-spec` rather than inventing the design. Report coverage briefly (complete, or the specific gaps),
+without a separate document or approval gate. Coverage means the plan addresses the requirements,
+not that implementation or tests have passed.
+
 Show the complete plan in chat — nothing is written to Alice yet:
 
 1. the reference document (full text for a new one, or the Planning notes you will add);
@@ -161,7 +174,10 @@ In this order, after approval. Create calls return the new object wrapped: `crea
 4. **Order.** `add_task_blocker { id, blockerId }` for each edge ("`id` waits for `blockerId`").
    `RELATIONSHIP_CYCLE` means the draft has a cycle: stop and fix the draft with the person.
 5. **References.** `link_document { id, taskId }` for the reference document on every parent and leaf,
-   and for every other Alice document a task cites.
+   and for every other Alice document a task cites, including relevant extracted supporting documents.
+   For project files, include those ids in the task's `docs` list; external/repository sources remain
+   precise body references. Cite title, id/path, section and why each source is needed in References.
+   Link only what that task needs; do not create a separate artifact index document.
 6. **Report** a table: id, title, parent, blocked by, status.
 
 If a call fails midway, report what was created (ids) and what was not; do not retry blindly or create
@@ -169,15 +185,33 @@ duplicates. Resume from the first missing item after checking with `list_tasks {
 
 ## 5. Release
 
-Ask whether to release the plan. On yes, `update_task { id, status: "ready" }` for every **leaf** whose
-blockers are all done (use `get_task_relations`). Leaves with unfinished blockers and all parent tasks
-stay `backlog`; tell the person which ones and why. Agents using the `alice` skill only pick up `ready`,
-unassigned tasks, so nothing is worked on before release.
+Use the short closing prompts in TEMPLATE.md. First ask whether to change eligible tasks to
+**ready (พร้อมทำ)**; explain that this makes them available for people or agents to pick up. Do not
+use "release" or "ปล่อยงาน" alone in user-facing prompts. This status approval does not authorize
+implementation. If the person declines or has not answered, leave the tasks in backlog and stop;
+do not ask the execution-mode question.
 
-Alice does not promote a task automatically when its blockers finish. When asked to "release the next
-tasks" (or "release plan:<slug>"), repeat this step: `list_tasks { label: ["plan:<slug>"], status: ["backlog"] }`,
-check each leaf's blockers with `get_task_relations`, show the person which leaves are now unblocked,
-and on confirmation set them to `ready`.
+On yes, re-read the plan's tasks. Use `update_task { id, status: "ready" }` only for unassigned
+**backlog leaves** whose blockers are all done (use `get_task_relations`). Leave parent tasks, claimed
+tasks and leaves with unfinished blockers unchanged. Report how many are ready and what still waits.
+If none can be started, explain why and stop instead of offering to start unavailable work.
+
+Then ask how the person wants to proceed: work continuously through the plan, finish one task and ask
+before the next, or do not start. Also invite them to type a task name or id to work only on that task.
+Accept a short number or plain-language answer; ask for clarification only when it is ambiguous.
+Do not pick a mode from silence or from the earlier approval of the plan or ready status.
+
+After an explicit choice to work, follow `alice` with the selected workspace, plan label, concrete
+leaf task ids, source references and the chosen mode. Claim one task immediately before working it;
+never claim the whole plan at once. Choosing not to start leaves the ready statuses in place. A named
+task authorizes only that task; if blocked, name its prerequisites and ask before adding any to the
+work scope. Do not invoke think or spec when reporting a design/scope blocker; recommend the next step.
+
+Alice does not promote tasks automatically when blockers finish. Continuous mode explicitly authorizes
+the working agent to promote newly eligible backlog leaves of this same plan as needed, without another
+release question. In one-at-a-time mode, the next-task question includes changing that task to ready
+when needed. Outside an authorized execution mode, a later request to "release the next tasks" still
+requires showing eligible leaves and confirming their change to ready before updating them.
 
 ## Sizing and structure
 

@@ -1,3 +1,29 @@
+# Unreleased — Agent discovery, technical design and output templates
+
+- **Four skills.** `alice-think` agrees needs and scope, the new `alice-spec` produces technical design,
+  `alice-plan` breaks settled work into tasks, and `alice` works on tasks. Stages recommend the next
+  skill with input references; they do not invoke it automatically.
+- **Technical design.** Relevant architecture, data models, contracts, migration/rollout and operational
+  details live in a design separate from the requirements brief. Spec asks before every check execution
+  and saves content only after approval. Missing main design choices are recommended back to spec
+  before planning.
+- **Output formats.** Think and spec now ship templates; all skills ship shared requirement-reference,
+  Mermaid, small-task and spike conventions. Requirements retain ids such as `REQ-001`. Mermaid source
+  is stored in Markdown; diagram rendering in Alice is future work. Unfinished think/spec work stays in
+  chat, with no saved draft document.
+- **After planning.** First confirm changing eligible tasks to `ready` (พร้อมทำ), then choose continuous
+  execution, one task at a time with confirmation, selected tasks, or no start. An explicit execution
+  choice authorizes `alice` within that plan/selection; claims remain one task at a time. Continuous
+  execution can make the same plan's newly unblocked leaves ready. Checks still need approval for
+  each execution, and failed/blocked work or scope/design changes stop the loop.
+- **Upgrade.** Install skills from the updated CLI and restart the agent session. Automatic Local refresh
+  compares version numbers only; run `alice install-skill --client codex` or `--client claude-code`
+  explicitly to refresh content or supporting files at the same version. Preserve `--scope project`
+  when that is how the skills were installed. No schema migration or MCP contract change is required.
+
+Workflow and templates: [agents.md](agents.md). The versioned release notes below describe their
+respective releases; current skill behaviour is documented in the agent guide.
+
 # Unreleased — Personal Task Pads
 
 User guide: [task-pads.md](task-pads.md).

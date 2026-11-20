@@ -20,6 +20,10 @@ node alice-cli.js install-skill --client claude-code      # or: --client codex
 home folder, so they travel with the code. `--skill alice`, `--skill alice-plan`, `--skill alice-think` or `--skill alice-spec` installs one of them;
 each still gets the full project files guidance. Keep `alice-cli.js` for `node alice-cli.js import` later.
 
+Choose `alice-think` to agree needs, `alice-spec` to design the technical solution, `alice-plan` to
+break down agreed work, or `alice` to work on a task. Each stage recommends the next skill when needed;
+it does not start it automatically. See [the agent guide](agents.md) for the workflow and approval rules.
+
 ## Layout
 
 ```
@@ -101,6 +105,26 @@ source_url: https://example.com/spec   # optional
 The document body, in Markdown.
 ```
 
+Think saves an approved brief and spec saves an approved technical design as separate documents in
+this same format. Their references cite other document ids/paths in the body. Use the relevant
+[think](../skill/alice-think/TEMPLATE.md) or [spec](../skill/alice-spec/TEMPLATE.md) template, retaining
+selected headings and omitting irrelevant sections. No extra document type or approval field is
+required in front matter. Unfinished thinking and design stay in chat rather than saved drafts.
+
+Document bodies start with Type, Scope and Source, plus Related documents when present. Keep topics
+in the main brief/design unless they are reused across work, need independent updates or become hard
+to read. Extracted topics keep the authoritative detail; the parent document keeps a summary and a
+title/id/path/section reference. Plan reads relevant referenced sections and puts each task's required
+documents in its `docs` list, with the section and reason in the task body.
+
+Requirements have stable local ids such as `REQ-001`. Other files cite `D-<n> / REQ-001` with the
+source path where useful. Small tasks and agreed spikes follow the
+[shared output formats](../skill/_shared/OUTPUT-FORMATS.md); a spike may exist before a document is saved.
+
+Keep diagrams as fenced `mermaid` blocks with a title, purpose and explanation. The Markdown source
+travels with the document; visual rendering depends on the reader, and Alice currently displays the
+code. A diagram supplements the requirements, tables and contracts rather than replacing them.
+
 ## Working together through git
 
 There is no server, so claiming relies on git:
@@ -135,6 +159,12 @@ Every Alice skill (`alice`, `alice-plan`, `alice-think`, `alice-spec`) ships the
 from `skill/_shared/` in this repository. Whichever skill an agent uses first, and even when only one
 skill is installed, it finds the file format, the setup of `.alice/`, what to tell you the first time,
 and how to move to the app.
+
+The same shared folder supplies `OUTPUT-FORMATS.md` for requirement references, Mermaid, small tasks
+and spikes. Think, spec and plan also ship their own `TEMPLATE.md`. Reinstall from an updated CLI to
+refresh all supporting files, even if the installed skill has the same version number; for a
+project-scoped installation, repeat `node alice-cli.js install-skill --client codex --scope project`
+(or use `claude-code`) and review the resulting repository changes.
 
 ## Importing into a workspace
 

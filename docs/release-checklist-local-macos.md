@@ -25,7 +25,10 @@ This list covers what only a real machine can show.
    first line. Nothing asks for a URL, port, password or database path.
 4. **Agent tools.** Keep Codex enabled. Afterwards:
    - `~/.local/bin/alice version` works from a new Terminal;
-   - `~/.codex/skills/alice/SKILL.md` exists.
+   - `~/.codex/skills/{alice,alice-think,alice-spec,alice-plan}/SKILL.md` all exist;
+   - think, spec and plan each have `TEMPLATE.md`, and every installed skill has `PROJECT-FILES.md`
+     and `OUTPUT-FORMATS.md`;
+   - the Agents view lists all four skills, including `alice-spec`, with the current version.
 5. **Desktop-closed CLI journey.**
    1. Quit Alice Desktop.
    2. In Terminal, create a ready task. Then `alice --as codex task claim ID`, then

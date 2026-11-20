@@ -110,6 +110,11 @@ separate from the requirements brief. Propose updating that design rather than m
 Keep unchanged requirements in their source and reference them; do not rewrite the brief or silently
 replace an earlier decision. Surface conflicts and get agreement on what changes.
 
+Use the shared Type, Scope and Source header. Keep topics in the main design unless they are reused
+across work, need independent updates or make it difficult to read. Follow TEMPLATE.md and the shared
+splitting rules for any extracted architecture, contract or data-model document: keep full detail in
+that source, and retain an explanatory summary and a precise reference in the main design.
+
 ## 2. Discover and choose the approach
 
 When code or documents are accessible, read them before designing. Look for the current behaviour,
@@ -183,6 +188,11 @@ An approved design does not imply it has been implemented, tested or deployed.
 Show the complete design, title, destination and whether it creates or updates a document. Apply edits
 and show changed parts again. Wait for explicit content approval before saving. Keep the requirements
 brief separate; its id/path belongs in the design's references.
+
+When splitting is needed, include the supporting documents and changed references in this same
+approval. Use the existing document create/update operations for each approved document and report
+their actual ids/paths. Do not finish with unresolved temporary references or silently overwrite a
+shared source document.
 
 Use `create_document { title, body }` for a new design, or re-read an existing design before
 `update_document { id, title, body }` with the complete approved body to avoid overwriting changes.

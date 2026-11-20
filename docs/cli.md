@@ -185,9 +185,25 @@ The Agent onboarding helpers are part of the CLI. The skill files are embedded i
 `alice.js`, so these also work from the standalone file:
 
 ```bash
-alice install-skill --client claude-code      # or codex; --scope project; --skill alice|alice-plan|alice-think (default: all)
+alice install-skill --client claude-code      # or codex; --scope project (default: user)
+alice install-skill --client codex --skill alice-spec
 alice mcp-config --client claude-code         # defaults to the active profile's server URL
 ```
+
+`--skill` accepts `alice`, `alice-think`, `alice-spec` or `alice-plan`; omit it to install all four.
+Each installation includes the skill's supporting files, including templates where present and the
+shared project-files/output-format guides. Use `--scope project` for `.claude/skills/` or
+`.codex/skills/` in the repository instead of your home folder.
+
+`alice-think` agrees needs, `alice-spec` designs the technical solution, `alice-plan` breaks settled
+work into tasks, and `alice` works on those tasks. The agent recommends the next skill when needed;
+you choose when to invoke it. See [the agent workflow and templates](agents.md#thinking-new-work-through-with-alice-think).
+
+Re-running `install-skill` overwrites the selected skill files from the current CLI even when version
+numbers match. Update the CLI first to obtain new embedded content, then reinstall using the same scope
+and restart the agent session. Local automatic refresh compares version numbers; it does not detect
+changed template content at the same version. `alice version` reports each skill under `agentSkills`
+in JSON, as well as listing them in text output.
 
 ## Server commands moved to `alice-server`
 
