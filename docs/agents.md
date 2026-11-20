@@ -146,8 +146,10 @@ Give your agent a new idea, request, bug report or piece of feedback that has no
    create it now and already supplied complete task content.
 3. Anything else gets questioned in rounds. A round holds every question that can be asked now; one that
    depends on an earlier answer waits for the next round. Each question is numbered with a recommended
-   answer, worded so that "yes" accepts it, so you can answer a round by number. The agent looks up facts
-   itself and chooses internal details that follow existing conventions. It asks you about choices
+   answer: every question starts with `❓` and its recommendation starts with `➡️`, even when a round has
+   only one question. Each is worded so that "yes" accepts it, so you can answer a round by number. The
+   agent looks up facts itself and chooses internal details that follow existing conventions. It asks
+   you about choices
    that change user-visible behaviour, scope, costs or commitments. Questions that could change the
    agreed needs must be resolved before handover, possibly through an agreed spike. After each round it
    reports what is agreed, what changed, what remains and what it recommends next.

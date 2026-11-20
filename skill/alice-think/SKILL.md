@@ -149,6 +149,9 @@ Format every question the same way, so the person can answer a whole round by nu
 ➡️ <your recommended answer>
 ```
 
+- Start every question with the literal `❓` icon and every recommendation with the literal `➡️`
+  icon, including a round with only one question. Never collapse them into an unmarked paragraph;
+  the icons and question numbers make the decision frontier scannable.
 - Word each question so that "yes" accepts your recommendation.
 - Mark a question **trade-off** when your recommendation gives up something the person may care about,
   and say what. Accepting a round wholesale must never hide one.
