@@ -104,7 +104,9 @@ node alice-cli.js install-skill --client claude-code      # or: --client codex
 
 This installs the `alice`, `alice-plan`, `alice-think` and `alice-spec` skills for you. Add `--scope project` to put them in this
 repository instead (`.claude/skills/` or `.codex/skills/`), so everyone who clones it gets them. Then ask
-your agent to plan or pick up work; it asks before creating `.alice/`.
+your agent to think through needs (`alice-think`), design the technical solution (`alice-spec`), break
+agreed work into tasks (`alice-plan`) or pick up a task (`alice`). It recommends the next skill when
+needed and asks before creating `.alice/`. Workflow and output templates: [agent guide](docs/agents.md).
 
 Keep `alice-cli.js` if you may want the app later: `node alice-cli.js import` brings the board into Alice.
 More: [project files](docs/project-files.md).

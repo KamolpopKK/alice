@@ -76,6 +76,11 @@ moves the whole folder to the OS Trash (macOS and Linux). Emptying the Trash is 
 permissions, remove stale daemon files, reinstall the launcher and refresh skills. It never restores a
 database.
 
+Skill refresh uses version numbers. To install a missing skill or supporting template, or replace
+changed content at the same version, run `alice install-skill --client codex` (or `claude-code`) from
+the updated CLI, then restart the agent session. The four skills and their workflows are described in
+[Connecting AI agents](agents.md).
+
 `alice doctor --bundle DIR` shows the files it will write, then writes redacted diagnostics: the doctor
 report, versions and daemon logs. The bundle contains no database, task text, credentials or
 home-folder paths.

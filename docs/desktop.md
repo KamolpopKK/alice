@@ -174,6 +174,11 @@ On first launch, with no workspaces yet, Alice Desktop opens a short setup:
 
 There is no server URL, password or sign-in. See [Local workspaces](local-workspaces.md).
 
+Enabling Codex or Claude Code installs all four Alice skills: `alice-think` for needs, `alice-spec` for
+technical design, `alice-plan` for task breakdown and `alice` for task execution. The Agents view lists
+their installed versions. Templates and shared output conventions are installed with the skills;
+see [the agent guide](agents.md) for choosing a skill and refreshing its files.
+
 - **Switching.** The bar at the top shows the active workspace and whether it is **Local** or **Remote**.
   **Switch workspace** lists the Local workspaces first, then the Alice servers. From that list you can
   create, rename, change the alias of and use Local workspaces.

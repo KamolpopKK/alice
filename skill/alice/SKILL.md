@@ -115,6 +115,48 @@ the app.
    follow-ups. Do not set `status: "done"` with `update_task` — agents must use `complete_task`.
    If the work spawned follow-ups, create them with `create_task` (optionally `parentId`).
 
+## Working through an approved plan
+
+Use this mode only when the person explicitly chooses to execute a plan or names tasks to work on.
+Approval of the plan document or a change to ready alone is not permission to start. Preserve the
+workspace, concrete leaf task ids, plan label, source references and the selected execution mode from
+the conversation. If that context is missing, read the plan and ask only for the missing selection.
+Do not repeat a workspace or mode question already answered in the conversation.
+
+- **Continuous:** complete one task at a time, reporting a concise outcome after each, then take the
+  next eligible leaf within the authorized plan. The choice includes changing newly unblocked,
+  unassigned backlog leaves of that plan to ready as needed. There is no next-task confirmation.
+- **One at a time:** complete the current task, report its outcome, then ask briefly whether to start
+  the next named eligible task. If it is backlog, say that yes also changes it to **ready (พร้อมทำ)**.
+  Wait for the answer; a yes authorizes that task only, then ask again after completing it.
+- **Named task:** work only the selected task or explicitly selected set. Do not add its prerequisites
+  or follow-up work without approval. If the name is ambiguous, ask which id the person meant.
+
+For each selection, re-read status, assignment and blockers before acting. Work only on this plan's
+authorized leaf tasks with all blockers done. Resume your own claimed task when appropriate; otherwise
+claim one ready, unassigned task immediately before starting, using the normal command/MCP or project
+files procedure above. Never claim all tasks upfront, change another actor's assignment, mark a parent
+ready, reopen done/canceled/archived work, or pull in unrelated tasks. If a claim fails, re-read and
+choose another authorized eligible leaf. Do not bypass dependencies to keep the loop moving.
+
+Complete each task with its normal completion summary before taking the next. Newly discovered work
+may be recorded as follow-up tasks under the normal workflow, but is not added to this execution scope
+automatically. Parents remain coordination records; finishing the plan means its authorized leaves
+are done, not claiming or completing all parents yourself.
+
+Stop when all authorized leaves are done, the person asks to stop, a task fails and cannot be completed,
+no eligible work remains, or a scope/main-design decision is needed. If some leaves are held by other
+actors, work on other eligible authorized leaves; when none remain, report what is still held or
+blocked rather than claiming the whole plan is complete or polling indefinitely. For failed/blocked
+work, record the reason and status through the normal workflow, and report completed, remaining and
+blocked tasks. Recommend think/spec when needed without invoking them automatically.
+
+Execution-mode approval does not authorize checks. Before every check execution, including tests,
+builds or retries, explain what will run and why, and wait for the person's explicit approval. Retain
+the current mode while waiting; do not claim the next task or silently skip required verification.
+Existing approval requirements for production changes, spending, deleting data and other decisions
+outside your authority continue to apply.
+
 ## Recovering from errors
 
 The MCP tools return `{ "error": { "code", "message" } }` and the `alice` command returns

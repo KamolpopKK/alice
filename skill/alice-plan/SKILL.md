@@ -25,7 +25,7 @@ Templates and the pre-creation checklist are in [TEMPLATE.md](TEMPLATE.md). Read
   It comes from the environment or a secret store configured by your operator.
 - Never create, change or archive anything in Alice before the person approves the draft in chat.
 - Never claim, start or complete the tasks you create unless the person separately asks you to work on one
-  (then follow the `alice` skill).
+  or selects an execution mode after release (then follow the `alice` skill within that authorization).
 - Archive instead of deleting; there is no permanent delete for agents.
 
 ## Choose where you work first
@@ -169,15 +169,33 @@ duplicates. Resume from the first missing item after checking with `list_tasks {
 
 ## 5. Release
 
-Ask whether to release the plan. On yes, `update_task { id, status: "ready" }` for every **leaf** whose
-blockers are all done (use `get_task_relations`). Leaves with unfinished blockers and all parent tasks
-stay `backlog`; tell the person which ones and why. Agents using the `alice` skill only pick up `ready`,
-unassigned tasks, so nothing is worked on before release.
+Use the short closing prompts in TEMPLATE.md. First ask whether to change eligible tasks to
+**ready (พร้อมทำ)**; explain that this makes them available for people or agents to pick up. Do not
+use "release" or "ปล่อยงาน" alone in user-facing prompts. This status approval does not authorize
+implementation. If the person declines or has not answered, leave the tasks in backlog and stop;
+do not ask the execution-mode question.
 
-Alice does not promote a task automatically when its blockers finish. When asked to "release the next
-tasks" (or "release plan:<slug>"), repeat this step: `list_tasks { label: ["plan:<slug>"], status: ["backlog"] }`,
-check each leaf's blockers with `get_task_relations`, show the person which leaves are now unblocked,
-and on confirmation set them to `ready`.
+On yes, re-read the plan's tasks. Use `update_task { id, status: "ready" }` only for unassigned
+**backlog leaves** whose blockers are all done (use `get_task_relations`). Leave parent tasks, claimed
+tasks and leaves with unfinished blockers unchanged. Report how many are ready and what still waits.
+If none can be started, explain why and stop instead of offering to start unavailable work.
+
+Then ask how the person wants to proceed: work continuously through the plan, finish one task and ask
+before the next, or do not start. Also invite them to type a task name or id to work only on that task.
+Accept a short number or plain-language answer; ask for clarification only when it is ambiguous.
+Do not pick a mode from silence or from the earlier approval of the plan or ready status.
+
+After an explicit choice to work, follow `alice` with the selected workspace, plan label, concrete
+leaf task ids, source references and the chosen mode. Claim one task immediately before working it;
+never claim the whole plan at once. Choosing not to start leaves the ready statuses in place. A named
+task authorizes only that task; if blocked, name its prerequisites and ask before adding any to the
+work scope. Do not invoke think or spec when reporting a design/scope blocker; recommend the next step.
+
+Alice does not promote tasks automatically when blockers finish. Continuous mode explicitly authorizes
+the working agent to promote newly eligible backlog leaves of this same plan as needed, without another
+release question. In one-at-a-time mode, the next-task question includes changing that task to ready
+when needed. Outside an authorized execution mode, a later request to "release the next tasks" still
+requires showing eligible leaves and confirming their change to ready before updating them.
 
 ## Sizing and structure
 
