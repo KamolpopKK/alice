@@ -141,6 +141,11 @@ label `plan:<slug>`; it is how you find the plan again.
    rather than copying its criteria into the planning reference. When established patterns make a
    separate design unnecessary, use the source quality/transition requirements and acceptance
    conditions; do not require `alice-spec` merely to create a DoD.
+6. **Testing design handoff.** When an approved design contains Testing design, map its scenarios and
+   critical cases to leaf tasks, existing test files/suites and exact verification commands without
+   redesigning the coverage. When it is absent, use source acceptance conditions, established test
+   patterns and any agreed prototype/investigation validation; do not require Testing design for every
+   plan.
 
 The finished plan contains no "TBD", "to be decided", "ask someone", "see the code" or similar.
 
@@ -148,8 +153,8 @@ The finished plan contains no "TBD", "to be decided", "ask someone", "see the co
 
 Before presenting the plan for approval, use the existing pre-creation checklist to compare every
 in-scope requirement and its acceptance conditions with the proposed leaf tasks and their acceptance
-criteria, including applicable DoD criteria from an approved design. Each requirement needs task
-coverage or an evidence-based reason why no system change is
+criteria, including applicable DoD criteria and Testing design from an approved design. Each
+requirement needs task coverage or an evidence-based reason why no system change is
 needed; use source sections when ids are absent. Fix planning omissions before presenting the plan.
 If coverage needs a missing main technical design decision, follow the readiness rule and recommend
 `alice-spec` rather than inventing the design. Report coverage briefly (complete, or the specific gaps),

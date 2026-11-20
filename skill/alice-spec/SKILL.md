@@ -161,6 +161,21 @@ the DoD, follow the spike rule below. Record every area in the design as agreed 
 exclusion, with its requirement/design coverage, verification, pass criteria and required evidence.
 Writing a proposed check does not authorize executing it.
 
+Add a **Testing design** only when risk, complexity or coordination across test levels/suites means
+planning should not design the coverage itself. Reuse repository test seams, suites and fixtures before
+proposing new ones. Connect source requirements and acceptance conditions to scenario groups and
+critical cases, their level/suite, setup and test data/environment, action, expected result and required
+evidence. Cover happy paths, boundaries, authorization, failure/recovery, compatibility, accessibility,
+security and performance only where the requirements and DoD make them relevant. Do not enumerate
+every assertion or invent cases without a risk or requirement.
+
+For a prototype, spike or investigation whose DoD justifiably excludes automated tests, omit Testing
+design. Record the alternative validation under Verification and evidence: the question, method (for
+example demo, user feedback, experiment or benchmark), expected evidence, decision criterion and time
+limit/end condition. A throwaway prototype must state that it will not be merged, deployed or reused in
+production. If the person later chooses to productionize it, design and add the required tests before
+production handoff.
+
 ## 3. Resolve blocking uncertainty
 
 Before recommending planning, settle choices that determine architecture, contracts, the data model
@@ -200,6 +215,7 @@ approval for each execution, just like other checks.
 | **Migration, rollout and rollback** | Existing data, users or consumers are affected: compatibility during transition, sequence, activation, monitoring, rollback conditions and irreversible steps |
 | **Operational design** | Running the change introduces needs: configuration, secrets handling, observability, capacity, security controls and support/recovery procedures |
 | **Definition of Done** | Always: agreed criteria or justified exclusions for every DoD area, linked to requirements/design coverage, verification, pass criteria and evidence |
+| **Testing design** | Risk, complexity or several test levels/suites require agreed scenario groups, critical cases, setup/data, expected results and evidence before planning |
 | **Decisions and alternatives** | Always: the chosen approach and why; significant alternatives rejected and their trade-offs |
 | **Verification and evidence** | Always: how the design satisfies the source acceptance conditions, evidence read, checks actually run and their results, and checks not run or unavailable sources |
 | **Remaining implementation details** | Details can wait without changing the design: state the boundary within which planning may choose; blocking design questions stay in step 3 |
