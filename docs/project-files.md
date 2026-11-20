@@ -111,6 +111,12 @@ this same format. Their references cite other document ids/paths in the body. Us
 selected headings and omitting irrelevant sections. No extra document type or approval field is
 required in front matter. Unfinished thinking and design stay in chat rather than saved drafts.
 
+Document bodies start with Type, Scope and Source, plus Related documents when present. Keep topics
+in the main brief/design unless they are reused across work, need independent updates or become hard
+to read. Extracted topics keep the authoritative detail; the parent document keeps a summary and a
+title/id/path/section reference. Plan reads relevant referenced sections and puts each task's required
+documents in its `docs` list, with the section and reason in the task body.
+
 Requirements have stable local ids such as `REQ-001`. Other files cite `D-<n> / REQ-001` with the
 source path where useful. Small tasks and agreed spikes follow the
 [shared output formats](../skill/_shared/OUTPUT-FORMATS.md); a spike may exist before a document is saved.

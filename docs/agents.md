@@ -267,6 +267,17 @@ creating every document type. Requirements receive stable local ids such as `REQ
 and tasks cite `<source brief id/path> / REQ-001`. Existing ids are not renumbered or reused. Older
 documents without ids can be cited by section.
 
+Each brief, design, new planning reference or separately extracted topic starts with Type, Scope and
+Source in the Markdown body, plus Related documents when present. These describe its role, boundaries
+and origin without adding application metadata or another approval status.
+
+Keep brief/design topics together by default. Extract a journey, architecture, contract or data model
+only when it is reused across work, needs independent updates or makes the main document difficult to
+read. Full details live in one authoritative document; the main document keeps a useful summary and
+an explicit title/id/path/section reference. Conflicts between sources must be resolved before relying
+on them. Plan reads the relevant supporting sections and cites and links the sources each task needs,
+explaining their purpose in References. No separate artifact-index document is required.
+
 Diagrams use fenced Mermaid source: flowcharts for architecture/UI flows, sequence diagrams for
 calls/events, state diagrams for lifecycles and ER diagrams for data relationships. Each has a title,
 purpose and explanation. Alice currently displays the source as code; visual rendering is separate

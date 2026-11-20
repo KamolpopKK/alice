@@ -180,6 +180,11 @@ of documents to produce. Omit irrelevant sections; do not create empty sections 
 type. Reference existing documents for unchanged content. Update them only when requested, with the
 changes included in the approval in step 5.
 
+Use the shared Type, Scope and Source header from TEMPLATE.md. Split out a topic only when it is
+shared across work, needs independent updates or makes the brief difficult to read. Follow the shared
+splitting rules: one authoritative detail source, with a summary and precise reference in the brief.
+Show all affected documents in the same content approval; do not create a document per section.
+
 Use the brief template and stable requirement ids from [TEMPLATE.md](TEMPLATE.md). Reference existing
 ids without renumbering them. Use the shared Mermaid wrapper for relevant flows; do not run a diagram
 syntax or render check without the person's approval for that execution.

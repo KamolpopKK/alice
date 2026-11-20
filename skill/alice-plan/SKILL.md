@@ -110,6 +110,10 @@ label `plan:<slug>`; it is how you find the plan again.
 1. **Alice.** Look for related, duplicate or prerequisite work: `search` (tasks, documents, comments),
    `search_documents`, and `list_tasks` filtered by `projectId` and `label`. Note what to link or reuse
    and what already exists — never create a duplicate task.
+   Read the source brief/design and the relevant sections of supporting documents they reference,
+   including extracted architecture, contracts and data models. A main document's summary does not
+   replace its authoritative detail. Resolve conflicting sources before planning dependent work;
+   do not silently choose one or assume missing referenced content.
 2. **Codebase** (when you run inside the repository). Find, for each part of the work:
    - the files and symbols to change;
    - prior art to follow (a similar route, component, test);
@@ -136,6 +140,15 @@ The finished plan contains no "TBD", "to be decided", "ask someone", "see the co
 
 ## 3. Draft in chat and get approval
 
+Before presenting the plan for approval, use the existing pre-creation checklist to compare every
+in-scope requirement and its acceptance conditions with the proposed leaf tasks and their acceptance
+criteria. Each requirement needs task coverage or an evidence-based reason why no system change is
+needed; use source sections when ids are absent. Fix planning omissions before presenting the plan.
+If coverage needs a missing main technical design decision, follow the readiness rule and recommend
+`alice-spec` rather than inventing the design. Report coverage briefly (complete, or the specific gaps),
+without a separate document or approval gate. Coverage means the plan addresses the requirements,
+not that implementation or tests have passed.
+
 Show the complete plan in chat — nothing is written to Alice yet:
 
 1. the reference document (full text for a new one, or the Planning notes you will add);
@@ -161,7 +174,10 @@ In this order, after approval. Create calls return the new object wrapped: `crea
 4. **Order.** `add_task_blocker { id, blockerId }` for each edge ("`id` waits for `blockerId`").
    `RELATIONSHIP_CYCLE` means the draft has a cycle: stop and fix the draft with the person.
 5. **References.** `link_document { id, taskId }` for the reference document on every parent and leaf,
-   and for every other Alice document a task cites.
+   and for every other Alice document a task cites, including relevant extracted supporting documents.
+   For project files, include those ids in the task's `docs` list; external/repository sources remain
+   precise body references. Cite title, id/path, section and why each source is needed in References.
+   Link only what that task needs; do not create a separate artifact index document.
 6. **Report** a table: id, title, parent, blocked by, status.
 
 If a call fails midway, report what was created (ids) and what was not; do not retry blindly or create
