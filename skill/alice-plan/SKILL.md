@@ -63,6 +63,13 @@ Act as yourself on every command: add `--as claude-code` if you are Claude Code,
 Codex, plus `--json`. Never run Alice commands without `--as`, and never open the credential store: the
 CLI reads your credential itself. Add `--workspace ALIAS` when more than one workspace exists.
 
+When the selected workspace is **Local** and the agent runtime sandboxes shell commands, run every
+`alice` command outside that sandbox (request the runtime's normal command escalation from the first
+command). The Local CLI must reach the Alice daemon and the operating-system credential store; a
+sandboxed invocation can misleadingly report that the workspace did not become ready or that an
+enabled integration has no credential. If either symptom appears, retry the same command outside the
+sandbox before diagnosing Alice, changing integration settings or asking the person to reconnect.
+
 Every result is `{ "ok", "workspace", "data" }` or `{ "ok": false, "error": { "code", "message" } }` with
 the codes in "Recovering from errors", and the exit status is non-zero on errors. `UNAUTHENTICATED` from
 the command means the person disabled your integration: stop and tell them. `alice --help` and
@@ -141,6 +148,11 @@ label `plan:<slug>`; it is how you find the plan again.
    rather than copying its criteria into the planning reference. When established patterns make a
    separate design unnecessary, use the source quality/transition requirements and acceptance
    conditions; do not require `alice-spec` merely to create a DoD.
+6. **Testing design handoff.** When an approved design contains Testing design, map its scenarios and
+   critical cases to leaf tasks, existing test files/suites and exact verification commands without
+   redesigning the coverage. When it is absent, use source acceptance conditions, established test
+   patterns and any agreed prototype/investigation validation; do not require Testing design for every
+   plan.
 
 The finished plan contains no "TBD", "to be decided", "ask someone", "see the code" or similar.
 
@@ -148,8 +160,8 @@ The finished plan contains no "TBD", "to be decided", "ask someone", "see the co
 
 Before presenting the plan for approval, use the existing pre-creation checklist to compare every
 in-scope requirement and its acceptance conditions with the proposed leaf tasks and their acceptance
-criteria, including applicable DoD criteria from an approved design. Each requirement needs task
-coverage or an evidence-based reason why no system change is
+criteria, including applicable DoD criteria and Testing design from an approved design. Each
+requirement needs task coverage or an evidence-based reason why no system change is
 needed; use source sections when ids are absent. Fix planning omissions before presenting the plan.
 If coverage needs a missing main technical design decision, follow the readiness rule and recommend
 `alice-spec` rather than inventing the design. Report coverage briefly (complete, or the specific gaps),

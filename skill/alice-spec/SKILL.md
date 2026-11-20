@@ -19,10 +19,13 @@ keeping the selected template headings and fields.
 
 - Your token is a secret. Never print it, paste it into comments or documents, or commit it.
   It comes from the environment or a secret store configured by your operator.
-- Ask the person before every check execution. Explain the exact command or operation, its purpose,
-  target and any side effects, then wait for explicit approval. Approval for an earlier execution does
-  not authorize another execution, retry or changed command. Approval of the design is not approval
-  to run checks. If approval is declined or unanswered, leave the check unrun and report the limitation.
+- Tests, builds, linters, local project commands and their retries need no Alice-specific approval
+  merely because they execute code, create local artifacts or start a local test service. Explain
+  meaningful verification in progress updates, then run it autonomously. Request approval only when
+  the concrete operation independently requires it, such as changing production or an external system,
+  spending money, deleting or irreversibly migrating data, changing credentials or permissions, or
+  causing a material effect outside the scoped workspace. If required approval is declined or
+  unanswered, leave that operation unrun and report the limitation.
 - Never save or change a design in Alice before the person approves the complete content in chat.
 - Do not implement the design, change production code, claim or work tasks, or create a work breakdown.
   Create only a spike task the person has explicitly agreed to.
@@ -63,6 +66,13 @@ bind`) unless the user asks.
 Act as yourself on every command: add `--as claude-code` if you are Claude Code, `--as codex` if you are
 Codex, plus `--json`. Never run Alice commands without `--as`, and never open the credential store: the
 CLI reads your credential itself. Add `--workspace ALIAS` when more than one workspace exists.
+
+When the selected workspace is **Local** and the agent runtime sandboxes shell commands, run every
+`alice` command outside that sandbox (request the runtime's normal command escalation from the first
+command). The Local CLI must reach the Alice daemon and the operating-system credential store; a
+sandboxed invocation can misleadingly report that the workspace did not become ready or that an
+enabled integration has no credential. If either symptom appears, retry the same command outside the
+sandbox before diagnosing Alice, changing integration settings or asking the person to reconnect.
 
 Every result is `{ "ok", "workspace", "data" }` or `{ "ok": false, "error": { "code", "message" } }` with
 the codes in "Recovering from errors", and the exit status is non-zero on errors. `UNAUTHENTICATED` from
@@ -161,6 +171,21 @@ the DoD, follow the spike rule below. Record every area in the design as agreed 
 exclusion, with its requirement/design coverage, verification, pass criteria and required evidence.
 Writing a proposed check does not authorize executing it.
 
+Add a **Testing design** only when risk, complexity or coordination across test levels/suites means
+planning should not design the coverage itself. Reuse repository test seams, suites and fixtures before
+proposing new ones. Connect source requirements and acceptance conditions to scenario groups and
+critical cases, their level/suite, setup and test data/environment, action, expected result and required
+evidence. Cover happy paths, boundaries, authorization, failure/recovery, compatibility, accessibility,
+security and performance only where the requirements and DoD make them relevant. Do not enumerate
+every assertion or invent cases without a risk or requirement.
+
+For a prototype, spike or investigation whose DoD justifiably excludes automated tests, omit Testing
+design. Record the alternative validation under Verification and evidence: the question, method (for
+example demo, user feedback, experiment or benchmark), expected evidence, decision criterion and time
+limit/end condition. A throwaway prototype must state that it will not be merged, deployed or reused in
+production. If the person later chooses to productionize it, design and add the required tests before
+production handoff.
+
 ## 3. Resolve blocking uncertainty
 
 Before recommending planning, settle choices that determine architecture, contracts, the data model
@@ -187,8 +212,8 @@ every file to change, implementation step or task dependency; that belongs to pl
 
 Use the technical design template in [TEMPLATE.md](TEMPLATE.md). Cite the source brief id/path and
 stable requirement ids in the sections that satisfy them. Use Mermaid for relevant diagrams with the
-shared title, purpose and explanation wrapper. Syntax/render validation is a check and requires prior
-approval for each execution, just like other checks.
+shared title, purpose and explanation wrapper. Syntax and render validation are normal local checks;
+follow Safety only when their concrete target or side effects independently require approval.
 
 | Content | Include when |
 |---|---|
@@ -200,6 +225,7 @@ approval for each execution, just like other checks.
 | **Migration, rollout and rollback** | Existing data, users or consumers are affected: compatibility during transition, sequence, activation, monitoring, rollback conditions and irreversible steps |
 | **Operational design** | Running the change introduces needs: configuration, secrets handling, observability, capacity, security controls and support/recovery procedures |
 | **Definition of Done** | Always: agreed criteria or justified exclusions for every DoD area, linked to requirements/design coverage, verification, pass criteria and evidence |
+| **Testing design** | Risk, complexity or several test levels/suites require agreed scenario groups, critical cases, setup/data, expected results and evidence before planning |
 | **Decisions and alternatives** | Always: the chosen approach and why; significant alternatives rejected and their trade-offs |
 | **Verification and evidence** | Always: how the design satisfies the source acceptance conditions, evidence read, checks actually run and their results, and checks not run or unavailable sources |
 | **Remaining implementation details** | Details can wait without changing the design: state the boundary within which planning may choose; blocking design questions stay in step 3 |

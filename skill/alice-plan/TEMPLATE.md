@@ -27,7 +27,7 @@ Plan: plan:<slug> · Parent: <parent title>.
 - Files:
   - `<path>` → `<symbol>` — <what to change there> <(permalink)>
 - Prior art: `<path>` → `<symbol>` — <the pattern to follow>
-- Tests: `<path>` — <the cases to add or extend>
+- Tests: `<path>` — <the scenarios/cases and existing suite to add or extend; cite Testing design when present>
 - Docs: <title> (<id/path>) § <section> — <why this task needs it; repeat for relevant extracted documents>
 - Requirements: <source brief id/path / REQ-001, …; include when the source has ids>
 - External: <url> — <why it matters>
@@ -139,6 +139,7 @@ Run this on the draft and report the result before asking for approval:
 - [ ] Every in-scope requirement maps to one or more leaf tasks, or has an evidence-based reason why no system change is needed; source sections are used when ids are absent.
 - [ ] Leaf acceptance criteria collectively cover the source acceptance conditions. Planning gaps are fixed before approval; gaps requiring main technical design follow the readiness rule and are recommended to `alice-spec` before planning continues.
 - [ ] When an approved design has a DoD, every applicable criterion maps to leaf acceptance criteria, Verification and Done when, with pass criteria and required evidence. Checks spanning leaves appear in parent Done when and have a leaf responsible for execution. The planning reference cites rather than duplicates the design, and the draft does not claim checks have passed.
+- [ ] When an approved design has Testing design, its scenarios and critical cases map to leaf tasks, test files/suites and verification commands without redesign. When it is absent, tasks use source acceptance conditions, established test patterns or agreed prototype/investigation validation.
 - [ ] When no separate technical design is needed, source quality/transition requirements and acceptance conditions provide the task coverage; the plan does not require a spec merely to create a DoD.
 - [ ] Relevant extracted documents have been read, conflicting sources resolved, and each task cites and links the documents/sections it needs with a reason; no separate artifact index is created.
 

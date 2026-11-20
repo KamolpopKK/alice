@@ -92,6 +92,11 @@ of empty headings or `N/A`.
 |---|---|---|---|
 | <Each area from the DoD discovery table in SKILL.md> | <Agreement or justified exclusion> | <Source requirement and design section> | <Proposed check, threshold and evidence; omit only for justified exclusions> |
 
+## Testing design
+| Requirement/scenario | Critical cases | Level/suite | Setup, test data and environment | Action and expected result | Required evidence |
+|---|---|---|---|---|---|
+| <source requirement/acceptance condition and scenario> | <happy path, boundary or relevant failure/risk cases> | <unit, integration, E2E, security, performance or existing named suite> | <fixtures, dependencies, identities, data and environment> | <trigger and observable expected result> | <result, report, trace or artifact> |
+
 ## Decisions and alternatives
 ### <Decision title>
 - Decision: <chosen approach>.
@@ -113,6 +118,14 @@ of empty headings or `N/A`.
 ### Checks performed
 - <Command/operation, target, result and evidence from the approved execution>.
 
+### Prototype/investigation validation
+- Question: <what the prototype or investigation must answer>.
+- Method: <demo, user feedback, experiment, benchmark or other validation>.
+- Expected evidence: <artifact or observation required>.
+- Decision criterion: <what result means proceed, change direction or stop>.
+- Time limit/end condition: <when validation stops>.
+- Disposition: <for throwaway work, state that it will not be merged, deployed or reused in production; productionizing it requires the applicable tests first>.
+
 ### Limitations
 - <Checks not run, declined approval, inaccessible sources or remaining assumptions and their impact>.
 
@@ -125,6 +138,11 @@ of empty headings or `N/A`.
 Definition of Done is always present and includes every discovery area. Reuse explicit source
 agreements by precise reference instead of copying them. A proposed check is not a performed check and
 does not authorize execution; record actual approved executions only under Checks performed.
+
+Testing design is optional. Include it only when the scenario/case and suite choices must be settled
+before planning; omit it when existing patterns and source acceptance conditions are sufficient. For a
+prototype, spike or investigation without automated tests, omit Testing design and use the
+Prototype/investigation validation subsection under Verification and evidence instead.
 
 Omit unavailable optional references and inapplicable contract/operational fields. Use a diagram only
 where it adds clarity; component responsibilities and precise contracts remain in text/tables. For
