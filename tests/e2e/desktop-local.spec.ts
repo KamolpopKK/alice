@@ -52,7 +52,7 @@ test.describe('Alice Desktop with Local workspaces', () => {
     const guide = page.getByRole('region', { name: 'Set up your agent' })
     await expect(guide.getByRole('tab', { name: 'Claude Code' })).toHaveAttribute('aria-selected', 'true')
     await expect(guide).toContainText('alice integration enable claude-code')
-    await expect(guide).toContainText('alice --as claude-code workspace current --json')
+    await expect(guide).toContainText('alice --as claude-code workspace list --json')
     await expect(guide).not.toContainText(/token file|Paste the Alice agent token|\/mcp\/v1/)
     await guide.getByRole('tab', { name: 'Codex' }).click()
     await expect(guide).toContainText('alice integration enable codex')
