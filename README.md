@@ -42,6 +42,44 @@ Windows or Linux? The no-server mode needs a Mac with Apple Silicon for now; use
 Alice Desktop no longer supports Macs with Intel processors.
 More: [Local workspaces](docs/local-workspaces.md).
 
+**Let your agent install the app and skills.** Copy this whole prompt into Codex or Claude Code on
+an Apple Silicon Mac. It installs the standalone Local app and enables only the agent you are using:
+
+```text
+Set up standalone Alice Desktop and its agent skills on this Mac for me.
+Repository: https://github.com/KamolpopKK/alice
+
+1. Identify yourself: use client "codex" for Codex or "claude-code" for Claude Code.
+   If you are neither, ask which supported client to set up. Enable only that client.
+2. Read the OS and architecture. Continue only on macOS with Apple Silicon (arm64).
+   Reuse Alice.app if it is already installed. Otherwise run the official installer:
+   curl -fsSL https://github.com/KamolpopKK/alice/releases/latest/download/install-macos.sh | sh
+   The installer verifies the archive checksum and app signature. Do not use sudo.
+3. Open Alice.app from the installation location. Ask me to finish first-run setup
+   if needed, including choosing "Install the alice command" and enabling this agent.
+   Wait for me to say I am done before continuing. I will enter any personal details.
+4. Use the installed alice command, or ~/.local/bin/alice if it is not on PATH.
+   Run `alice integration enable codex` or `alice integration enable claude-code`
+   for the client chosen above. This setup command runs without --as; it installs
+   the bundled skills and creates the agent's Local identity. Do not configure MCP,
+   a Remote server or tokens, and never read or print credentials.
+5. Run `alice version` to report the installed versions. In the chosen client's
+   ~/.codex/skills or ~/.claude/skills directory, confirm all four skills have SKILL.md:
+   alice, alice-think, alice-spec and alice-plan. Each needs PROJECT-FILES.md and
+   OUTPUT-FORMATS.md; think, spec and plan also need TEMPLATE.md.
+   Run `alice --as <client> workspace list --json`, replacing <client> with your identity.
+   Choose a Local workspace; if several Local workspaces exist, ask me which to use.
+   Then read its ready tasks with
+   `alice --as <client> --workspace <alias> task list --status ready --json`.
+   Do not claim tasks or start work as part of setup.
+6. Summarize the app location, CLI/skill versions, selected workspace and ready work.
+   Tell me to start a new agent session so the installed skills are loaded.
+
+If a step fails or a bundled skill/supporting file is missing, stop and explain the
+specific problem instead of claiming setup succeeded. Preserve existing workspaces
+and settings. Do not build from source or install extra runtimes to complete setup.
+```
+
 ### 2. Host Alice for your team (Docker)
 
 Needs Docker with Compose. You need two files, not the source code:
