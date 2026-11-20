@@ -45,7 +45,7 @@ Work
 
 Agents
   integration list|enable|disable|unassign|refresh   Codex and Claude in Local workspaces (no MCP needed)
-  install-skill --client claude-code|codex [--scope user|project] [--skill alice|alice-plan|alice-think]
+  install-skill --client claude-code|codex [--scope user|project] [--skill alice|alice-plan|alice-think|alice-spec]
   mcp-config --client claude-code|codex [--transport http|stdio] [--url URL]
 
 Global options

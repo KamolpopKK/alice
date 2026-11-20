@@ -62,7 +62,7 @@ describe('Local agent integrations', () => {
 
     const list = json((await alice(h, ['integration', 'list', '--json'])).stdout).data
     const codex = list.find((a: { client: string }) => a.client === 'codex')
-    expect(codex).toMatchObject({ optedIn: true, skills: { alice: APP_VERSION, 'alice-plan': APP_VERSION } })
+    expect(codex).toMatchObject({ optedIn: true, skills: { alice: APP_VERSION, 'alice-plan': APP_VERSION, 'alice-spec': APP_VERSION } })
     expect(codex.credentials.sort()).toEqual(['personal', 'side'])
     expect(JSON.stringify(list)).not.toContain('alice_lc_')
     // agent เปลี่ยน integration เองไม่ได้

@@ -111,7 +111,7 @@ function buildPrompt(client: AgentGuideClient, label: string, origin: string): s
     ...installCommands(origin).split('\n').map((l) => `   ${l}`),
     `3. Fetch ${origin}/downloads/manifest.json and compare the SHA-256 of both files with it (shasum -a 256, or sha256sum on Linux). If they differ, delete the files and stop.`,
     `   If ${BIN} is not on my PATH, add this line to my shell profile: ${PATH_PROFILE_LINE}`,
-    `4. Install the Alice skills (alice for working on tasks, alice-plan for breaking work down, alice-think for thinking new work through): ${BIN}/alice install-skill --client ${client}`,
+    `4. Install the Alice skills (alice for working on tasks, alice-plan for breaking work down, alice-think for thinking new work through, alice-spec for technical design): ${BIN}/alice install-skill --client ${client}`,
     ...connect,
     '6. Stop here and ask me to place the token myself. Show me this command to run in my own terminal (it reads the token without echoing it):',
     ...tokenFileCommand().split('\n').map((l) => `   ${l}`),
@@ -141,7 +141,7 @@ function updateSteps(client: AgentGuideClient, label: string, origin: string): G
     },
     {
       title: 'Reinstall the skills',
-      description: 'Replaces alice, alice-plan and alice-think with the versions embedded in the new CLI and adds any skill shipped since your first setup.',
+      description: 'Replaces alice, alice-plan, alice-think and alice-spec with the versions embedded in the new CLI and adds any skill shipped since your first setup.',
       code: `alice install-skill --client ${client}`,
     },
     {
@@ -161,7 +161,7 @@ function buildUpdatePrompt(client: AgentGuideClient, label: string, origin: stri
     '- Do not change the MCP configuration. Do not use sudo. Stop and tell me if any step fails.',
     '',
     'Steps:',
-    `1. Run ${BIN}/alice version and fetch ${origin}/downloads/manifest.json. If the CLI, adapter and every skill (alice, alice-plan, alice-think) already match the manifest version, tell me everything is up to date and stop.`,
+    `1. Run ${BIN}/alice version and fetch ${origin}/downloads/manifest.json. If the CLI, adapter and every skill (alice, alice-plan, alice-think, alice-spec) already match the manifest version, tell me everything is up to date and stop.`,
     `2. Download the new files into ${BIN}:`,
     ...installCommands(origin).split('\n').map((l) => `   ${l}`),
     '3. Compare the SHA-256 of both files with the manifest (shasum -a 256, or sha256sum on Linux). If they differ, stop and tell me; do not run them.',
@@ -188,7 +188,7 @@ export function agentSetupGuide(client: AgentGuideClient, originInput: string): 
     },
     {
       title: 'Install the Alice skills',
-      description: `Installs alice (claim, read context, comment, complete), alice-plan (break work down into ready-to-pick-up tasks) and alice-think (think a new idea or request through into a brief) for ${label}.`,
+      description: `Installs alice (claim, read context, comment, complete), alice-plan (break work down into ready-to-pick-up tasks), alice-think (think a new idea or request through into a brief) and alice-spec (design the technical solution) for ${label}.`,
       code: `alice install-skill --client ${client}`,
     },
     connectStep(client, origin),
@@ -238,7 +238,7 @@ export function localAgentSetupGuide(client: AgentGuideClient): LocalAgentGuide 
     { title: 'Check the alice command', description: 'Alice Desktop installs it. If it is missing, choose “Install the alice command” on this page.', code: 'alice version' },
     {
       title: `Give ${label} its own identity and the Alice skills`,
-      description: `Installs the alice, alice-plan and alice-think skills for ${label} and lets it work in every Local workspace under its own name.`,
+      description: `Installs the alice, alice-plan, alice-think and alice-spec skills for ${label} and lets it work in every Local workspace under its own name.`,
       code: `alice integration enable ${client}`,
     },
     { title: 'Check the connection', description: `${label} should see the workspace it will change.`, code: `${as} workspace current --json` },
@@ -263,6 +263,7 @@ export function localAgentSetupGuide(client: AgentGuideClient): LocalAgentGuide 
     'Look at the ready tasks in Alice and take one to work on.',
     'Create a task in Alice: “Write the install section of the README”, priority high.',
     'Use alice-think to think through “Sign-in with email” with me before we plan it.',
+    'Use alice-spec to design the technical solution from our agreed sign-in brief.',
     'Use alice-plan to break “Sign-in with email” into tasks in Alice.',
     'Summarise which Alice tasks are blocked and why.',
   ]

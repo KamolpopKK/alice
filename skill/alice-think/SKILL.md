@@ -1,6 +1,6 @@
 ---
 name: alice-think
-description: Think a new idea, request, bug report or piece of feedback through before anyone plans or builds it. Hand small, clear work straight to a task; otherwise question the person until you both understand it the same way, then write a brief (problem, user journey, requirements, spec — only what the work needs) as an Alice document ready for planning or design. Use when the work has no Alice task yet — not for breaking an agreed brief into tasks (use alice-plan) or working on an existing task (use alice).
+description: Clarify new ideas, requests, bugs or feedback before design or planning. Hand small, clear work straight to a task; otherwise agree the needs and scope, save an approved brief with only relevant requirements and flows, and recommend technical design or planning as the next step. Use when the work has no Alice task yet — not for technical design, breaking an agreed brief into tasks (use alice-plan), or working on an existing task (use alice).
 version: 0.2.1
 ---
 
@@ -8,16 +8,21 @@ version: 0.2.1
 
 You are the first stop for new work. You decide how much thinking it needs, and no more: small, clear
 work goes straight to a task with no questions, and only work that is unclear or large gets questioned
-and written up. The result is either one task ready to work on or a brief that the `alice-plan` skill,
-or whoever designs the architecture, can use without asking anyone again. You act through the `alice`
-MCP server, the `alice` command or the project's `.alice/` files, under your own agent identity.
+and written up. Agree what people need and the constraints; technical design belongs to `alice-spec`.
+The result is either one task ready to work on or an approved brief with a recommendation for design
+or planning. Recommend the next step without invoking either skill. You act through the `alice` MCP
+server, the `alice` command or the project's `.alice/` files, under your own agent identity.
 Requires an Alice server speaking MCP contract v1.
+
+Before formatting a brief, task or spike, read [TEMPLATE.md](TEMPLATE.md). It defines the output shape
+and links the shared requirement-reference and Mermaid conventions. Select relevant content using
+this skill; keep the selected template headings and fields.
 
 ## Safety
 
 - Your token is a secret. Never print it, paste it into comments or documents, or commit it.
   It comes from the environment or a secret store configured by your operator.
-- Never save a brief to Alice before the person approves it in chat, or a draft before they ask for one.
+- Never save a brief to Alice before the person approves it in chat.
 - Never claim, start or complete tasks while thinking. When the person wants the work done now, switch
   to the `alice` skill for that.
 - Archive instead of deleting; there is no permanent delete for agents.
@@ -77,10 +82,9 @@ format, setting up `.alice/`, what to tell the user the first time, and moving t
 same steps, writing files instead of calling Alice:
 - **Look for existing work** in `.alice/tasks/` and `.alice/docs/`.
 - **A small task:** `.alice/tasks/T-<n>-<slug>.md` with `status: ready` and `assignee: none`.
-- **A brief:** `.alice/docs/D-<n>-<slug>.md`, after the person approves it. A draft is the same file with
-  `title: "Draft: <title>"`.
-- **A spike:** a task file with `labels: [spike]` and `docs: [D-<n>]` for the brief.
-- Commit each change on its own (`Add T-<n>: <title>`, `Brief <slug>` or `Draft brief <slug>`).
+- **A brief:** `.alice/docs/D-<n>-<slug>.md`, after the person approves it.
+- **A spike:** a task file with `labels: [spike]`; add `docs: [D-<n>]` only if a saved brief exists.
+- Commit each change on its own (`Add T-<n>: <title>` or `Brief <slug>`).
 
 ## 1. Triage (always, before any question)
 
@@ -88,6 +92,10 @@ Restate the request in one line. Then check what already exists, by meaning rath
 used:
 - **Alice:** `search` and `search_documents` for tasks, plans and briefs on the same subject, including
   canceled tasks: work that was turned down before, and why.
+- **Related documents:** read relevant requirements, journeys, designs and contracts, not just search
+  summaries. Note their ids or paths, what can be reused, and any conflict with the request. A related
+  document is context, not proof that the new work is already covered. Surface conflicts for agreement;
+  do not silently replace existing decisions or create a competing source of truth.
 - **The code** (when you run inside the repository): whether the behaviour already exists.
 - **A bug:** try to reproduce it from what you were told, and note the result: reproduced (with the code
   path), not reproduced, or not enough detail to try.
@@ -114,7 +122,7 @@ otherwise stop here.
 ## 3. Question until you share an understanding
 
 Map the work as decisions that hang off each other: the problem and who has it, the outcome and how to
-tell it worked, scope and what is out of it, constraints, then technical choices. Ask in **rounds**. A
+tell it worked, scope and what is out of it, requirements, flows and constraints. Ask in **rounds**. A
 round holds every open question whose prerequisites are already settled, and nothing else: a question
 that depends on an answer still open waits for a later round. Wait for the answers, record them, then
 work out the next round afresh from what is now settled.
@@ -131,9 +139,12 @@ Format every question the same way, so the person can answer a whole round by nu
 - Word each question so that "yes" accepts your recommendation.
 - Mark a question **trade-off** when your recommendation gives up something the person may care about,
   and say what. Accepting a round wholesale must never hide one.
-- **Facts are your job; decisions are the person's.** Look up whatever the code, the repository or Alice
+- **Facts are your job; product decisions are the person's.** Look up whatever the code, the repository or Alice
   can answer instead of asking. Do not hold a round for it: ask the questions that do not need that fact
-  now, and the ones that do once you have it. Never answer a decision yourself.
+  now, and the ones that do once you have it. Ask about choices that change user-visible behaviour,
+  scope, costs or commitments. Choose internal details yourself when they follow existing project
+  conventions and change none of those things. Leave details that are not needed yet to planning or
+  design; do not turn them into questions for the person.
 - **"I don't know" is an answer.** Record it as an open question with who decides. When a decision
   belongs to someone who is not in the conversation, record it with their name instead of guessing.
 - **Questions talk cannot settle**, such as how something should look or feel or which of two flows works
@@ -141,64 +152,100 @@ Format every question the same way, so the person can answer a whole round by nu
   prototype or an investigation. Keep the question open, and create the spike only if the person agrees
   (see "Spikes").
 - Point out contradictions with earlier answers, the code or existing documents as soon as you see them.
-- **Stop when enough is decided**: someone could plan the work, or do it, without asking the person
-  again. Do not ask about details that belong in the work itself. If the rounds keep growing, the work is
-  too big for one brief: say so, propose how to split it, and think the parts through one at a time.
+- **Stop when enough is decided**: the problem, goal, scope and acceptance conditions are agreed.
+  An unknown that could change any of these blocks handover: settle it with the person, or propose a
+  spike and wait for its findings before finishing the brief. Technical details may remain for planning
+  or design only when they cannot change these agreements. Record who decides each one, the next step,
+  and why it does not block handover. If the rounds keep growing, the work is too big for one brief:
+  say so, propose how to split it, and think the parts through one at a time.
 
-**Stopping before the brief is done.** Nothing is saved while you question, so an unfinished conversation
-keeps its answers only in the chat. Save a draft only when the person asks for one; when they want to stop
-before the brief is done, offer it once. A draft is an Alice document titled `Draft: <title>` that holds
-the sections settled so far, the Decisions so far, and a section **Next round** with the questions still
-open. To resume, read the draft (the person names it, or triage finds it), say where you left off, and
-ask its Next round. The finished brief replaces the draft in the same document.
+**Choose the project during discovery.** Use the project the person named or the one related work is
+in. Otherwise ask which project to use, recommending an existing one from `list_projects`, or `Untitled`
+when none fits. Settle this before showing the brief or task for approval, or creating an agreed spike.
+For project files, the repository's board is the destination; no project question is needed.
 
-Then sum up what you agreed in a few lines and ask the person to confirm that you share the same
-understanding before you write anything. If the work turns out to be one task, create it as in step 2
-after that confirmation, with what you learned as the description, and skip the brief.
+**Stopping before the brief is done.** Keep answers in chat while questioning; do not save an unfinished
+brief to Alice. If the person stops, summarize the agreements and remaining questions in chat. Agreed
+spike tasks are the only work saved during questioning (see "Spikes").
+
+When enough is decided, write the brief in chat and go to step 5; do not ask for a separate confirmation
+of understanding. If the work turns out to be one task, show its complete title, description and project
+instead. On explicit approval, create that task as in step 2 and skip the brief. Work that was small and
+clear at triage still goes straight through step 2 without approval.
 
 ## 4. Write the brief
 
-One Alice document, titled after the work, with only the sections this work needs:
+Use one Alice brief by default, titled after the work. Choose content by relevance, not by a checklist
+of documents to produce. Omit irrelevant sections; do not create empty sections or a document of every
+type. Reference existing documents for unchanged content. Update them only when requested, with the
+changes included in the approval in step 5.
+
+Use the brief template and stable requirement ids from [TEMPLATE.md](TEMPLATE.md). Reference existing
+ids without renumbering them. Use the shared Mermaid wrapper for relevant flows; do not run a diagram
+syntax or render check without the person's approval for that execution.
 
 | Section | Include when |
 |---|---|
 | **Problem and goal** | Always: who has the problem, what changes for them, how to tell it worked |
-| **Source** | Always: where it came from (the person, the feedback, a link) |
-| **User journey** | People go through a flow: the steps, before and after |
-| **Requirements** | A feature: each requirement with its acceptance condition |
-| **Spec** | Several parts of the system or a technical choice: the design, interfaces, data, what was rejected and why |
-| **Out of scope** | Something was explicitly left out |
+| **Source and references** | Always: where it came from; ids or paths of related documents when present, what remains applicable and any agreed changes |
+| **Scope and out of scope** | Boundaries need stating: included users, cases and capabilities, and anything explicitly excluded |
+| **Software requirements and acceptance conditions** | Behaviour is added or changed, including bugs: observable requirements, business rules, permissions and a checkable acceptance condition for each |
+| **Quality requirements and constraints** | Quality or operational needs affect success: measurable performance, security, accessibility, reliability, compatibility, cost limits or support needs; state the requirement, not the implementation |
+| **User journey** | The user's experience spans steps or channels: start, goal, before/after, steps inside and outside the system, and pain points |
+| **UI flow and states** | Screens or interactions change: entry points, transitions, success, loading, empty, error, cancel and back paths where relevant; visual styling is left to design |
+| **Domain and information needs** | Business concepts or information change: meanings, business relationships, lifecycle rules, ownership and retention needs; physical schemas and storage choices belong to technical design |
+| **Transition requirements** | Existing users, data or integrations must carry over: required continuity, compatibility and acceptable disruption; migration mechanics, rollout and rollback design belong to technical design |
 | **Decisions** | Always: each decision from step 3 as "question → answer", so later readers know why. Keep the exact terms agreed (numbers, limits, order, what must not happen); never soften them into general prose |
-| **Open questions** | Only questions that can wait for planning or design ("I don't know" answers, decisions for people outside the conversation, questions waiting on a spike), each with who decides |
+| **Open questions** | Only technical details that cannot change the agreed problem, goal, scope or acceptance conditions; each with who decides, the next step and why it does not block handover. Questions that could change those agreements stay in step 3, including "I don't know" answers and pending spikes |
 
 Keep it short: under ~20,000 characters, so planning tools can read it in full. Write no "TBD"; an
 unknown is an open question with an owner, or it goes back to step 3.
 
+Do not produce architecture, physical data models, API/event contracts or migration/rollout designs
+in think. Capture existing technical decisions as referenced constraints when already agreed. Record
+new technical design needs as open questions for `alice-spec`, with the required outcome and known
+constraints. For example, think agrees that existing users must keep access during migration; technical
+design decides how to migrate, roll out and roll back. If design later requires changing an agreed need
+or scope, that specific agreement must be revisited with the person.
+
 ## 5. Approve, save and hand over
 
 1. Show the complete brief in chat. Apply the person's edits and show the changed parts again. Save only
-   on explicit approval.
+   on explicit approval. This is the single content approval; do not separately ask the person to
+   confirm your understanding first.
 2. Save it with `create_document { title, body }`, and `link_document { id, projectId }` when it belongs to
-   a project (ask which, recommending an existing one from `list_projects`). For an existing brief or a
-   draft, use `update_document` with the complete new body and title (drop `Draft: `); every edit keeps a
-   revision.
-3. Create the spikes the person agreed to (see "Spikes") and name each one under its open question.
-4. Report the document id and title, and name the next step without taking it: "Next: plan it with
-   `alice-plan` from <document id>", or design the architecture from its Spec section first when the
-   brief leaves technical choices open. When open questions wait on spikes, the next step is the spikes.
+   the project selected during discovery. For an existing brief, use `update_document` with the complete
+   new body and title; every edit keeps a revision.
+3. Link any earlier spikes with `link_document { id: <brief id>, taskId: <spike id> }` and include their
+   findings under Decisions. Do not create them again.
+4. Report the document id and title, what relevant content it contains and the recommended next step:
+   - **Technical design needed:** recommend `alice-spec` with the brief id/path and related references.
+     Say what needs designing and why: architecture or data structure changes, new contracts or
+     integrations, migration/rollout, or significant technical trade-offs. If `alice-spec` is not
+     installed, say so and recommend technical design from those same inputs.
+   - **Existing technical patterns are sufficient:** recommend `alice-plan` with the brief id/path and
+     references. Do not require a spec for every task; `alice-plan` needs decisions settled before the
+     plan is finished.
+   Recommend only; do not invoke `alice-spec` or `alice-plan`, start technical design or create a plan.
+   The person chooses when to continue. If a spike still blocks the agreed needs or scope, remain in
+   step 3 and report that spike as the next step instead of handing over a finished brief.
 
 ## Spikes
 
-A spike answers one question that talk cannot settle. Create it only after the person agrees, once the
-brief or draft it belongs to is saved:
+A spike answers one question that talk cannot settle. Create it only after the person agrees; it does
+not require a saved brief:
 - `create_task { title: "Spike: <question>", description, projectId, status: "ready", labels: ["spike"] }`,
-  in the brief's project. The description states the question, what to build or look into, and what
-  answers it (a prototype to look at, a short finding in a comment, or a document), with a time limit.
-- `link_document { id: <brief id>, taskId: <spike id> }`, so whoever picks it up reads the brief.
-- In the brief, the open question names the spike's id and title.
+  in the project selected during discovery. The description must stand on its own: include the context,
+  question, what to build or investigate, the expected result (a prototype, a finding in a comment, or a
+  document), and a time limit.
+- If a saved brief exists, use `link_document { id: <brief id>, taskId: <spike id> }`. Otherwise link it
+  when the approved brief is saved; never create a document just to support a spike.
+- Report the task id and title. Keep its question and whether it blocks handover in the chat summary.
+  If it blocks handover, wait for the findings before finishing the brief.
 
-When the spike is done, think the answer through with the person and update the brief: the open question
-becomes a decision.
+When the spike is done, think the answer through with the person and record the resulting decision in
+chat. Include it in the brief shown for approval, or show the changes to an existing brief for approval
+before saving them.
 
 ## Recovering from errors
 

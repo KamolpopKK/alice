@@ -3,6 +3,7 @@ import path from 'node:path'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { parse as parseYaml } from 'yaml'
 import { APP_VERSION, MCP_CONTRACT_VERSION } from '../../src/shared/version'
 import { runCli, startApp, tempDataDir, type RunningApp } from '../helpers/app'
 import { bootstrapOwner, createAgent, type AgentHandle } from '../helpers/client'
@@ -115,7 +116,7 @@ describe('alice-think skill', () => {
 
   // งานเล็กต้องออกได้ทันทีโดยไม่ถามอะไร ก่อนจะถึงขั้นซักถามและเขียน brief
   it('triages first, hands small work to one task without questions, and questions only the rest', () => {
-    const steps = ['## 1. Triage', '**Small and clear**', '## 2. Small and clear: one task, no questions', '## 3. Question', 'Ask in **rounds**', '## 4. Write the brief', '## 5. Approve', 'explicit approval', '`create_document']
+    const steps = ['## 1. Triage', '**Small and clear**', '## 2. Small and clear: one task, no questions', '## 3. Question', 'Ask in **rounds**', '## 4. Write the brief', '## 5. Approve', '`create_document']
     const at = steps.map((s) => think.indexOf(s))
     expect(at.every((i) => i > 0)).toBe(true)
     expect(at).toEqual([...at].sort((a, b) => a - b))
@@ -123,21 +124,48 @@ describe('alice-think skill', () => {
     expect(small).toContain('status: "ready"')
     expect(small).not.toMatch(/approv|create_document/)
     expect(think).toMatch(/Stop when enough is decided/)
-    // คำถามตอบได้ทั้งรอบด้วยเลข, ข้อเท็จจริงไปหาเอง, การตัดสินใจเป็นของคน และยืนยันความเข้าใจก่อนเขียน
+    // ถามเป็นรอบ; agent หาข้อเท็จจริงและเลือกรายละเอียดภายในตามแนวทางเดิมเอง
     const grill = think.slice(think.indexOf('## 3. Question'), think.indexOf('## 4. Write the brief'))
-    for (const rule of ['every open question whose prerequisites are already settled', '❓ **Q1', '➡️', 'so that "yes" accepts your recommendation', 'Facts are your job; decisions are the person\'s', '"I don\'t know" is an answer', 'confirm that you share the same\nunderstanding']) {
+    for (const rule of ['every open question whose prerequisites are already settled', '❓ **Q1', '➡️', 'so that "yes" accepts your recommendation', 'Facts are your job; product decisions are the person\'s', '"I don\'t know" is an answer', 'user-visible behaviour,\n  scope, costs or commitments', 'Choose internal details yourself']) {
       expect(grill).toContain(rule)
     }
     expect(grill).not.toMatch(/up to \d+ questions/)
   })
 
-  // ระหว่างถามไม่บันทึกอะไร: draft เฉพาะเมื่อคนขอ, spike สร้างเมื่อคนตกลงและลิงก์กับ brief
-  it('saves a draft only on request and creates agreed spikes linked to the brief', () => {
-    const draft = think.slice(think.indexOf('**Stopping before the brief is done.**'), think.indexOf('Then sum up'))
-    for (const rule of ['Save a draft only when the person asks for one', '`Draft: <title>`', '**Next round**', 'To resume']) expect(draft).toContain(rule)
+  it('keeps unfinished thinking in chat and allows agreed standalone spikes', () => {
+    expect(think).not.toMatch(/Draft:|save a draft|resume.*draft/i)
+    const stopping = think.slice(think.indexOf('**Stopping before the brief is done.**'), think.indexOf('## 4. Write the brief'))
+    expect(stopping).toContain('do not save an unfinished\nbrief to Alice')
+    expect(stopping).toContain('summarize the agreements and remaining questions in chat')
     const spikes = think.slice(think.indexOf('## Spikes'), think.indexOf('## Recovering from errors'))
-    for (const rule of ['only after the person agrees', 'labels: ["spike"]', '`link_document { id: <brief id>, taskId: <spike id> }`', 'the open question\nbecomes a decision']) expect(spikes).toContain(rule)
-    expect(think).toMatch(/or a draft before they ask for one/)
+    for (const rule of ['only after the person agrees', 'does\nnot require a saved brief', 'labels: ["spike"]', 'description must stand on its own', 'context', 'question', 'expected result', 'time limit', 'If a saved brief exists', 'never create a document just to support a spike', 'wait for the findings before finishing the brief']) expect(spikes).toContain(rule)
+  })
+
+  it('settles product agreements and recommends design or planning without invoking them', () => {
+    const grill = think.slice(think.indexOf('## 3. Question'), think.indexOf('## 4. Write the brief'))
+    expect(grill).toContain('the problem, goal, scope and acceptance conditions are agreed')
+    expect(grill).toContain('An unknown that could change any of these blocks handover')
+    expect(grill).toContain('Record who decides each one, the next step,\n  and why it does not block handover')
+    const handover = think.slice(think.indexOf('## 5. Approve'), think.indexOf('## Spikes'))
+    expect(handover).toContain('**Technical design needed:** recommend `alice-spec`')
+    expect(handover).toContain('**Existing technical patterns are sufficient:** recommend `alice-plan`')
+    expect(handover).toContain('do not invoke `alice-spec` or `alice-plan`')
+    expect(handover).toContain('brief id/path and related references')
+    expect(handover).toContain('If `alice-spec` is not\n     installed, say so')
+  })
+
+  it('selects a project during discovery and uses one content approval for questioned work', () => {
+    const grill = think.slice(think.indexOf('## 3. Question'), think.indexOf('## 4. Write the brief'))
+    expect(grill).toContain('Choose the project during discovery')
+    expect(grill).toContain('Settle this before showing the brief or task for approval, or creating an agreed spike')
+    expect(grill).toContain('do not ask for a separate confirmation\nof understanding')
+    expect(grill).toContain('show its complete title, description and project')
+    expect(grill).toContain('On explicit approval, create that task')
+    const approval = think.slice(think.indexOf('## 5. Approve'), think.indexOf('## Spikes'))
+    expect(approval).toContain('Show the complete brief in chat')
+    expect(approval).toContain('Save only\n   on explicit approval')
+    expect(approval).toContain('single content approval')
+    expect(approval).toContain('project selected during discovery')
   })
 
   it('never saves a brief before approval and never works the tasks itself', () => {
@@ -145,6 +173,31 @@ describe('alice-think skill', () => {
     expect(think).toMatch(/Never claim, start or complete tasks while thinking/)
     expect(think).not.toMatch(/claim_task|complete_task/)
     expect(think).toMatch(/token is a secret/i)
+  })
+})
+
+describe('alice-spec distribution', () => {
+  it('installs only alice-spec with the shared project files guide for either client', () => {
+    for (const client of ['codex', 'claude-code']) {
+      const home = tempDataDir('spec-only')
+      const result = runCli(['install-skill', '--client', client, '--skill', 'alice-spec'], { HOME: home })
+      expect(result.status).toBe(0)
+      const dir = path.join(home, client === 'codex' ? '.codex' : '.claude', 'skills')
+      expect(fs.readdirSync(dir)).toEqual(['alice-spec'])
+      const source = path.join(ROOT, 'skill/alice-spec')
+      for (const file of fs.readdirSync(source)) {
+        expect(fs.readFileSync(path.join(dir, 'alice-spec', file), 'utf8')).toBe(fs.readFileSync(path.join(source, file), 'utf8'))
+      }
+      const text = fs.readFileSync(path.join(dir, 'alice-spec/SKILL.md'), 'utf8')
+      const front = parseYaml(/^---\n([\s\S]*?)\n---\n/.exec(text)![1])
+      expect(front).toMatchObject({ name: 'alice-spec', version: APP_VERSION, description: expect.any(String) })
+      expect(front.description.length).toBeLessThanOrEqual(1024)
+      expect(text).toContain(`MCP contract v${MCP_CONTRACT_VERSION}`)
+      const named = [...text.matchAll(/`([a-z]+(?:_[a-z]+)+)\b/g)].map((m) => m[1]).filter((n) => /^(get|list|create|update|archive|restore|claim|complete|add|link|unlink|search|set|remove)_/.test(n))
+      for (const tool of named) expect(ALL_TOOLS).toContain(tool)
+      expect(fs.readFileSync(path.join(dir, 'alice-spec/PROJECT-FILES.md'), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, 'skill/_shared/PROJECT-FILES.md'), 'utf8'))
+      expect(fs.readFileSync(path.join(dir, 'alice-spec/OUTPUT-FORMATS.md'), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, 'skill/_shared/OUTPUT-FORMATS.md'), 'utf8'))
+    }
   })
 })
 
@@ -166,9 +219,12 @@ describe('documented installation in a clean environment', () => {
     const home = tempDataDir('skills-home')
     const all = runCli(['install-skill', '--client', 'claude-code'], { HOME: home })
     expect(all.status).toBe(0)
-    for (const skill of ['alice', 'alice-plan', 'alice-think']) {
+    for (const skill of ['alice', 'alice-plan', 'alice-think', 'alice-spec']) {
       expect(all.stdout).toContain(`Installed the ${skill} skill to ${path.join(home, '.claude/skills', skill)}`)
       expect(fs.readFileSync(path.join(home, '.claude/skills', skill, 'SKILL.md'), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, 'skill', skill, 'SKILL.md'), 'utf8'))
+      for (const file of fs.readdirSync(path.join(ROOT, 'skill', skill))) {
+        expect(fs.readFileSync(path.join(home, '.claude/skills', skill, file), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, 'skill', skill, file), 'utf8'))
+      }
     }
 
     const only = tempDataDir('skills-only')
@@ -177,11 +233,11 @@ describe('documented installation in a clean environment', () => {
     // ไฟล์กลาง (skill/_shared/) ติดไปกับทุก skill แม้ติดตั้งตัวเดียว
     const guide = fs.readFileSync(path.join(ROOT, 'skill/_shared/PROJECT-FILES.md'), 'utf8')
     expect(fs.readFileSync(path.join(only, '.codex/skills/alice-plan/PROJECT-FILES.md'), 'utf8')).toBe(guide)
-    for (const skill of ['alice', 'alice-plan', 'alice-think']) expect(fs.readFileSync(path.join(home, '.claude/skills', skill, 'PROJECT-FILES.md'), 'utf8')).toBe(guide)
+    for (const skill of ['alice', 'alice-plan', 'alice-think', 'alice-spec']) expect(fs.readFileSync(path.join(home, '.claude/skills', skill, 'PROJECT-FILES.md'), 'utf8')).toBe(guide)
 
     const unknown = runCli(['install-skill', '--client', 'codex', '--skill', 'alice-ops'], { HOME: only })
     expect(unknown.status).toBe(1)
-    expect(unknown.stderr).toContain('--skill must be one of: alice, alice-plan, alice-think')
+    expect(unknown.stderr).toContain('--skill must be one of: alice, alice-plan, alice-think, alice-spec')
   })
 
   it('Claude Code config connects over remote MCP using the token from the environment', async () => {

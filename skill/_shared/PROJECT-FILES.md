@@ -66,7 +66,7 @@ Create `.alice/` only after the user agrees. Then write all of these in one comm
    - Pull before you pick or claim work, and commit board changes on their own.
    - Claim a task by setting `status: in_progress` and `assignee`, then commit and push that file at once.
    - Add to a task's `## Activity`; never rewrite earlier lines.
-   - Agents with the Alice skills (alice, alice-plan, alice-think) follow these rules for you.
+   - Agents with the Alice skills (alice, alice-plan, alice-think, alice-spec) follow these rules for you.
 
    Want the web dashboard? Install Alice (https://github.com/KamolpopKK/alice), then run
    `alice import --dry-run` and `alice import` here. Your agent can set it up if you ask.
