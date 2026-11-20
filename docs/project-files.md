@@ -2,7 +2,7 @@
 
 Agents can keep an Alice board as Markdown files in the project, with no Alice Desktop, server or CLI
 installed. The files live in `.alice/` and are committed with the code, so the board travels with the
-repository and every change shows up in `git diff`. The `alice` and `alice-plan` skills work this way
+repository and every change shows up in `git diff`. The Alice skills (`alice`, `alice-plan`, `alice-think`, `alice-spec`) work this way
 when the person chooses it, or when `.alice/tasks/` exists and nothing else is available.
 
 When you want the web dashboard later, `alice import` brings the files into a workspace.
@@ -17,7 +17,7 @@ node alice-cli.js install-skill --client claude-code      # or: --client codex
 ```
 
 `--scope project` installs them into the repository (`.claude/skills/` or `.codex/skills/`) instead of your
-home folder, so they travel with the code. `--skill alice` or `--skill alice-plan` installs one of them;
+home folder, so they travel with the code. `--skill alice`, `--skill alice-plan`, `--skill alice-think` or `--skill alice-spec` installs one of them;
 each still gets the full project files guidance. Keep `alice-cli.js` for `node alice-cli.js import` later.
 
 ## Layout
@@ -131,7 +131,7 @@ an agent uses project files in a conversation, and the agent asks before install
 
 ## How the skills share this guidance
 
-Every Alice skill (`alice`, `alice-plan`) ships the same `PROJECT-FILES.md` next to its `SKILL.md`, built
+Every Alice skill (`alice`, `alice-plan`, `alice-think`, `alice-spec`) ships the same `PROJECT-FILES.md` next to its `SKILL.md`, built
 from `skill/_shared/` in this repository. Whichever skill an agent uses first, and even when only one
 skill is installed, it finds the file format, the setup of `.alice/`, what to tell you the first time,
 and how to move to the app.

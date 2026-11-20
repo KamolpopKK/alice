@@ -1,6 +1,6 @@
 ---
 name: alice-plan
-description: Break a feature idea, an Alice document or an oversized Alice task into a reviewed, linked and ordered work breakdown in Alice whose tasks can be picked up without asking anyone. Use when asked to plan, break down, decompose or scope work in Alice — not for working on an existing task (use the alice skill).
+description: Break agreed requirements, an Alice document or an oversized Alice task into a reviewed, linked and ordered work breakdown in Alice. Resolve implementation planning details and recommend alice-spec when main technical design decisions are missing. Use when asked to plan, break down, decompose or scope work in Alice — not for working on an existing task (use the alice skill) or creating technical designs.
 version: 0.2.1
 ---
 
@@ -11,6 +11,11 @@ person or agent pick up a leaf task, call `get_task_context`, and start immediat
 questions, no hunting for files. You act through the `alice` MCP server, the `alice` command or the
 project's `.alice/` files, under your own agent identity.
 Requires an Alice server speaking MCP contract v1.
+
+Plan implementation from agreed needs and a sufficient technical approach. A separate spec is not
+required when existing patterns clearly cover the work. Do not create or replace the main technical
+design in planning; if it is missing, recommend `alice-spec` and wait for the person to choose the next
+step. Never invoke another skill automatically.
 
 Templates and the pre-creation checklist are in [TEMPLATE.md](TEMPLATE.md). Read it before drafting.
 
@@ -89,9 +94,9 @@ same steps, writing files instead of calling Alice:
 
 | Input | Reference document | Where tasks go |
 |---|---|---|
-| An idea described in chat | You write a spec as a new Alice document | Parent tasks you create |
+| Agreed requirements described in chat | A new planning reference summarizing the agreed needs, existing technical approach and source references | Parent tasks you create |
 | An existing Alice document | That document (add a "Planning notes" section; do not rewrite it) | Parent tasks you create |
-| An oversized Alice task | Its linked document; if it has none, write one | Subtasks of that task (it becomes the parent) |
+| An oversized Alice task | Its linked document; if it has none, write a planning reference from the agreed task and technical approach | Subtasks of that task (it becomes the parent) |
 
 Pick the project from the input task or document (`get_task`, `get_document`). For an idea in chat,
 ask during discovery which project to use (`list_projects`), recommending an existing one that fits.
@@ -113,9 +118,19 @@ label `plan:<slug>`; it is how you find the plan again.
      (`git rev-parse HEAD`).
    Read the project's own instructions (README, CLAUDE.md, AGENTS.md, contributing docs) for conventions
    that every task must respect, and copy the relevant rules into the reference document.
-3. **Questions.** Whatever the code and Alice cannot answer, ask the person — one question at a time,
-   each with your recommended answer and the alternatives. Continue until no decision is open.
-   Explore instead of asking whenever the answer is in the code or in Alice.
+3. **Readiness.** Check whether the requirements and main technical approach are sufficient for task
+   breakdown. Read linked designs and existing patterns; do not require a new spec when those already
+   settle the approach. If the basic problem, scope or acceptance conditions are unsettled, recommend
+   `alice-think` with the missing agreements. If architecture, contracts, the data model or migration
+   approach still needs a main design decision, recommend `alice-spec` with the exact questions, why
+   they affect planning, and input document ids/paths. Stop before drafting or creating the plan;
+   do not hide missing design in task placeholders or an instruction to decide during implementation.
+4. **Planning questions.** Resolve only implementation planning details within the agreed design:
+   task boundaries, file changes, sequencing, dependencies and verification steps. Choose details that
+   follow existing conventions yourself. For remaining planning choices requiring the person, ask
+   one question at a time, with your recommendation and alternatives, until no planning decision is
+   open. Explore instead of asking whenever the answer is in the code or in Alice. If an answer would
+   change the agreed needs or main design, return to the readiness rule rather than deciding it here.
 
 The finished plan contains no "TBD", "to be decided", "ask someone", "see the code" or similar.
 
@@ -174,7 +189,9 @@ and on confirmation set them to `ready`.
 - **Split** a leaf when it has more than 7 acceptance criteria, touches unrelated areas, or its title needs
   "and" to join separable work.
 - **Spikes**: investigation only as a leaf labelled `spike` that states the question and the output
-  (usually an Alice document) — never hidden inside an implementation task.
+  (usually an Alice document) — never hidden inside an implementation task. A spike here may clarify
+  implementation within an agreed design; unresolved main design choices follow the readiness rule
+  and are recommended to `alice-spec` before planning.
 - **Parallelism**: add a blocker only for a real ordering need (uses another task's output, or edits the
   same files). Otherwise leave tasks independent so several people or agents can work at once.
 - **Size budget**: keep a leaf description under ~8,000 characters and the reference document compact
@@ -197,6 +214,8 @@ Whoever picks up a task may be on another machine, without the repository, or on
 - Quote short critical excerpts (an interface, a schema, a config block — at most ~20 lines) in the task
   or the reference document instead of making people look them up.
 - Cite Alice documents by id and title, and link them to the task.
+- When source requirements have ids, cite `<source brief id/path> / REQ-001` in relevant tasks and
+  acceptance criteria. Preserve those ids; use source sections for older documents without ids.
 - Outside links (specs, vendor docs) go under References → External with a one-line reason.
 
 ## Revising an existing plan
@@ -204,8 +223,10 @@ Whoever picks up a task may be on another machine, without the repository, or on
 When asked to change a plan that already exists in Alice:
 
 1. Find it: `list_tasks { label: ["plan:<slug>"], archived: "all" }` and its reference document.
-2. Re-run discovery for what changed, then draft a **change set** in chat: tasks to add, tasks to modify
-   (with the new text), tasks to archive, blocker changes, reference document changes.
+2. Re-run discovery, including the readiness rule, for what changed. If main design decisions are
+   missing, report affected work and recommend `alice-spec` without changing existing tasks or source
+   designs. Otherwise draft a **change set** in chat: tasks to add, tasks to modify (with the new text),
+   tasks to archive, blocker changes, reference document changes.
 3. After approval:
    - unclaimed `backlog` or `ready` tasks may be updated (`update_task`) or archived (`archive_task`);
    - claimed, `in_progress` or `blocked` tasks are **not edited**: `add_comment` describing the change and

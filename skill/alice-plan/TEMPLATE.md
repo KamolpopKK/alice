@@ -3,6 +3,11 @@
 Copy these exactly. Every heading is required. Replace every `<…>`; a section with nothing to say states
 why in one line (for example "External: none — all material is in the repository").
 
+Follow [OUTPUT-FORMATS.md](OUTPUT-FORMATS.md) for source requirement references. Cite existing ids as
+`<source brief id or path> / REQ-001`; do not assign ids to someone else's brief or renumber them.
+Include the requirement references below when the source has them. For older documents cite the source
+section; for supporting work cite the design decision or spike question instead of inventing an id.
+
 ## Leaf task description
 
 ```markdown
@@ -24,6 +29,7 @@ Plan: plan:<slug> · Parent: <parent title>.
 - Prior art: `<path>` → `<symbol>` — <the pattern to follow>
 - Tests: `<path>` — <the cases to add or extend>
 - Docs: <Alice document title> (<doc id>) § <section>
+- Requirements: <source brief id/path / REQ-001, …; include when the source has ids>
 - External: <url> — <why it matters>
 - Excerpt (only if critical, ≤ 20 lines):
   ```<language>
@@ -34,7 +40,7 @@ Plan: plan:<slug> · Parent: <parent title>.
 1. <An approach, in order. Decisions are already made; do not leave choices open.>
 
 ## Acceptance criteria
-1. <Observable, independently checkable outcome.>
+1. <Observable, independently checkable outcome; cite the source requirement when applicable.>
 2. <…at most 7; split the task if there are more.>
 
 ## Verification
@@ -55,6 +61,7 @@ and any follow-up task ids>.
 ## Context
 Reference: <reference document title> (<doc id>). Plan: plan:<slug>.
 Repository: <remote> · base <branch> · planned at <commit>
+Requirements: <source brief id/path / REQ-001, …; include when the source has ids>
 
 ## Tasks
 1. <leaf title> — <one line>
@@ -64,7 +71,11 @@ Repository: <remote> · base <branch> · planned at <commit>
 <Group-level criteria: every leaf done, plus any end-to-end check that spans the leaves.>
 ```
 
-## Reference document (new spec)
+## Reference document (new planning reference)
+
+Summarize the agreed input and established technical approach. Do not author a new technical design
+in this template. If main design decisions are missing, follow the readiness rule in SKILL.md and
+recommend `alice-spec` before producing the plan.
 
 ```markdown
 # <Title>
@@ -73,10 +84,11 @@ Repository: <remote> · base <branch> · planned at <commit>
 <What is wrong or missing today, and for whom.>
 
 ## Solution
-<What will exist when the plan is done.>
+<What will exist when the plan is done, using the agreed design or established project patterns.>
+Source requirements/design: <document ids/paths, or the agreement in chat and relevant code patterns>.
 
 ## Decisions
-- <Each decision made during discovery, with the reason. Include rejected alternatives when useful.>
+- <Planning decisions within the agreed design: task boundaries, sequencing, dependencies and verification, with reasons. Reference existing design decisions without rewriting them.>
 
 ## Conventions
 - <Project rules every task must follow (from README, CLAUDE.md, AGENTS.md), e.g. test seam, style, migrations.>
@@ -96,7 +108,8 @@ For an existing reference document, append instead:
 ```markdown
 ## Planning notes (plan:<slug>)
 - Repository: <remote> · base <branch> · planned at <commit>
-- Decisions added during planning: <…>
+- Decisions added during planning: <implementation planning choices within the agreed design>
+- Requirements covered: <source brief id/path / REQ-001, …; include when the source has ids>
 - Parent tasks: <titles / ids>
 ```
 
@@ -105,6 +118,7 @@ For an existing reference document, append instead:
 Run this on the draft and report the result before asking for approval:
 
 - [ ] Every leaf has all eight sections with no placeholders, "TBD" or open choices.
+- [ ] Main technical design decisions are settled by source designs or established patterns; no task delegates missing architecture, contracts, data modeling or migration design to implementation.
 - [ ] Every leaf cites at least one concrete file and symbol, or states why none applies (for example a docs-only task).
 - [ ] Every leaf has 1–7 acceptance criteria and at least one exact verification command or check.
 - [ ] Every leaf is one reviewable change; none needs "and" to join separable work.
@@ -114,3 +128,4 @@ Run this on the draft and report the result before asking for approval:
 - [ ] The repository remote, base branch and commit appear in the reference document and every parent.
 - [ ] Each leaf description is under ~8,000 characters; the reference document is under ~20,000.
 - [ ] Every task carries `plan:<slug>`; statuses are `backlog`; no assignees.
+- [ ] Source requirement ids, when present, are preserved and cited by relevant tasks and acceptance criteria; supporting work cites its design decision or spike question.

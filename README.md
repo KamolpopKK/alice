@@ -102,7 +102,7 @@ curl -fsSLo alice-cli.js https://github.com/KamolpopKK/alice/releases/latest/dow
 node alice-cli.js install-skill --client claude-code      # or: --client codex
 ```
 
-This installs the `alice` and `alice-plan` skills for you. Add `--scope project` to put them in this
+This installs the `alice`, `alice-plan`, `alice-think` and `alice-spec` skills for you. Add `--scope project` to put them in this
 repository instead (`.claude/skills/` or `.codex/skills/`), so everyone who clones it gets them. Then ask
 your agent to plan or pick up work; it asks before creating `.alice/`.
 

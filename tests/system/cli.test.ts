@@ -46,6 +46,7 @@ describe('alice CLI artifact', () => {
     expect(installed).toBe(fs.readFileSync(path.resolve(import.meta.dirname, '../../skill/alice/SKILL.md'), 'utf8'))
     expect(fs.existsSync(path.join(fakeHome, '.claude/skills/alice-plan/SKILL.md'))).toBe(true)
     expect(res.stdout).toContain('Installed the alice-plan skill')
+    expect(fs.readFileSync(path.join(fakeHome, '.claude/skills/alice-spec/SKILL.md'), 'utf8')).toBe(fs.readFileSync(path.resolve(import.meta.dirname, '../../skill/alice-spec/SKILL.md'), 'utf8'))
     const snippet = await alice(home, ['mcp-config', '--client', 'claude-code', '--url', 'https://alice.example.com'])
     expect(snippet.stdout).toContain('https://alice.example.com/mcp/v1')
     expect(snippet.stdout).toContain('${ALICE_TOKEN}')

@@ -68,9 +68,11 @@ describe('agent tooling downloads', () => {
     const cli = spawnSync(process.execPath, [path.join(dir, 'alice.js'), 'install-skill', '--client', 'claude-code'], { env, encoding: 'utf8' })
     expect(cli.status).toBe(0)
     expect(fs.readFileSync(path.join(home, '.claude/skills/alice/SKILL.md'), 'utf8')).toBe(SKILL)
-    // skill ที่สอง ต้องถูกฝังมาใน alice.js ด้วย
-    for (const file of fs.readdirSync(path.join(ROOT, 'skill/alice-plan'))) {
-      expect(fs.readFileSync(path.join(home, '.claude/skills/alice-plan', file), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, 'skill/alice-plan', file), 'utf8'))
+    // ทุก skill ต้องถูกฝังมาใน alice.js ด้วย โดยไม่ต้องมี source อยู่ข้าง ๆ
+    for (const skill of ['alice-plan', 'alice-think', 'alice-spec']) {
+      for (const file of fs.readdirSync(path.join(ROOT, 'skill', skill))) {
+        expect(fs.readFileSync(path.join(home, '.claude/skills', skill, file), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, 'skill', skill, file), 'utf8'))
+      }
     }
 
     const adapter = spawnSync(process.execPath, [path.join(dir, 'alice-mcp-stdio.js'), '--version'], { env, encoding: 'utf8' })

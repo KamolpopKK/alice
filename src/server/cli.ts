@@ -31,7 +31,7 @@ Commands:
               Portable workspace.json plus Markdown documents and tasks
   purge --before DATE [--revisions] [--archived] [--activity] [--execute --confirm CODE]
               Permanently remove old content; dry run unless --execute with the plan's code
-  install-skill --client claude-code|codex [--scope user|project] [--skill alice|alice-plan]
+  install-skill --client claude-code|codex [--scope user|project] [--skill alice|alice-plan|alice-think|alice-spec]
               Copy the Alice agent skills (all by default) where the client loads skills
   mcp-config --client claude-code|codex [--transport http|stdio] [--url URL]
               Print MCP configuration that reads the token from the environment

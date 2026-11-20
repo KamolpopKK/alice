@@ -59,7 +59,7 @@ This release adds Alice Desktop and the `alice` CLI. The 0.1.0 notes follow belo
 | Alice Desktop | 0.2.0 | Client API v1 (needs server ≥ 0.2.0) |
 | `alice` CLI | 0.2.0 | Client API v1 (needs server ≥ 0.2.0) |
 | `alice-mcp-stdio` | 0.2.0 | MCP contract v1 (server ≥ 0.1.0) |
-| Agent skills (`alice`, `alice-plan`) | 0.2.0 | MCP contract v1 (server ≥ 0.1.0) |
+| Agent skills (`alice`, `alice-plan`, `alice-think`) | 0.2.0 | MCP contract v1 (server ≥ 0.1.0) |
 
 `alice version`, `alice-server version` and `alice-mcp-stdio --version` report these separately.
 
