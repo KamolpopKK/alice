@@ -198,11 +198,14 @@ feedback, experiment or benchmark), expected evidence, decision criterion and en
 throwaway prototype is not merged, deployed or reused in production; productionizing it requires the
 applicable tests first.
 
-Before **every check execution**, including tests, schema validation, trial migrations and Mermaid
-syntax/render checks, the agent explains the command or operation, target, purpose and side effects,
-then waits for your explicit approval. An earlier execution or content approval does not authorize a
-retry or another check. Reading files and using Alice list/search/get tools is discovery. Checks you
-decline stay unrun and are recorded as limitations; proposed checks are separate from actual results.
+Tests, builds, linters, local project commands, local test services and retries are normal implementation
+work: the agent reports meaningful verification and runs it without separate Alice approval. Reading or
+searching files, Alice list/search/get tools, `git status`, `git diff`, `git diff --check` and static
+validation likewise need no approval. The agent asks only when the concrete operation independently
+requires it—for example, changing production or an external system, spending money, deleting or
+irreversibly migrating data, changing credentials or permissions, or causing a material effect outside
+the scoped workspace. Declined operations stay unrun and are recorded as limitations; proposed checks
+remain separate from actual results.
 
 Unresolved main design choices block the recommendation to plan. The agent can propose a spike and
 create its task if you agree, while unfinished design stays in chat. If design requires a change to

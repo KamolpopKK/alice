@@ -52,6 +52,13 @@ Act as yourself on every command: add `--as claude-code` if you are Claude Code,
 Codex, plus `--json`. Never run Alice commands without `--as`, and never open the credential store: the
 CLI reads your credential itself. Add `--workspace ALIAS` when more than one workspace exists.
 
+When the selected workspace is **Local** and the agent runtime sandboxes shell commands, run every
+`alice` command outside that sandbox (request the runtime's normal command escalation from the first
+command). The Local CLI must reach the Alice daemon and the operating-system credential store; a
+sandboxed invocation can misleadingly report that the workspace did not become ready or that an
+enabled integration has no credential. If either symptom appears, retry the same command outside the
+sandbox before diagnosing Alice, changing integration settings or asking the person to reconnect.
+
 Every result is `{ "ok", "workspace", "data" }` or `{ "ok": false, "error": { "code", "message" } }` with
 the codes in "Recovering from errors", and the exit status is non-zero on errors. `UNAUTHENTICATED` from
 the command means the person disabled your integration: stop and tell them. `alice --help` and
@@ -151,11 +158,15 @@ blocked rather than claiming the whole plan is complete or polling indefinitely.
 work, record the reason and status through the normal workflow, and report completed, remaining and
 blocked tasks. Recommend think/spec when needed without invoking them automatically.
 
-Execution-mode approval does not authorize checks. Before every check execution, including tests,
-builds or retries, explain what will run and why, and wait for the person's explicit approval. Retain
-the current mode while waiting; do not claim the next task or silently skip required verification.
-Existing approval requirements for production changes, spending, deleting data and other decisions
-outside your authority continue to apply.
+Tests, builds, linters, local project commands and their retries are normal implementation work and do
+not require Alice-specific approval merely because they execute code, create local artifacts or start a
+local test service. Explain meaningful verification in progress updates, then run it autonomously.
+Request approval only when the concrete operation independently requires it, such as changing
+production or an external system, spending money, deleting or irreversibly migrating data, changing
+credentials or permissions, or causing a material effect outside the scoped workspace. Reading and
+searching files; `git status`, `git diff` and `git diff --check`; and trusted static validation likewise
+need no approval. Retain the current execution mode while waiting for genuinely required approval; do
+not claim the next task or silently skip required verification.
 
 ## Recovering from errors
 

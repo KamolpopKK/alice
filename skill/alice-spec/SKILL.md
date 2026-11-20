@@ -19,10 +19,13 @@ keeping the selected template headings and fields.
 
 - Your token is a secret. Never print it, paste it into comments or documents, or commit it.
   It comes from the environment or a secret store configured by your operator.
-- Ask the person before every check execution. Explain the exact command or operation, its purpose,
-  target and any side effects, then wait for explicit approval. Approval for an earlier execution does
-  not authorize another execution, retry or changed command. Approval of the design is not approval
-  to run checks. If approval is declined or unanswered, leave the check unrun and report the limitation.
+- Tests, builds, linters, local project commands and their retries need no Alice-specific approval
+  merely because they execute code, create local artifacts or start a local test service. Explain
+  meaningful verification in progress updates, then run it autonomously. Request approval only when
+  the concrete operation independently requires it, such as changing production or an external system,
+  spending money, deleting or irreversibly migrating data, changing credentials or permissions, or
+  causing a material effect outside the scoped workspace. If required approval is declined or
+  unanswered, leave that operation unrun and report the limitation.
 - Never save or change a design in Alice before the person approves the complete content in chat.
 - Do not implement the design, change production code, claim or work tasks, or create a work breakdown.
   Create only a spike task the person has explicitly agreed to.
@@ -202,8 +205,8 @@ every file to change, implementation step or task dependency; that belongs to pl
 
 Use the technical design template in [TEMPLATE.md](TEMPLATE.md). Cite the source brief id/path and
 stable requirement ids in the sections that satisfy them. Use Mermaid for relevant diagrams with the
-shared title, purpose and explanation wrapper. Syntax/render validation is a check and requires prior
-approval for each execution, just like other checks.
+shared title, purpose and explanation wrapper. Syntax and render validation are normal local checks;
+follow Safety only when their concrete target or side effects independently require approval.
 
 | Content | Include when |
 |---|---|
