@@ -179,6 +179,13 @@ behaviour/failure handling, migration/rollout/rollback and operational design. I
 purpose and references, decisions and alternatives, and verification evidence or limitations. An
 existing design for the same subject is proposed for update rather than duplicated.
 
+Before drafting, spec agrees the Definition of Done: test levels, security, deployment/operation
+(including rollout, rollback, backup/restore and observability), performance testing,
+accessibility/compatibility, data integrity/reliability/recovery and documentation. It reuses explicit
+source agreements and asks only about gaps, with pass criteria and required evidence. Every area is
+recorded in the design as agreed criteria or a justified exclusion. Missing thresholds are not guessed;
+answers that change agreed needs follow the existing handoff to `alice-think`.
+
 Before **every check execution**, including tests, schema validation, trial migrations and Mermaid
 syntax/render checks, the agent explains the command or operation, target, purpose and side effects,
 then waits for your explicit approval. An earlier execution or content approval does not authorize a
@@ -207,11 +214,9 @@ Ask your agent to "plan" or "break down" agreed requirements, an Alice document 
    `alice-spec`, naming the questions and input references, and stops before drafting a plan;
 3. resolves implementation planning choices within the agreed design, asking you one question at a
    time with a recommendation when needed. It determines task boundaries, files, sequencing,
-   dependencies and verification steps. Before drafting, it also agrees the Definition of Done (DoD):
-   test levels, security, deployment/operation (including observability), performance testing,
-   accessibility/compatibility, data integrity/reliability/recovery and documentation. It reuses explicit
-   source agreements and asks about gaps, with pass criteria and required evidence. Areas that do not
-   apply carry a reason; every task need not have every check;
+   dependencies and verification steps. When an approved technical design contains a DoD, planning
+   maps its applicable criteria into tasks and evidence without agreeing them again. Work covered by
+   established patterns may still skip a separate spec and use source acceptance conditions;
 4. shows the whole breakdown in chat (reference document, parent and leaf tasks, blockers, full task
    text) and waits for your approval;
 5. creates it as `backlog`, labelled `plan:<slug>`, linked to the reference document;
@@ -229,10 +234,9 @@ Verification and Done when. Whoever picks it up gets all of it from `get_task_co
 A new planning reference summarizes agreed needs and the established technical approach; plan does
 not author a new technical design. Existing source documents receive approved Planning notes without
 rewriting their requirements or design. Missing design is not deferred into implementation tasks.
-The reference or Planning notes records the agreed DoD once. Applicable criteria flow into leaf
-acceptance criteria, Verification and Done when; checks spanning leaves also appear in the parent's
-Done when, with a leaf responsible for running them. Missing DoD thresholds are settled before the
-plan is presented; changes to agreed needs or main design follow the same readiness rule above.
+When a technical design supplies a DoD, applicable criteria flow into leaf acceptance criteria,
+Verification and Done when; checks spanning leaves also appear in the parent's Done when, with a leaf
+responsible for running them. The planning reference cites the design rather than duplicating its DoD.
 
 The closing questions stay short, for example:
 

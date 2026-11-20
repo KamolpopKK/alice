@@ -42,7 +42,7 @@ Plan: plan:<slug> · Parent: <parent title>.
 ## Acceptance criteria
 1. <Observable, independently checkable outcome; cite the source requirement when applicable.>
 2. <…at most 7; split the task if there are more.>
-<Include applicable DoD criteria, citing the reference document's Definition of Done or Planning notes.>
+<Include applicable DoD criteria from the approved technical design when one exists.>
 
 ## Verification
 - `<exact command>` — <what it proves>
@@ -97,11 +97,6 @@ recommend `alice-spec` before producing the plan.
 ## Decisions
 - <Planning decisions within the agreed design: task boundaries, sequencing, dependencies and verification, with reasons. Reference existing design decisions without rewriting them.>
 
-## Definition of Done
-| Area | Agreed criteria or not applicable with reason | Verification and required evidence | Covering tasks |
-|---|---|---|---|
-| <Each area from the DoD discovery table in SKILL.md> | <Agreement or precise reference to an existing agreement> | <Check and pass criteria; omit for justified exclusions> | <Leaf titles; include group-level checks> |
-
 ## Conventions
 - <Project rules every task must follow (from README, CLAUDE.md, AGENTS.md), e.g. test seam, style, migrations.>
 
@@ -123,10 +118,6 @@ For an existing reference document, append instead:
 - Decisions added during planning: <implementation planning choices within the agreed design>
 - Requirements covered: <source brief id/path / REQ-001, …; include when the source has ids>
 - Parent tasks: <titles / ids>
-
-### Definition of Done
-<Use the Definition of Done table above, including every discovery area and referencing existing
-agreements instead of duplicating them.>
 ```
 
 ## Pre-creation checklist
@@ -147,8 +138,8 @@ Run this on the draft and report the result before asking for approval:
 - [ ] Source requirement ids, when present, are preserved and cited by relevant tasks and acceptance criteria; supporting work cites its design decision or spike question.
 - [ ] Every in-scope requirement maps to one or more leaf tasks, or has an evidence-based reason why no system change is needed; source sections are used when ids are absent.
 - [ ] Leaf acceptance criteria collectively cover the source acceptance conditions. Planning gaps are fixed before approval; gaps requiring main technical design follow the readiness rule and are recommended to `alice-spec` before planning continues.
-- [ ] Every DoD discovery area has agreed criteria or a justified exclusion in the reference document or Planning notes; no required thresholds or decisions remain open.
-- [ ] Every applicable DoD criterion maps to leaf acceptance criteria, Verification and Done when, with pass criteria and required evidence. Checks spanning leaves appear in parent Done when and have a leaf responsible for execution. The draft does not claim these checks have passed.
+- [ ] When an approved design has a DoD, every applicable criterion maps to leaf acceptance criteria, Verification and Done when, with pass criteria and required evidence. Checks spanning leaves appear in parent Done when and have a leaf responsible for execution. The planning reference cites rather than duplicates the design, and the draft does not claim checks have passed.
+- [ ] When no separate technical design is needed, source quality/transition requirements and acceptance conditions provide the task coverage; the plan does not require a spec merely to create a DoD.
 - [ ] Relevant extracted documents have been read, conflicting sources resolved, and each task cites and links the documents/sections it needs with a reason; no separate artifact index is created.
 
 ## Closing prompts after creation
