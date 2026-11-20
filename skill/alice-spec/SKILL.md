@@ -67,6 +67,13 @@ Act as yourself on every command: add `--as claude-code` if you are Claude Code,
 Codex, plus `--json`. Never run Alice commands without `--as`, and never open the credential store: the
 CLI reads your credential itself. Add `--workspace ALIAS` when more than one workspace exists.
 
+When the selected workspace is **Local** and the agent runtime sandboxes shell commands, run every
+`alice` command outside that sandbox (request the runtime's normal command escalation from the first
+command). The Local CLI must reach the Alice daemon and the operating-system credential store; a
+sandboxed invocation can misleadingly report that the workspace did not become ready or that an
+enabled integration has no credential. If either symptom appears, retry the same command outside the
+sandbox before diagnosing Alice, changing integration settings or asking the person to reconnect.
+
 Every result is `{ "ok", "workspace", "data" }` or `{ "ok": false, "error": { "code", "message" } }` with
 the codes in "Recovering from errors", and the exit status is non-zero on errors. `UNAUTHENTICATED` from
 the command means the person disabled your integration: stop and tell them. `alice --help` and
