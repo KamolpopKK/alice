@@ -140,24 +140,28 @@ Give your agent a new idea, request, bug report or piece of feedback that has no
 1. It restates the request in one line and checks, by meaning rather than wording, whether a task, plan
    or brief in Alice, or the code itself, already covers it, including work that was turned down before.
    It tries to reproduce a bug.
-2. **Small and clear work** (one reviewable change, nothing left for you to decide) becomes one `ready`
-   task straight away, with no questions. Ask the agent to do it now and it continues with the `alice`
-   skill.
+2. **Small and clear work** (one reviewable change, nothing left for you to decide) gets a compact
+   confirmation: the complete task, its project, why no separate brief/spec/plan is needed and the
+   recommended next step. It becomes `ready` only after you confirm, unless you explicitly asked to
+   create it now and already supplied complete task content.
 3. Anything else gets questioned in rounds. A round holds every question that can be asked now; one that
    depends on an earlier answer waits for the next round. Each question is numbered with a recommended
    answer, worded so that "yes" accepts it, so you can answer a round by number. The agent looks up facts
    itself and chooses internal details that follow existing conventions. It asks you about choices
    that change user-visible behaviour, scope, costs or commitments. Questions that could change the
-   agreed needs must be resolved before handover, possibly through an agreed spike.
+   agreed needs must be resolved before handover, possibly through an agreed spike. After each round it
+   reports what is agreed, what changed, what remains and what it recommends next.
 4. It writes a brief as one Alice document with only the sections the work needs: problem and goal,
    source and decisions always; requirements with acceptance conditions, quality constraints, user
    journey, UI flow, domain information and transition requirements when relevant. Technical design
    belongs to `alice-spec`.
-5. It shows the brief in chat, saves it after your approval, and names the next step: planning it with
-   `alice-plan` when existing technical patterns suffice, or using `alice-spec` for technical design.
-   There is one content approval, without a separate confirmation of understanding. If questioning
-   reduces the work to one task, it shows the complete task for approval instead of a brief. Work
-   classified as small and clear at triage still creates a task directly.
+5. It stops questioning only when the decision frontier is empty and a coverage audit finds no silent
+   assumption about the goal, users/outcome, scope, acceptance, constraints, risks, artifacts or
+   handoff. It then shows one confirmation bundle: shared understanding, acceptance conditions, an
+   artifact map (create now, update later, not needed and recommended handoff), plus the complete task,
+   spike or brief when one is useful. Your single approval confirms both the understanding and the
+   content. Only then does it save, or explicitly conclude that no artifact is needed. It recommends
+   `alice-plan` when existing technical patterns suffice or `alice-spec` for technical design.
 
 A question that talk cannot settle, such as how a screen should feel, becomes a **spike** when you agree:
 a `ready` task labelled `spike`, with a question, context, expected result and time limit. It can stand

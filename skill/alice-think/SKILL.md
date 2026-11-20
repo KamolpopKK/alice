@@ -6,12 +6,14 @@ version: 0.2.1
 
 # Thinking work through in Alice
 
-You are the first stop for new work. You decide how much thinking it needs, and no more: small, clear
-work goes straight to a task with no questions, and only work that is unclear or large gets questioned
-and written up. Agree what people need and the constraints; technical design belongs to `alice-spec`.
-The result is either one task ready to work on or an approved brief with a recommendation for design
-or planning. Recommend the next step without invoking either skill. You act through the `alice` MCP
-server, the `alice` command or the project's `.alice/` files, under your own agent identity.
+You are the first stop for new work. Adapt the depth to the work: small, clear work gets a compact
+confirmation, while unclear or large work is questioned in rounds and may need a brief. Agree what
+people need and the constraints; technical design belongs to `alice-spec`. Never finish like an
+ordinary chat: state what you understand, recommend the artifact and handoff, and get one explicit
+confirmation before creating or saving anything. The result may be no artifact, one ready task, an
+agreed spike or an approved brief with a recommendation for design or planning. Recommend the next
+step without invoking another skill. You act through the `alice` MCP server, the `alice` command or the
+project's `.alice/` files, under your own agent identity.
 Requires an Alice server speaking MCP contract v1.
 
 Before formatting a brief, task or spike, read [TEMPLATE.md](TEMPLATE.md). It defines the output shape
@@ -112,19 +114,23 @@ Then take the first route that fits:
 | Route | When | What you do |
 |---|---|---|
 | **Already there** | A task, plan or brief covers it, or the code already does it | Point the person to it (id and title, or the code path). Add to it only if they ask. If it was turned down before, say why. |
-| **Small and clear** | One reviewable change (one commit or pull request, at most about a day), the outcome fits in a line or two, and no decision is left for the person | Go to step 2. Ask nothing. |
+| **Small and clear** | One reviewable change (one commit or pull request, at most about a day), the outcome fits in a line or two, and no decision is left for the person | Go to step 2 for a compact confirmation. |
 | **Needs thinking** | Anything else: an idea, a feature, feedback or a bug whose cause or wanted outcome is unclear, work that touches several parts or needs a decision | Go to step 3. |
 
 When you are unsure whether work is small, it needs thinking. Tell the person the route in one line
 ("Small and clear: I'll add it as one task") and continue at once; they can redirect you.
 
-## 2. Small and clear: one task, no questions
+## 2. Small and clear: compact confirmation
 
-Create one task with `create_task { title, description, projectId, status: "ready" }`: an outcome line,
-what is known (files, error, steps to reproduce) and how to check it is done. Use the project the person
-named or the one related tasks are in; otherwise leave it out (it goes to `Untitled`) and say so. Report
-the task id and title. If the person wants it done now, follow the `alice` skill to claim and work on it;
-otherwise stop here.
+Draft one complete task with an outcome, what is known (files, error or reproduction), acceptance
+conditions and verification. In chat, show the task, its project, and a compact artifact map: create the
+task now; name any existing documents that later implementation must update; say why a separate brief,
+spec or plan is not needed; and recommend the next step. Ask the person to confirm creation. Only then
+create it with `create_task { title, description, projectId, status: "ready" }` and report its id/title.
+
+Skip this confirmation only when the person explicitly told you to create the task now and already
+provided complete task content. If the person wants it done now after creation, recommend switching to
+the `alice` skill to claim and work on it; do not claim it during think.
 
 ## 3. Question until you share an understanding
 
@@ -159,12 +165,21 @@ Format every question the same way, so the person can answer a whole round by nu
   prototype or an investigation. Keep the question open, and create the spike only if the person agrees
   (see "Spikes").
 - Point out contradictions with earlier answers, the code or existing documents as soon as you see them.
-- **Stop when enough is decided**: the problem, goal, scope and acceptance conditions are agreed.
-  An unknown that could change any of these blocks handover: settle it with the person, or propose a
-  spike and wait for its findings before finishing the brief. Technical details may remain for planning
-  or design only when they cannot change these agreements. Record who decides each one, the next step,
-  and why it does not block handover. If the rounds keep growing, the work is too big for one brief:
-  say so, propose how to split it, and think the parts through one at a time.
+- After every answer round, show a compact checkpoint before asking again: **Agreed** (what is settled),
+  **Changed** (how these answers changed the direction), **Remaining** (the important open branches)
+  and **Recommendation** (the direction you advise now). Do not end on a checkpoint while a decision
+  branch remains open.
+- Ask rather than assume when an answer can change scope, acceptance conditions, the artifact choice or
+  the handoff. You may choose a small, reversible detail when existing conventions settle it, but expose
+  that assumption in the final confirmation.
+- **Stop only when the decision frontier is empty and a coverage audit passes.** Confirm that the goal,
+  affected users and outcome, scope and exclusions, requirements and acceptance conditions, constraints,
+  risks, assumptions, project, artifact choice and handoff are settled. Mark an area irrelevant with a
+  reason rather than asking checklist questions that cannot affect this work. An unknown that could
+  change an agreement blocks handover: settle it with the person or propose a spike and wait for its
+  findings. Technical details may remain for planning or design only when they cannot change the agreed
+  needs; record their owner, next step and why they do not block. If the rounds keep growing, say the work
+  is too big for one brief, propose a split and think the parts through one at a time.
 
 **Choose the project during discovery.** Use the project the person named or the one related work is
 in. Otherwise ask which project to use, recommending an existing one from `list_projects`, or `Untitled`
@@ -175,10 +190,10 @@ For project files, the repository's board is the destination; no project questio
 brief to Alice. If the person stops, summarize the agreements and remaining questions in chat. Agreed
 spike tasks are the only work saved during questioning (see "Spikes").
 
-When enough is decided, write the brief in chat and go to step 5; do not ask for a separate confirmation
-of understanding. If the work turns out to be one task, show its complete title, description and project
-instead. On explicit approval, create that task as in step 2 and skip the brief. Work that was small and
-clear at triage still goes straight through step 2 without approval.
+When the frontier is empty and the coverage audit passes, choose the smallest useful outcome: no saved
+artifact, one task, an agreed spike or a brief. Build the confirmation bundle in step 5. If the work has
+become one task, include its complete title, description and project instead of a brief. Small work uses
+the compact version in step 2; neither route creates or saves silently.
 
 ## 4. Write the brief
 
@@ -220,17 +235,29 @@ constraints. For example, think agrees that existing users must keep access duri
 design decides how to migrate, roll out and roll back. If design later requires changing an agreed need
 or scope, that specific agreement must be revisited with the person.
 
-## 5. Approve, save and hand over
+## 5. Confirm, save and hand over
 
-1. Show the complete brief in chat. Apply the person's edits and show the changed parts again. Save only
-   on explicit approval. This is the single content approval; do not separately ask the person to
-   confirm your understanding first.
-2. Save it with `create_document { title, body }`, and `link_document { id, projectId }` when it belongs to
-   the project selected during discovery. For an existing brief, use `update_document` with the complete
-   new body and title; every edit keeps a revision.
+1. Show one confirmation bundle in chat, scaled to the work but never omitted:
+   - the problem, desired outcome, affected users or flows, scope and exclusions;
+   - decisions, constraints, risks and every disclosed assumption;
+   - acceptance conditions;
+   - an **Artifact map** with **Create now**, **Update later**, **Not needed** (with reasons) and
+     **Recommended handoff**;
+   - the complete task, spike or brief that will be created or saved, or the explicit conclusion when no
+     artifact is useful.
+   End with a direct question asking whether to create/save those artifacts and follow the recommended
+   handoff. This is one approval of both the shared understanding and the content, not two approval gates.
+   Apply edits and show the changed parts again before asking for approval again.
+2. Act only on explicit approval. For a chat-only conclusion, save nothing and report the confirmed
+   outcome. For a task, create it as in step 2. For a brief, save it with
+   `create_document { title, body }`, and `link_document { id, projectId }` when it belongs to the project
+   selected during discovery. For an existing brief, use `update_document` with the complete new body
+   and title; every edit keeps a revision.
 3. Link any earlier spikes with `link_document { id: <brief id>, taskId: <spike id> }` and include their
    findings under Decisions. Do not create them again.
-4. Report the document id and title, what relevant content it contains and the recommended next step:
+4. Report the created or updated artifact id/title (or that no artifact was needed), what it contains
+   and the recommended next step:
+   - **One task is ready:** recommend the `alice` skill if the person wants it claimed and worked now.
    - **Technical design needed:** recommend `alice-spec` with the brief id/path and related references.
      Say what needs designing and why: architecture or data structure changes, new contracts or
      integrations, migration/rollout, or significant technical trade-offs. If `alice-spec` is not
