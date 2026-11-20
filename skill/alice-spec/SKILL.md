@@ -138,6 +138,29 @@ Before each execution, follow the approval rule in Safety. Report what was actua
 result; keep proposed verification separate from completed checks. Do not create a prototype or run
 implementation work as an implicit part of discovery.
 
+Before drafting, agree the Definition of Done (DoD). Read existing agreements in the requirements,
+repository and earlier designs first, then ask only about gaps, one question at a time with a
+recommendation. For each area, agree what applies, what must pass and what verification or evidence
+will demonstrate it. An area may be not applicable with a reason; do not require every check for every
+design.
+
+| Area | Discuss as relevant to the work |
+|---|---|
+| Test levels | Unit, integration, end-to-end and any other needed levels; cases and pass criteria. |
+| Security | Required security checks and pass criteria. |
+| Deployment / operation | Rollout, rollback, backup/restore and observability (logs, metrics, alerts). |
+| Performance testing | Workload, environment, measurements and pass thresholds. |
+| Accessibility / compatibility | Keyboard and screen-reader use; supported browsers, devices and versions. |
+| Data integrity / reliability / recovery | Migration data preservation, timeout/retry behavior and recovery after failures. |
+| Documentation | User guides, API documentation and runbooks that must be updated. |
+
+Do not invent missing thresholds or treat silence as an exemption. Settle required criteria before
+presenting the design. If an answer changes an agreed requirement, scope, cost or commitment, follow
+the existing requirement-change rule above. If discussion cannot settle a technical choice needed for
+the DoD, follow the spike rule below. Record every area in the design as agreed criteria or a justified
+exclusion, with its requirement/design coverage, verification, pass criteria and required evidence.
+Writing a proposed check does not authorize executing it.
+
 ## 3. Resolve blocking uncertainty
 
 Before recommending planning, settle choices that determine architecture, contracts, the data model
@@ -176,6 +199,7 @@ approval for each execution, just like other checks.
 | **Behaviour and failure handling** | Technical execution needs specifying: state transitions, ordering, consistency, recovery and degraded behaviour |
 | **Migration, rollout and rollback** | Existing data, users or consumers are affected: compatibility during transition, sequence, activation, monitoring, rollback conditions and irreversible steps |
 | **Operational design** | Running the change introduces needs: configuration, secrets handling, observability, capacity, security controls and support/recovery procedures |
+| **Definition of Done** | Always: agreed criteria or justified exclusions for every DoD area, linked to requirements/design coverage, verification, pass criteria and evidence |
 | **Decisions and alternatives** | Always: the chosen approach and why; significant alternatives rejected and their trade-offs |
 | **Verification and evidence** | Always: how the design satisfies the source acceptance conditions, evidence read, checks actually run and their results, and checks not run or unavailable sources |
 | **Remaining implementation details** | Details can wait without changing the design: state the boundary within which planning may choose; blocking design questions stay in step 3 |

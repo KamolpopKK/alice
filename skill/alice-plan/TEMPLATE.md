@@ -42,14 +42,16 @@ Plan: plan:<slug> · Parent: <parent title>.
 ## Acceptance criteria
 1. <Observable, independently checkable outcome; cite the source requirement when applicable.>
 2. <…at most 7; split the task if there are more.>
+<Include applicable DoD criteria from the approved technical design when one exists.>
 
 ## Verification
 - `<exact command>` — <what it proves>
 - <manual check, if any, with where and how>
+<For applicable DoD criteria, specify pass criteria and the evidence to retain.>
 
 ## Done when
 The `complete_task` summary states: <the commit or pull request, the files changed, the verification run,
-and any follow-up task ids>.
+the results/evidence for applicable DoD criteria, and any follow-up task ids>.
 ```
 
 ## Parent task description
@@ -68,7 +70,8 @@ Requirements: <source brief id/path / REQ-001, …; include when the source has 
 2. <…in recommended order; note which can run in parallel>
 
 ## Done when
-<Group-level criteria: every leaf done, plus any end-to-end check that spans the leaves.>
+<Group-level criteria: every leaf done, plus applicable DoD checks that span leaves, their pass criteria,
+required evidence and the leaf responsible for running them.>
 ```
 
 ## Reference document (new planning reference)
@@ -135,6 +138,8 @@ Run this on the draft and report the result before asking for approval:
 - [ ] Source requirement ids, when present, are preserved and cited by relevant tasks and acceptance criteria; supporting work cites its design decision or spike question.
 - [ ] Every in-scope requirement maps to one or more leaf tasks, or has an evidence-based reason why no system change is needed; source sections are used when ids are absent.
 - [ ] Leaf acceptance criteria collectively cover the source acceptance conditions. Planning gaps are fixed before approval; gaps requiring main technical design follow the readiness rule and are recommended to `alice-spec` before planning continues.
+- [ ] When an approved design has a DoD, every applicable criterion maps to leaf acceptance criteria, Verification and Done when, with pass criteria and required evidence. Checks spanning leaves appear in parent Done when and have a leaf responsible for execution. The planning reference cites rather than duplicates the design, and the draft does not claim checks have passed.
+- [ ] When no separate technical design is needed, source quality/transition requirements and acceptance conditions provide the task coverage; the plan does not require a spec merely to create a DoD.
 - [ ] Relevant extracted documents have been read, conflicting sources resolved, and each task cites and links the documents/sections it needs with a reason; no separate artifact index is created.
 
 ## Closing prompts after creation

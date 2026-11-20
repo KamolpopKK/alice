@@ -135,6 +135,12 @@ label `plan:<slug>`; it is how you find the plan again.
    one question at a time, with your recommendation and alternatives, until no planning decision is
    open. Explore instead of asking whenever the answer is in the code or in Alice. If an answer would
    change the agreed needs or main design, return to the readiness rule rather than deciding it here.
+5. **Definition of Done handoff.** When an approved technical design contains a DoD, do not renegotiate
+   it. Map each applicable criterion to leaf acceptance criteria, Verification and Done when; put checks
+   spanning leaves in the parent's Done when and give their execution a leaf task. Cite the design
+   rather than copying its criteria into the planning reference. When established patterns make a
+   separate design unnecessary, use the source quality/transition requirements and acceptance
+   conditions; do not require `alice-spec` merely to create a DoD.
 
 The finished plan contains no "TBD", "to be decided", "ask someone", "see the code" or similar.
 
@@ -142,7 +148,8 @@ The finished plan contains no "TBD", "to be decided", "ask someone", "see the co
 
 Before presenting the plan for approval, use the existing pre-creation checklist to compare every
 in-scope requirement and its acceptance conditions with the proposed leaf tasks and their acceptance
-criteria. Each requirement needs task coverage or an evidence-based reason why no system change is
+criteria, including applicable DoD criteria from an approved design. Each requirement needs task
+coverage or an evidence-based reason why no system change is
 needed; use source sections when ids are absent. Fix planning omissions before presenting the plan.
 If coverage needs a missing main technical design decision, follow the readiness rule and recommend
 `alice-spec` rather than inventing the design. Report coverage briefly (complete, or the specific gaps),

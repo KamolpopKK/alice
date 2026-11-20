@@ -87,6 +87,11 @@ of empty headings or `N/A`.
 - Capacity and security: <required controls or limits and how they are satisfied>.
 - Support and recovery: <operational owner, procedures and recovery behaviour>.
 
+## Definition of Done
+| Area | Agreed criteria or not applicable with reason | Requirement/design coverage | Verification, pass criteria and required evidence |
+|---|---|---|---|
+| <Each area from the DoD discovery table in SKILL.md> | <Agreement or justified exclusion> | <Source requirement and design section> | <Proposed check, threshold and evidence; omit only for justified exclusions> |
+
 ## Decisions and alternatives
 ### <Decision title>
 - Decision: <chosen approach>.
@@ -116,6 +121,10 @@ of empty headings or `N/A`.
 |---|---|---|
 | <detail for planning> | <constraints on the choice> | <reason> |
 ```
+
+Definition of Done is always present and includes every discovery area. Reuse explicit source
+agreements by precise reference instead of copying them. A proposed check is not a performed check and
+does not authorize execution; record actual approved executions only under Checks performed.
 
 Omit unavailable optional references and inapplicable contract/operational fields. Use a diagram only
 where it adds clarity; component responsibilities and precise contracts remain in text/tables. For
