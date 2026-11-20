@@ -97,6 +97,31 @@ Keep a journey or UI flow in the brief unless the shared splitting criteria appl
 uses the shared header and its section format above; the brief retains a summary and a reference to
 the authoritative detail. Include all proposed document changes in the existing content approval.
 
-After saving, report the brief id/title or path, the content included, and the recommended next skill
-with the reason and input references. For a task or spike, report its id/title and the next step. Do
-not invoke the recommended skill.
+## Confirmation bundle (chat only)
+
+Do not save this wrapper as part of the brief. Before creating or saving any outcome, show:
+
+```markdown
+## Shared understanding
+- Problem and outcome: <who needs what change and how success is observed>.
+- Scope: <in and out>.
+- Decisions, constraints and risks: <settled choices and relevant limits>.
+- Assumptions: <small reversible assumptions, or "None">.
+- Acceptance conditions: <the agreed observable conditions>.
+
+## Artifact map
+- Create now: <task, spike, brief update/new brief, or no artifact — why>.
+- Update later: <existing documents implementation must update, or none — why>.
+- Not needed: <brief/spec/plan/other candidates and why>.
+- Recommended handoff: <chat conclusion, spike, alice, alice-spec or alice-plan — why>.
+
+## Proposed content
+<The complete task, spike or brief; omit only for a chat-only conclusion.>
+
+<A direct question asking whether to create/save the listed artifacts and follow the handoff.>
+```
+
+Scale the detail to the work; small tasks still need the artifact map and direct confirmation. After
+approval and saving, report the id/title or path, the content included, and the recommended next skill
+with the reason and input references. For a task or spike, report its id/title and the next step. Do not
+invoke the recommended skill.
