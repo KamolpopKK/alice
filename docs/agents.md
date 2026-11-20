@@ -330,3 +330,22 @@ version. For a missing skill or supporting file, or changed content at the same 
 `alice install-skill --client codex` (or `claude-code`) from the updated CLI to reinstall the full set.
 
 The Remote setup on the **Agents** page (MCP, the stdio adapter and downloads) is unchanged.
+
+The Local setup prompt carries setup through verification. It finds `alice` on PATH or at
+`~/.local/bin/alice`, uses available app-control tools to install the command if needed, enables only
+the selected client, checks all four skills and supporting files, and selects a Local workspace before
+reading ready tasks. With several Local workspaces it asks which to use. It does not claim tasks.
+
+The agent requests the filesystem, network, Local daemon or app-control access an action needs through
+its host permission system. For `EPERM` or `EACCES`, it explains the blocked action/path and retries that
+action once after approval. Permission requests are part of setup, not a reason to abandon it. If access
+is declined/unavailable or the approved retry fails, it explains the blocker and asks for the smallest
+manual action needed, then continues without repeating successful steps. It does not change filesystem
+permissions or disable sandbox protections. If UI control is unavailable, a user click may still be
+needed; the prompt does not require a generic first-run confirmation when setup is already complete.
+
+An older CLI cannot install skills absent from its embedded bundle. Setup reports which files are
+missing and the need for an updated release instead of repeatedly reinstalling the same version. After
+verification, start a new agent session if needed to load new skills. The completion message includes
+an invocation example: `$alice-plan` for Codex or `/alice-plan` for Claude Code, with plain-language
+invocation as another option.

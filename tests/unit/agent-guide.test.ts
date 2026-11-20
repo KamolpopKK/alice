@@ -110,9 +110,9 @@ describe('Local agent setup guide', () => {
     const { localAgentSetupGuide, AGENT_GUIDE_CLIENTS, LOCAL_CLI_MISSING } = await import('../../src/shared/agent-guide')
     for (const { id } of AGENT_GUIDE_CLIENTS) {
       const g = localAgentSetupGuide(id)
-      for (const cmd of ['alice version', `alice integration enable ${id}`, `alice --as ${id} workspace current --json`, `alice --as ${id} task list --status ready --json`]) expect(g.prompt).toContain(cmd)
+      for (const cmd of ['alice version', `alice integration enable ${id}`, `alice --as ${id} workspace list --json`, `alice --as ${id} --workspace ALIAS task list --status ready --json`]) expect(g.prompt).toContain(cmd)
       expect(g.prompt).toContain(LOCAL_CLI_MISSING)
-      expect(g.steps.map((s) => s.code)).toEqual(['alice version', `alice integration enable ${id}`, `alice --as ${id} workspace current --json`])
+      expect(g.steps.map((s) => s.code)).toEqual(['alice version', `alice integration enable ${id}`, `alice --as ${id} workspace list --json`])
       const text = [g.prompt, ...g.steps.map((s) => s.code), ...g.tryPrompts].join('\n')
       // ไม่มีสิ่งที่ Local ไม่มี และไม่มีอะไรหน้าตาเหมือน secret
       expect(text).not.toMatch(/https?:\/\/|\/mcp\/|token file|\.config\/alice|curl |claude mcp|codex mcp|alice_(at|rt|pat)_/i)

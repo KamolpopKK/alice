@@ -229,19 +229,19 @@ export interface LocalAgentGuide {
   tryPrompts: string[]
 }
 
-export const LOCAL_CLI_MISSING = 'Open Alice Desktop › Agents and choose “Install the alice command”, then ask me again.'
+export const LOCAL_CLI_MISSING = 'Open Alice Desktop › Agents and choose “Install the alice command”.'
 
 export function localAgentSetupGuide(client: AgentGuideClient): LocalAgentGuide {
   const label = AGENT_GUIDE_CLIENTS.find((c) => c.id === client)!.label
   const as = `alice --as ${client}`
   const steps: GuideStep[] = [
-    { title: 'Check the alice command', description: 'Alice Desktop installs it. If it is missing, choose “Install the alice command” on this page.', code: 'alice version' },
+    { title: 'Check the alice command', description: 'Use alice on PATH or ~/.local/bin/alice. If both are missing, choose “Install the alice command” on this page.', code: 'alice version' },
     {
       title: `Give ${label} its own identity and the Alice skills`,
       description: `Installs the alice, alice-plan, alice-think and alice-spec skills for ${label} and lets it work in every Local workspace under its own name.`,
       code: `alice integration enable ${client}`,
     },
-    { title: 'Check the connection', description: `${label} should see the workspace it will change.`, code: `${as} workspace current --json` },
+    { title: 'Choose the Local workspace', description: 'Use the only Local workspace, or choose one if several exist. Pass its alias explicitly when reading tasks.', code: `${as} workspace list --json` },
   ]
   const prompt = [
     `Set up Alice for ${label} on this computer.`,
@@ -249,15 +249,19 @@ export function localAgentSetupGuide(client: AgentGuideClient): LocalAgentGuide 
     'Alice is a taskboard that runs privately on this Mac in Alice Desktop. You work in it with the `alice` command, under your own name. There is no server, URL, token or MCP to configure.',
     '',
     'Rules:',
+    '- Complete setup and verification, continuing after each successful step. This request authorizes installing the alice command and enabling only the selected client. Do not stop merely because a host permission approval is needed.',
     '- Never use sudo, and never ask for, read or print passwords, tokens or credentials. The `alice` command reads your credential itself.',
-    '- Stop and tell me if a step fails: show the command and its error.',
+    '- When an action requires filesystem, network, Local daemon or app-control access outside your sandbox, request the specific permission through your host before running it. For Codex, use its command approval/escalation mechanism; for Claude Code, use its permission request. Skill installation writes to the client skill directory outside the project, and enabling the integration also updates Local agent registration.',
+    '- If EPERM, EACCES or a sandbox restriction occurs, show the failed action/path, request the required access and retry that action once after approval. Do not just tell me to rerun the whole prompt. Never treat silence as approval, change filesystem permissions, or disable sandbox protections.',
+    '- If permission is declined/unavailable or an approved retry still fails, report the exact remaining blocker and one smallest manual action, then wait. Do not repeat successful installation steps. For other failures, inspect the error and fix a routine setup issue only when the evidence supports it; ask before trying an uncertain repair, and never claim setup is complete while a blocker remains.',
     '',
     'Steps:',
-    `1. Run \`alice version\`. If the command is not found, stop and tell me: "${LOCAL_CLI_MISSING}"`,
-    `2. Run \`alice integration enable ${client}\`. It installs the Alice skills for you and gives you your own identity in every Local workspace.`,
-    `3. Run \`${as} workspace current --json\` and tell me the workspace name and alias.`,
-    `4. Run \`${as} task list --status ready --json\` and summarise what is ready, or say that nothing is.`,
-    `5. From now on, use the alice skill for anything about Alice tasks, projects or documents, and always pass \`--as ${client}\`. If the skill is not available in this session yet, tell me to restart you.`,
+    `1. Find the installed alice command on PATH or at ~/.local/bin/alice, and run \`alice version\` using the working path. Use that same path below; no new terminal is needed just for PATH. If missing, use your app-control tools to ${LOCAL_CLI_MISSING} Request app-control permission if needed. If you cannot control the app, ask me only to click that button, then continue when I confirm. Do not install an extra runtime or build from source.`,
+    `2. Run \`alice integration enable ${client}\` using the working command path, without --as for this setup operation. It installs the bundled skills and gives you your own Local identity. Request access for writing the client skill directory and updating Local registration if needed; a permission error is not a completed setup.`,
+    `3. Run \`alice version\` again and inspect only the installed skill files under ${client === 'codex' ? '~/.codex/skills' : '~/.claude/skills'}. Confirm alice, alice-think, alice-spec and alice-plan each have SKILL.md, PROJECT-FILES.md and OUTPUT-FORMATS.md; think, spec and plan also need TEMPLATE.md. If the CLI bundles an older set, report that an updated Alice release is needed; do not repeatedly reinstall the same older bundle or fetch unverified files.`,
+    `4. Run \`${as} workspace list --json\`. Use the only Local workspace; if several exist, ask me once which to use, naming the choices. If none exists, finish Local first-run setup in Alice through your app-control tools, using displayed defaults and enabling only ${label}. Ask me only for required personal choices or UI actions you cannot perform, then continue. Do not reset or replace existing workspaces.`,
+    `5. Read the selected workspace's ready tasks with \`${as} --workspace ALIAS task list --status ready --json\`, replacing ALIAS with its actual alias. Ask for Local daemon access if blocked. Do not claim tasks or begin task work during setup.`,
+    `6. Report installed CLI/skill versions, the selected workspace and ready task count. Show one example I can paste: ${client === 'codex' ? '$alice-plan วางแผนงานนี้ให้หน่อย' : '/alice-plan วางแผนงานนี้ให้หน่อย'}. If the current session has not loaded the new skills, tell me once to start a new session; that is not a reason to leave setup verification unfinished. Use the relevant Alice skill for later work and always pass \`--as ${client}\` on workspace/task commands.`,
   ].join('\n')
   const tryPrompts = [
     'Look at the ready tasks in Alice and take one to work on.',
