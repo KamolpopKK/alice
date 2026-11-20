@@ -3,7 +3,7 @@
 services:
   alice:
     # prebuilt multi-arch image (amd64, arm64); pin with ALICE_VERSION. `docker compose build` builds it from a checkout
-    image: ghcr.io/kamolpopkk/alice:${ALICE_VERSION:-0.2.1}
+    image: ghcr.io/kamolpopkk/alice:${ALICE_VERSION:-0.2.2}
     build: .
     restart: unless-stopped
     ports:

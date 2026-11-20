@@ -114,19 +114,20 @@ describe('alice-think skill', () => {
     }
   })
 
-  // งานเล็กต้องออกได้ทันทีโดยไม่ถามอะไร ก่อนจะถึงขั้นซักถามและเขียน brief
-  it('triages first, hands small work to one task without questions, and questions only the rest', () => {
-    const steps = ['## 1. Triage', '**Small and clear**', '## 2. Small and clear: one task, no questions', '## 3. Question', 'Ask in **rounds**', '## 4. Write the brief', '## 5. Approve', '`create_document']
+  it('triages first, confirms small work compactly, and questions only the rest', () => {
+    const steps = ['## 1. Triage', '**Small and clear**', '## 2. Small and clear: compact confirmation', '## 3. Question', 'Ask in **rounds**', '## 4. Write the brief', '## 5. Confirm', '`create_document']
     const at = steps.map((s) => think.indexOf(s))
     expect(at.every((i) => i > 0)).toBe(true)
     expect(at).toEqual([...at].sort((a, b) => a - b))
     const small = think.slice(think.indexOf('## 2. Small'), think.indexOf('## 3. Question'))
     expect(small).toContain('status: "ready"')
-    expect(small).not.toMatch(/approv|create_document/)
-    expect(think).toMatch(/Stop when enough is decided/)
+    expect(small).toContain('Ask the person to confirm creation')
+    expect(small).toContain('why a separate brief,\nspec or plan is not needed')
+    expect(small).not.toMatch(/create_document/)
+    expect(think).toMatch(/decision frontier is empty and a coverage audit passes/)
     // ถามเป็นรอบ; agent หาข้อเท็จจริงและเลือกรายละเอียดภายในตามแนวทางเดิมเอง
     const grill = think.slice(think.indexOf('## 3. Question'), think.indexOf('## 4. Write the brief'))
-    for (const rule of ['every open question whose prerequisites are already settled', '❓ **Q1', '➡️', 'so that "yes" accepts your recommendation', 'Facts are your job; product decisions are the person\'s', '"I don\'t know" is an answer', 'user-visible behaviour,\n  scope, costs or commitments', 'Choose internal details yourself']) {
+    for (const rule of ['every open question whose prerequisites are already settled', '❓ **Q1', '➡️', 'so that "yes" accepts your recommendation', 'Facts are your job; product decisions are the person\'s', '"I don\'t know" is an answer', 'user-visible behaviour,\n  scope, costs or commitments', 'Choose internal details yourself', '**Agreed**', '**Changed**', '**Remaining**', '**Recommendation**']) {
       expect(grill).toContain(rule)
     }
     expect(grill).not.toMatch(/up to \d+ questions/)
@@ -143,10 +144,10 @@ describe('alice-think skill', () => {
 
   it('settles product agreements and recommends design or planning without invoking them', () => {
     const grill = think.slice(think.indexOf('## 3. Question'), think.indexOf('## 4. Write the brief'))
-    expect(grill).toContain('the problem, goal, scope and acceptance conditions are agreed')
-    expect(grill).toContain('An unknown that could change any of these blocks handover')
-    expect(grill).toContain('Record who decides each one, the next step,\n  and why it does not block handover')
-    const handover = think.slice(think.indexOf('## 5. Approve'), think.indexOf('## Spikes'))
+    expect(grill).toContain('the decision frontier is empty and a coverage audit passes')
+    expect(grill).toContain('An unknown that could\n  change an agreement blocks handover')
+    expect(grill).toContain('record their owner, next step and why they do not block')
+    const handover = think.slice(think.indexOf('## 5. Confirm'), think.indexOf('## Spikes'))
     expect(handover).toContain('**Technical design needed:** recommend `alice-spec`')
     expect(handover).toContain('**Existing technical patterns are sufficient:** recommend `alice-plan`')
     expect(handover).toContain('do not invoke `alice-spec` or `alice-plan`')
@@ -154,18 +155,18 @@ describe('alice-think skill', () => {
     expect(handover).toContain('If `alice-spec` is not\n     installed, say so')
   })
 
-  it('selects a project during discovery and uses one content approval for questioned work', () => {
+  it('selects a project during discovery and uses one confirmation bundle', () => {
     const grill = think.slice(think.indexOf('## 3. Question'), think.indexOf('## 4. Write the brief'))
     expect(grill).toContain('Choose the project during discovery')
     expect(grill).toContain('Settle this before showing the brief or task for approval, or creating an agreed spike')
-    expect(grill).toContain('do not ask for a separate confirmation\nof understanding')
-    expect(grill).toContain('show its complete title, description and project')
-    expect(grill).toContain('On explicit approval, create that task')
-    const approval = think.slice(think.indexOf('## 5. Approve'), think.indexOf('## Spikes'))
-    expect(approval).toContain('Show the complete brief in chat')
-    expect(approval).toContain('Save only\n   on explicit approval')
-    expect(approval).toContain('single content approval')
-    expect(approval).toContain('project selected during discovery')
+    expect(grill).toContain('Build the confirmation bundle in step 5')
+    expect(grill).toContain('complete title, description and project')
+    expect(grill).toContain('neither route creates or saves silently')
+    const approval = think.slice(think.indexOf('## 5. Confirm'), think.indexOf('## Spikes'))
+    expect(approval).toContain('Show one confirmation bundle in chat')
+    expect(approval).toContain('Act only on explicit approval')
+    expect(approval).toContain('one approval of both the shared understanding and the content')
+    expect(approval).toMatch(/project\s+selected during discovery/)
   })
 
   it('never saves a brief before approval and never works the tasks itself', () => {

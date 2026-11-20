@@ -1,18 +1,43 @@
 # Changelog
 
-## Unreleased
+## 0.2.2 — 2026-11-20
 
 ### Added
 
-- **`alice-think` skill: think new work through before planning it.** Give an agent an idea, a request,
-  a bug report or feedback with no task yet. Small, clear work becomes one `ready` task straight away,
-  with no questions. Everything else is questioned in rounds of every question that can be asked
-  so far, numbered and each with a recommended answer, until someone could plan it without asking again; the result is a brief (problem and goal, plus user journey,
-  requirements or spec only when the work needs them) saved as an Alice document after approval, ready
-  for `alice-plan` or architecture design. Questions that talk cannot settle become spike tasks linked to
-  the brief when the person agrees, and an unfinished session can be saved as a draft on request and
-  resumed later. `alice install-skill` and `alice integration enable` install
-  it with the other skills.
+- **A complete requirements-to-delivery skill flow.** `alice-think` clarifies new work, `alice-spec`
+  agrees technical design and Definition of Done, `alice-plan` creates an executable breakdown, and
+  `alice` claims and completes tasks. Each stage recommends the next one without invoking it silently.
+- **Optional Testing design.** Technical designs can map requirements to critical scenarios, test
+  levels, suites, setup, expected results and evidence when risk or complexity makes that decision
+  necessary before planning. Prototypes and investigations may instead define a bounded validation
+  method and remain explicitly outside production.
+- **Standalone agent setup guidance.** Alice Desktop provides a copyable prompt that installs the Local
+  command and skills, enables the selected agent identity and verifies its workspace without exposing
+  credentials.
+
+### Changed
+
+- **`alice-think` now closes every discovery explicitly.** Questions are grouped by the current decision
+  frontier, marked with `❓` and a recommended answer marked with `➡️`. Every round reports what was
+  agreed, changed and remains. Before saving, it presents one confirmation bundle with the shared
+  understanding, acceptance conditions, artifact map, complete proposed content and recommended handoff.
+  Small work uses the same compact confirmation instead of creating a task silently.
+- **Definition of Done belongs to `alice-spec`.** Spec agrees test, security, deployment/operations,
+  performance, accessibility/compatibility, data integrity/recovery and documentation criteria;
+  planning maps those approved criteria into tasks and evidence without asking again.
+- **Normal local verification no longer needs Alice-specific approval.** Tests, builds, linters and
+  local project commands run as ordinary implementation work. Approval remains tied to concrete risky
+  effects such as production changes, external systems, spending, destructive data changes or access
+  control changes.
+
+### Fixes
+
+- **Local agent commands work through sandboxed hosts.** The skills tell agents to run Local `alice`
+  commands with the host permissions needed for the daemon and operating-system credential store,
+  avoiding misleading workspace timeouts and missing-credential diagnoses.
+- **Agent setup completes under restricted hosts.** The setup prompt requests the required host access
+  for the installer and Local workspace checks, and verifies the selected workspace before reporting
+  success.
 
 ## 0.2.1 — 2026-11-19
 
