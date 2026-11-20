@@ -135,6 +135,28 @@ label `plan:<slug>`; it is how you find the plan again.
    one question at a time, with your recommendation and alternatives, until no planning decision is
    open. Explore instead of asking whenever the answer is in the code or in Alice. If an answer would
    change the agreed needs or main design, return to the readiness rule rather than deciding it here.
+5. **Definition of Done (DoD).** Before drafting, review existing DoD agreements in the sources and
+   repository, then ask the person to confirm or fill the gaps, one question at a time with a
+   recommendation. Reuse explicit agreements without asking them again. Consider every area below;
+   agree what applies, what must pass and what verification or evidence will demonstrate it. An area
+   may be not applicable with a reason; do not require every test level or every check for every task.
+
+   | Area | Discuss as relevant to the work |
+   |---|---|
+   | Test levels | Unit, integration, end-to-end and any other needed levels; cases and pass criteria. |
+   | Security | Required security checks and pass criteria. |
+   | Deployment / operation | Rollout, rollback, backup/restore and observability (logs, metrics, alerts). |
+   | Performance testing | Workload, environment, measurements and pass thresholds. |
+   | Accessibility / compatibility | Keyboard and screen-reader use; supported browsers, devices and versions. |
+   | Data integrity / reliability / recovery | Migration data preservation, timeout/retry behavior and recovery after failures. |
+   | Documentation | User guides, API documentation and runbooks that must be updated. |
+
+   Do not invent missing thresholds or treat an unanswered question as an exemption. Settle required
+   criteria before presenting the plan. If an answer changes agreed needs or requires a main design
+   decision, follow the readiness rule above. Record the agreed DoD and justified exclusions once in
+   the planning reference or Planning notes. Map applicable criteria to leaf acceptance criteria,
+   Verification and Done when; put checks spanning leaves in the parent's Done when and give their
+   execution a leaf task. Reference shared criteria rather than copying them into every task.
 
 The finished plan contains no "TBD", "to be decided", "ask someone", "see the code" or similar.
 
@@ -142,7 +164,7 @@ The finished plan contains no "TBD", "to be decided", "ask someone", "see the co
 
 Before presenting the plan for approval, use the existing pre-creation checklist to compare every
 in-scope requirement and its acceptance conditions with the proposed leaf tasks and their acceptance
-criteria. Each requirement needs task coverage or an evidence-based reason why no system change is
+criteria, including the agreed DoD and its verification. Each requirement needs task coverage or an evidence-based reason why no system change is
 needed; use source sections when ids are absent. Fix planning omissions before presenting the plan.
 If coverage needs a missing main technical design decision, follow the readiness rule and recommend
 `alice-spec` rather than inventing the design. Report coverage briefly (complete, or the specific gaps),

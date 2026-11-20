@@ -207,7 +207,11 @@ Ask your agent to "plan" or "break down" agreed requirements, an Alice document 
    `alice-spec`, naming the questions and input references, and stops before drafting a plan;
 3. resolves implementation planning choices within the agreed design, asking you one question at a
    time with a recommendation when needed. It determines task boundaries, files, sequencing,
-   dependencies and verification steps;
+   dependencies and verification steps. Before drafting, it also agrees the Definition of Done (DoD):
+   test levels, security, deployment/operation (including observability), performance testing,
+   accessibility/compatibility, data integrity/reliability/recovery and documentation. It reuses explicit
+   source agreements and asks about gaps, with pass criteria and required evidence. Areas that do not
+   apply carry a reason; every task need not have every check;
 4. shows the whole breakdown in chat (reference document, parent and leaf tasks, blockers, full task
    text) and waits for your approval;
 5. creates it as `backlog`, labelled `plan:<slug>`, linked to the reference document;
@@ -225,6 +229,10 @@ Verification and Done when. Whoever picks it up gets all of it from `get_task_co
 A new planning reference summarizes agreed needs and the established technical approach; plan does
 not author a new technical design. Existing source documents receive approved Planning notes without
 rewriting their requirements or design. Missing design is not deferred into implementation tasks.
+The reference or Planning notes records the agreed DoD once. Applicable criteria flow into leaf
+acceptance criteria, Verification and Done when; checks spanning leaves also appear in the parent's
+Done when, with a leaf responsible for running them. Missing DoD thresholds are settled before the
+plan is presented; changes to agreed needs or main design follow the same readiness rule above.
 
 The closing questions stay short, for example:
 
