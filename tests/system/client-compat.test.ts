@@ -44,10 +44,23 @@ describe('Client API v1 compatibility', () => {
     expectShape(list, 'page')
     expectShape(list.items[0], 'task')
     expectShape((await owner.post(`${V1}/tasks/${task.id}/comments`, { body: 'hi' })).body.comment, 'comment')
-    const doc = (await owner.post(`${V1}/documents`, { title: 'Contract doc', body: 'v1' })).body.document
+    const doc = (await owner.post(`${V1}/documents`, {
+      title: 'Contract doc',
+      body: 'v1',
+      tags: ['contract'],
+      searchKeywords: ['knowledge-alias'],
+      status: 'draft',
+    })).body.document
     expectShape(doc, 'document')
     await owner.patch(`${V1}/documents/${doc.id}`, { body: 'v2' })
     expectShape((await owner.get(`${V1}/documents/${doc.id}/revisions`)).body.items[0], 'revision')
+    const reviewed = (await owner.post(`${V1}/documents/${doc.id}/review`, { expectedRevision: 2 })).body.document
+    expectShape(reviewed, 'document')
+    const searchResult = (await owner.get(`${V1}/documents?q=knowledge-alias`)).body.items[0]
+    expectShape(searchResult, 'documentSearch')
+    const related = (await owner.post(`${V1}/documents`, { title: 'Related contract doc', body: 'reference' })).body.document
+    await owner.post(`${V1}/documents/${doc.id}/relations`, { targetId: related.id, type: 'references' })
+    expectShape((await owner.get(`${V1}/documents/${doc.id}/relations`)).body.items[0], 'documentRelation')
     expectShape((await owner.get(`${V1}/activity?limit=1`)).body.items[0], 'activity')
     expectShape((await owner.get(`${V1}/tasks/${task.id}/relations`)).body, 'relations')
 
