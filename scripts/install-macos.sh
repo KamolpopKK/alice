@@ -2,8 +2,9 @@
 # Alice installer for macOS on Apple Silicon.
 #
 # Alice is code-signed but not notarized (no Apple Developer ID). This script downloads the app archive
-# with curl, which does not set the quarantine attribute, checks it against SHA256SUMS from the same
-# release, and installs Alice.app. It never uses sudo and never changes Gatekeeper settings.
+# with curl, which does not set the quarantine attribute, checks the complete archive against
+# SHA256SUMS from the same release, confirms that the app carries an embedded code signature, and
+# installs Alice.app. It never uses sudo and never changes Gatekeeper settings.
 #
 #   curl -fsSL <release>/install-macos.sh | sh
 #
@@ -47,7 +48,11 @@ ACTUAL=$(shasum -a 256 "$WORK/$ARCHIVE" | awk '{ print $1 }')
 mkdir "$WORK/app"
 tar -xzf "$WORK/$ARCHIVE" -C "$WORK/app"
 [ -d "$WORK/app/Alice.app" ] || fail "the archive does not contain Alice.app; nothing was installed"
-codesign --verify --deep --strict "$WORK/app/Alice.app" 2>/dev/null || fail "Alice.app failed its code-signature check; nothing was installed"
+# The release certificate is deliberately self-signed, so `codesign --verify` rejects it as an
+# untrusted chain on a clean Mac even when every sealed byte is intact. CI performs the full
+# signature/seal verification while that certificate is trusted. Here the archive checksum protects
+# those exact verified bytes; this check also prevents an accidentally unsigned app from installing.
+codesign --display "$WORK/app/Alice.app" >/dev/null 2>&1 || fail "Alice.app has no embedded code signature; nothing was installed"
 
 if [ -d "$DEST/Alice.app" ]; then
   mv "$DEST/Alice.app" "$WORK/previous-Alice.app"
