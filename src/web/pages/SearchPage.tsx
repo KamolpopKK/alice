@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
 import { Search } from 'lucide-react'
 import { client } from '../api'
+import { DocumentFilters, type DocumentFilterKey } from '../components/DocumentFilters'
 import { SEARCH_KIND, SearchResultItem } from '../search/results'
 import { errorText } from '../tasks/TaskDetail'
 import { Banner, Button, EmptyState, ResourceList, SelectField, Skeleton, TextField } from '../ui'
@@ -13,16 +14,33 @@ export function SearchPage() {
   const q = params.get('q') ?? ''
   const kind = params.get('kind') ?? ''
   const [text, setText] = useState(q)
+  const filters: Partial<Record<DocumentFilterKey, string>> = {
+    tag: params.get('tag') ?? '',
+    status: params.get('status') ?? '',
+    ownerId: params.get('ownerId') ?? '',
+    projectId: params.get('projectId') ?? '',
+  }
   useEffect(() => setText(q), [q])
   const query = useInfiniteQuery({
-    queryKey: ['search', q, kind],
+    queryKey: ['search', q, kind, filters],
     enabled: q.trim().length > 0,
-    queryFn: ({ pageParam }) => client.search({ q, kind, limit: 20, cursor: pageParam }),
+    queryFn: ({ pageParam }) => client.search({ q, kind, ...filters, limit: 20, cursor: pageParam }),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
     placeholderData: keepPreviousData,
   })
   const results = query.data?.pages.flatMap((p) => p.items) ?? []
+  const update = (key: string, value: string) => {
+    const next = new URLSearchParams(params)
+    if (value) next.set(key, value)
+    else next.delete(key)
+    setParams(next, { replace: true })
+  }
+  const clearDocumentFilters = () => {
+    const next = new URLSearchParams(params)
+    for (const key of ['tag', 'status', 'ownerId', 'projectId']) next.delete(key)
+    setParams(next, { replace: true })
+  }
   return (
     <div className="page resource-page">
       <div className="resource-head">
@@ -33,7 +51,10 @@ export function SearchPage() {
         className="resource-toolbar"
         onSubmit={(e) => {
           e.preventDefault()
-          setParams(text.trim() ? { q: text.trim(), ...(kind ? { kind } : {}) } : {})
+          const next = new URLSearchParams(params)
+          if (text.trim()) next.set('q', text.trim())
+          else next.delete('q')
+          setParams(next)
         }}
       >
         <div className="resource-toolbar-search">
@@ -42,12 +63,13 @@ export function SearchPage() {
         <SelectField
           label="Type"
           value={kind}
-          onChange={(e) => setParams({ ...(q ? { q } : {}), ...(e.target.value ? { kind: e.target.value } : {}) })}
+          onChange={(e) => update('kind', e.target.value)}
           options={[{ value: '', label: 'Everything' }, ...Object.entries(SEARCH_KIND).map(([value, k]) => ({ value, label: k.plural }))]}
         />
         <Button variant="primary" type="submit" icon={Search} className="resource-toolbar-submit">
           Search
         </Button>
+        <DocumentFilters values={filters} onChange={update} onClear={clearDocumentFilters} />
       </form>
       {query.error && !query.data ? (
         <Banner tone="danger" title="Search did not finish" action={<Button size="sm" onClick={() => void query.refetch()}>Try again</Button>}>

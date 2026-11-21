@@ -7,6 +7,7 @@ import { ApiError, client } from '../api'
 import { ActivityList } from '../components/Activity'
 import { Markdown, MarkdownEditor } from '../components/Markdown'
 import { DocumentKnowledgeFields, KNOWLEDGE_STATUS_LABELS } from '../components/DocumentKnowledgeFields'
+import { DocumentRelations } from '../components/DocumentRelations'
 import { ActorBadge, formatDate } from '../components/ui'
 import { STATUS_LABELS } from '../../shared/contracts'
 import { STATUS_TONE } from '../tasks/model'
@@ -118,6 +119,7 @@ export function DocumentDetailPage() {
         </div>
         <aside className="document-side" aria-label="Links and activity">
           <KnowledgeLifecycle doc={d} />
+          <DocumentRelations doc={d} />
           <Links doc={d} />
           <DocumentActivity id={d.id} />
         </aside>

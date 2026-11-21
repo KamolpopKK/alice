@@ -6,6 +6,7 @@ import type { DocumentKnowledgeStatus } from '../../shared/contracts'
 import { client } from '../api'
 import { MarkdownEditor } from '../components/Markdown'
 import { DocumentKnowledgeFields, KNOWLEDGE_STATUS_LABELS, type EditableDocumentStatus } from '../components/DocumentKnowledgeFields'
+import { DocumentFilters, type DocumentFilterKey } from '../components/DocumentFilters'
 import { ActorBadge, formatDate } from '../components/ui'
 import { errorText } from '../tasks/TaskDetail'
 import { Badge, Banner, Button, Dialog, EmptyState, FieldMessage, ResourceItem, ResourceList, SegmentedControl, Skeleton, TextField } from '../ui'
@@ -22,10 +23,16 @@ export function DocumentsPage() {
   const [params, setParams] = useSearchParams()
   const q = params.get('q') ?? ''
   const archived = (params.get('archived') ?? 'active') as 'active' | 'archived' | 'all'
+  const filters: Partial<Record<DocumentFilterKey, string>> = {
+    tag: params.get('tag') ?? '',
+    status: params.get('status') ?? '',
+    ownerId: params.get('ownerId') ?? '',
+    projectId: params.get('projectId') ?? '',
+  }
   const creating = params.get('new') === '1'
   const query = useInfiniteQuery({
-    queryKey: ['documents', 'list', q, archived],
-    queryFn: ({ pageParam }) => client.documents.list({ q, archived, limit: 30, cursor: pageParam }),
+    queryKey: ['documents', 'list', q, archived, filters],
+    queryFn: ({ pageParam }) => client.documents.list({ q, archived, ...filters, limit: 30, cursor: pageParam }),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
     placeholderData: keepPreviousData,
@@ -35,6 +42,11 @@ export function DocumentsPage() {
     const next = new URLSearchParams(params)
     if (value) next.set(key, value)
     else next.delete(key)
+    setParams(next, { replace: true })
+  }
+  const clearFilters = () => {
+    const next = new URLSearchParams(params)
+    for (const key of ['tag', 'status', 'ownerId', 'projectId']) next.delete(key)
     setParams(next, { replace: true })
   }
   return (
@@ -62,6 +74,7 @@ export function DocumentsPage() {
             { value: 'all', label: 'All' },
           ]}
         />
+        <DocumentFilters values={filters} onChange={update} onClear={clearFilters} />
       </form>
       {query.error && !query.data ? (
         <Banner tone="danger" title="Documents could not be loaded" action={<Button size="sm" onClick={() => void query.refetch()}>Try again</Button>}>
@@ -96,6 +109,7 @@ export function DocumentsPage() {
                     Updated {formatDate(d.updatedAt)} by <ActorBadge actor={d.updatedBy} />
                   </span>
                   {d.sourceUrl && <span className="resource-source">{d.sourceUrl}</span>}
+                  {d.match && <span>Matched {d.match.field}{d.match.value ? `: ${d.match.value}` : ''}</span>}
                 </>
               }
             />

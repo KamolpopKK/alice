@@ -10,13 +10,14 @@ test('document created in the browser, edited and linked by an agent, restored i
 
   await goTo(page, 'Documents')
   await page.getByRole('button', { name: 'New document' }).click()
-  await page.getByLabel('Document title').fill('Launch checklist')
-  await page.getByLabel('Body (Markdown)').fill('- [ ] DNS\n- [ ] Backups')
-  await page.getByRole('textbox', { name: 'Tags' }).fill('launch, operations')
-  await page.getByRole('textbox', { name: 'Search keywords' }).fill('release checklist, go-live')
-  await page.getByLabel('Knowledge status').selectOption('draft')
-  await page.getByLabel('Knowledge owner').selectOption({ label: 'Doc Writer' })
-  await page.getByRole('button', { name: 'Create document' }).click()
+  const createForm = page.getByRole('form', { name: 'New document' })
+  await createForm.getByLabel('Document title').fill('Launch checklist')
+  await createForm.getByLabel('Body (Markdown)').fill('- [ ] DNS\n- [ ] Backups')
+  await createForm.getByRole('textbox', { name: 'Tags' }).fill('launch, operations')
+  await createForm.getByRole('textbox', { name: 'Search keywords' }).fill('release checklist, go-live')
+  await createForm.getByLabel('Knowledge status').selectOption('draft')
+  await createForm.getByLabel('Knowledge owner').selectOption({ label: 'Doc Writer' })
+  await createForm.getByRole('button', { name: 'Create document' }).click()
   await expect(page.getByRole('heading', { name: 'Launch checklist' })).toBeVisible()
   await expect(page.getByText('Revision 1')).toBeVisible()
   await expect(page.getByText('Draft', { exact: true }).first()).toBeVisible()
@@ -78,4 +79,54 @@ test('document created in the browser, edited and linked by an agent, restored i
   await expect(page.getByRole('region', { name: 'Documents' }).getByRole('link', { name: 'Launch checklist' })).toBeVisible()
   await page.getByRole('button', { name: 'Unlink Launch checklist' }).click()
   await expect(page.getByText('No linked documents.')).toBeVisible()
+})
+
+test('document relationships require supersedes confirmation and remain navigable', async ({ app, owner, page }) => {
+  const suffix = Date.now().toString(36)
+  const source = (await owner.post('/api/documents', { title: `New guide ${suffix}`, body: 'Use this version' })).body.document
+  const referenced = (await owner.post('/api/documents', { title: `Reference ${suffix}`, body: 'Reference material' })).body.document
+  const related = (await owner.post('/api/documents', { title: `Related ${suffix}`, body: 'Related material' })).body.document
+  const old = (await owner.post('/api/documents', { title: `Old guide ${suffix}`, body: 'Old version' })).body.document
+  await owner.post(`/api/documents/${old.id}/review`, { expectedRevision: 1, markCurrent: true })
+  await signIn(page, app)
+  await page.goto(`${app.url}/documents/${source.id}`)
+
+  const add = async (title: string, type: 'references' | 'related') => {
+    await page.getByRole('button', { name: 'Add relationship' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Add document relationship' })
+    await dialog.getByLabel('Find a document').fill(title)
+    await dialog.getByLabel('Target document').selectOption({ label: `${title} — Unreviewed` })
+    await dialog.getByLabel('Relationship type').selectOption(type)
+    await dialog.getByRole('button', { name: 'Add relationship' }).click()
+    const outgoing = page.getByRole('heading', { name: 'From this document' }).locator('..')
+    await expect(outgoing.getByRole('link', { name: title })).toBeVisible()
+  }
+  await add(referenced.title, 'references')
+  await add(related.title, 'related')
+
+  await page.getByRole('button', { name: 'Add relationship' }).click()
+  const relationDialog = page.getByRole('dialog', { name: 'Add document relationship' })
+  await relationDialog.getByLabel('Find a document').fill(old.title)
+  await relationDialog.getByLabel('Target document').selectOption({ label: `${old.title} — Current` })
+  await relationDialog.getByLabel('Relationship type').selectOption('supersedes')
+  await relationDialog.getByRole('button', { name: 'Add relationship' }).click()
+  const confirmation = page.getByRole('dialog', { name: 'Confirm supersedes relationship' })
+  await expect(confirmation).toContainText(`“${source.title}” will supersede “${old.title}”`)
+  await expect(confirmation).toContainText('marked Superseded')
+  await confirmation.getByRole('button', { name: 'Cancel' }).click()
+  expect((await owner.get(`/api/documents/${source.id}/relations?direction=outgoing`)).body.items).toHaveLength(2)
+
+  await relationDialog.getByRole('button', { name: 'Add relationship' }).click()
+  await confirmation.getByRole('button', { name: 'Confirm and mark superseded' }).click()
+  await expect(page.getByRole('link', { name: old.title })).toBeVisible()
+  expect((await owner.get(`/api/documents/${old.id}`)).body.document.status).toBe('superseded')
+
+  await page.getByRole('link', { name: old.title }).click()
+  const incoming = page.getByRole('heading', { name: 'To this document' }).locator('..')
+  await expect(incoming.getByRole('link', { name: source.title })).toBeVisible()
+  await page.goBack()
+  await page.getByRole('button', { name: `Remove references relationship with ${referenced.title}` }).click()
+  await page.getByRole('button', { name: `Remove related relationship with ${related.title}` }).click()
+  await page.getByRole('button', { name: `Remove supersedes relationship with ${old.title}` }).click()
+  await expect(page.getByText('No outgoing relationships.')).toBeVisible()
 })
