@@ -7,7 +7,7 @@ import { migrate, openDatabase } from '../../src/server/db/database'
 import type { Actor } from '../../src/server/domain/actors'
 import { toActor, findActorRow } from '../../src/server/domain/actors'
 import { insertComment } from '../../src/server/domain/comments'
-import { createDocument, linkDocument } from '../../src/server/domain/documents'
+import { createDocument, linkDocument, reviewDocument } from '../../src/server/domain/documents'
 import { acceptInvite, bootstrapOwner, createAgent, createInvite } from '../../src/server/domain/identity'
 import { createProject } from '../../src/server/domain/projects'
 import '../../src/server/domain/relationships'
@@ -77,7 +77,16 @@ export async function seedScale(dataDir: string, envelope = ENVELOPE, log = (m: 
       mutate(ctx, actor, (m) => insertComment(m, actor, pick(taskIds, i * 13), `Comment ${i} about ${pick(WORDS, i)}`, 'comment'))
     }
     for (let i = 0; i < envelope.documents; i++) {
-      const doc = createDocument(ctx, owner, { title: `Spec ${i} ${pick(WORDS, i)}`, body: `# Spec ${i}\n\n${'Lorem ipsum dolor sit amet. '.repeat(40)}`, sourceUrl: null })
+      const doc = createDocument(ctx, owner, {
+        title: `Spec ${i} ${pick(WORDS, i)}`,
+        body: `# Spec ${i}\n\nbodyterm-${i % 30} ${'Lorem ipsum dolor sit amet. '.repeat(40)}`,
+        sourceUrl: `https://knowledge.example.test/source-${i}`,
+        tags: [pick(WORDS, i), `domain-${i % 20}`],
+        searchKeywords: [pick(WORDS, i + 5), `alias-${i}`],
+        status: i % 4 === 1 ? 'draft' : i % 4 === 2 ? 'superseded' : 'unreviewed',
+        ownerId: pick(actors, i).id,
+      })
+      if (i % 4 === 0) reviewDocument(ctx, owner, doc.document.id, { expectedRevision: 1, markCurrent: true })
       linkDocument(ctx, owner, doc.document.id, { taskId: pick(taskIds, i * 17) })
       linkDocument(ctx, owner, doc.document.id, { projectId: pick(projects, i) })
     }

@@ -11,6 +11,8 @@ import type {
   AgentTokenInfo,
   Comment,
   DocumentDetail,
+  DocumentRelation,
+  DocumentRelationType,
   DocumentRevision,
   DocumentSummary,
   InviteInfo,
@@ -31,13 +33,18 @@ import type {
   bootstrapInput,
   createInviteInput,
   createDocumentInput,
+  createDocumentRelationInput,
+  clearDocumentReviewInput,
   createMilestoneInput,
   listApprovalsInput,
   requestApprovalInput,
   createProjectInput,
   createTaskInput,
   listDocumentsInput,
+  listDocumentRelationsInput,
   loginInput,
+  reviewDocumentInput,
+  removeDocumentRelationInput,
   searchInput,
   updateDocumentInput,
   updateMilestoneInput,
@@ -70,6 +77,7 @@ export type TaskResult = { task: Task; activityId: string | null }
 export type ProjectResult = { project: Project; activityId: string | null }
 export type DocumentResult = { document: DocumentDetail; activityId: string | null }
 export type LinkResult = DocumentResult & { changed: boolean }
+export type DocumentRelationResult = { changed: boolean; relation: { sourceId: string; targetId: string; type: DocumentRelationType }; activityId: string | null }
 export type CommentResult = { comment: Comment; activityId: string | null }
 export type CompletionResult = TaskResult & { comment: Comment | null }
 export type IssuedToken = { agent: PublicActor; token: AgentTokenInfo; plaintextToken: string; activityId: string | null }
@@ -250,6 +258,16 @@ export class AliceClient {
     get: (id: string) => this.get<{ document: DocumentDetail }>(`/documents/${enc(id)}`).then((r) => r.document),
     create: (input: In<typeof createDocumentInput>) => this.call<DocumentResult>('POST', '/documents', { body: input, idempotent: true }),
     update: (id: string, patch: In<typeof updateDocumentInput>) => this.call<DocumentResult>('PATCH', `/documents/${enc(id)}`, { body: patch }),
+    review: (id: string, input: In<typeof reviewDocumentInput>) =>
+      this.call<DocumentResult>('POST', `/documents/${enc(id)}/review`, { body: input, idempotent: true }),
+    clearReview: (id: string, input: In<typeof clearDocumentReviewInput>) =>
+      this.call<DocumentResult>('DELETE', `/documents/${enc(id)}/review`, { body: input }),
+    relations: (id: string, input: Partial<In<typeof listDocumentRelationsInput>> = {}) =>
+      this.get<Page<DocumentRelation>>(`/documents/${enc(id)}/relations`, toQuery(input)),
+    relate: (id: string, input: In<typeof createDocumentRelationInput>) =>
+      this.call<DocumentRelationResult>('POST', `/documents/${enc(id)}/relations`, { body: input, idempotent: true }),
+    unrelate: (id: string, input: In<typeof removeDocumentRelationInput>) =>
+      this.call<DocumentRelationResult>('DELETE', `/documents/${enc(id)}/relations`, { body: input }),
     archive: (id: string) => this.call<DocumentResult>('POST', `/documents/${enc(id)}/archive`, { body: {}, idempotent: true }),
     restore: (id: string) => this.call<DocumentResult>('POST', `/documents/${enc(id)}/restore`, { body: {}, idempotent: true }),
     revisions: (id: string, page: { cursor?: string | null; limit?: number } = {}) => this.get<Page<DocumentRevision>>(`/documents/${enc(id)}/revisions`, page),

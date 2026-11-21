@@ -62,11 +62,20 @@ Ordering is deterministic.
 - `claim_task { id }` — atomic: only an unarchived, unassigned `ready` task; assigns the caller and moves it to `in_progress`.
 
 ### Documents
-- `search_documents { q?, taskId?, projectId?, archived?, cursor?, limit? }` — summaries with excerpts.
+- `search_documents { q?, taskId?, projectId?, tag?, status?, ownerId?, archived?, cursor?, limit? }` — paginated
+  summaries. With `q`, each result includes the best lexical `match` (`field`, optional exact `value`,
+  highlighted `excerpt`). Search covers title, keywords, tags, body and source URL; it is not semantic/vector search.
 - `get_document { id, offset?, maxChars? }` — body is windowed; `bodyWindow` reports `totalChars`,
   `truncated` and `nextOffset` for continuation.
-- `create_document { title, body?, sourceUrl? }` — needs a body or a source URL.
-- `update_document { id, title?, body?, sourceUrl? }` — each change creates a full immutable revision.
+- `create_document { title, body?, sourceUrl?, tags?, searchKeywords?, status?, ownerId? }` — needs a body or a source URL.
+- `update_document { id, title?, body?, sourceUrl?, tags?, searchKeywords?, status?, ownerId? }` — content changes
+  create a full immutable revision and clear a current review; metadata-only changes preserve both.
+- `review_document { id, expectedRevision, markCurrent? }`, `clear_document_review { id, expectedRevision }` —
+  stale revisions return `CONFLICT`. Status is `unreviewed | draft | current | superseded`; only review marks `current`.
+- `list_document_relations { id, direction?, type?, cursor?, limit? }` — `references | related | supersedes`.
+- `link_document_relation { id, targetId, type, acknowledgeSupersedes? }`,
+  `unlink_document_relation { id, targetId, type }` — `related` is symmetric. `supersedes` requires
+  `acknowledgeSupersedes: true` and marks the target superseded; unlinking does not restore its status.
 - `archive_document { id }`, `restore_document { id }`
 - `list_document_revisions { id, cursor?, limit? }`, `restore_document_revision { id, revision }` — restore creates a new revision.
 - `link_document { id, taskId | projectId }`, `unlink_document { id, taskId | projectId }` — untyped many-to-many links;
@@ -99,7 +108,8 @@ Self-links and duplicates fail with `INVALID_RELATIONSHIP`; direct or indirect c
 Task resources include `parentId`, `childCount` and `openBlockerCount`.
 
 ### Search
-- `search { q, kind?, archived?, cursor?, limit? }` — full text over tasks, documents and comments (substring
-  match for 3+ character terms in any language).
+- `search { q, kind?, tag?, status?, ownerId?, projectId?, archived?, cursor?, limit? }` — lexical search over
+  tasks, documents and comments (substring match for 3+ character terms in any language). Document results
+  include lifecycle/owner/project context and the same best-match explanation as `search_documents`.
 
 Enums: status `backlog | ready | in_progress | blocked | done | canceled`; priority `none | low | medium | high | urgent`.

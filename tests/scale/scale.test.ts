@@ -83,8 +83,16 @@ describe(`operating envelope: ${ENVELOPE.humans} humans, ${ENVELOPE.agents} agen
     })
     await measure('board (6 columns × 50)', () => client.get(`/api/board?projectId=${projectId}`).then(ok))
     await measure('my tasks', () => client.get('/api/tasks?assigneeId=me&limit=100&sort=due').then(ok))
-    const terms = ['billing', 'invoice report', 'ลูกค้า', 'task 4242', 'deploy queue']
-    await measure('full-text search', (i) => client.get(`/api/search?q=${encodeURIComponent(terms[Math.abs(i) % terms.length])}&limit=20`).then(ok))
+    const searches = [
+      '/api/search?q=billing&limit=20',
+      '/api/search?q=invoice%20report&limit=20',
+      `/api/search?q=${encodeURIComponent('ลูกค้า')}&limit=20`,
+      '/api/documents?q=alias-424&limit=20',
+      '/api/documents?q=domain-7&tag=domain-7&status=current,draft,unreviewed&limit=20',
+      `/api/search?q=source-18&kind=document&projectId=${projectId}&limit=20`,
+      '/api/documents?q=bodyterm-12&ownerId=none&limit=20',
+    ]
+    await measure('full-text search', (i) => client.get(searches[Math.abs(i) % searches.length]).then(ok))
     const sample = (ok(await client.get('/api/tasks?limit=50&sort=created')) as any).items
     await measure('task context (MCP)', (i) => mcp.ok('get_task_context', { id: sample[Math.abs(i) % sample.length].id }))
     await measure('list_tasks (MCP)', () => mcp.ok('list_tasks', { status: ['ready'], assigneeId: ['none'], limit: 50 }))

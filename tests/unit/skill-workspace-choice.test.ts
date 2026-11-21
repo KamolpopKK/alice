@@ -49,6 +49,22 @@ describe('the shared project files guide', () => {
   })
 })
 
+describe('the shared document knowledge guide', () => {
+  const guide = fs.readFileSync(path.join(ROOT, 'skill/_shared/DOCUMENT-KNOWLEDGE.md'), 'utf8')
+  const skills = ['alice', 'alice-plan', 'alice-think', 'alice-spec']
+
+  it('is required by every skill and distinguishes runtime documents from project files', () => {
+    for (const skill of skills) {
+      const text = fs.readFileSync(path.join(ROOT, 'skill', skill, 'SKILL.md'), 'utf8')
+      expect(text).toContain('[DOCUMENT-KNOWLEDGE.md](DOCUMENT-KNOWLEDGE.md)')
+    }
+    expect(guide).toContain('not semantic or vector search')
+    expect(guide).toContain('title + id + section')
+    expect(guide).toContain('use `superseded` only as history')
+    expect(guide).toContain('does not apply to project files')
+  })
+})
+
 // ส่วนที่ทุก skill ต้องมีเหมือนกันทุกตัวอักษร: ซ้ำสองที่โดยตั้งใจ (SKILL.md โหลดทุกครั้ง) แต่ห้ามขาดหรือเพี้ยน
 describe('sections every skill carries word for word', () => {
   const read = (skill: string) => fs.readFileSync(path.join(ROOT, 'skill', skill, 'SKILL.md'), 'utf8')

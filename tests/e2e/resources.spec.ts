@@ -1,4 +1,5 @@
 import AxeBuilder from '@axe-core/playwright'
+import { createAgent } from '../helpers/client'
 import { expect, signIn, test } from './fixtures'
 
 /** Projects, Documents and Search on Alice UI: tabs, free links, shared result language, states. */
@@ -83,6 +84,42 @@ test('quick and full search share result language and open the right resource', 
   await page.getByLabel('Type').selectOption('document')
   await expect(page).toHaveURL(/kind=document/)
   await expect(results.getByRole('link', { name: `Zebra task ${s}` })).toHaveCount(0)
+})
+
+test('document discovery filters and explains the best match', async ({ app, owner, page }) => {
+  const s = stamp()
+  const agent = await createAgent(owner, `Knowledge owner ${s}`)
+  const project = (await owner.post(`${V1}/projects`, { name: `Knowledge project ${s}` })).body.project
+  const current = (await owner.post(`${V1}/documents`, {
+    title: `Release guide ${s}`,
+    body: 'Deployment procedure',
+    tags: [`ops-${s}`],
+    searchKeywords: [`go-live-${s}`],
+    ownerId: agent.id,
+  })).body.document
+  await owner.post(`${V1}/documents/${current.id}/links`, { projectId: project.id })
+  await owner.post(`${V1}/documents/${current.id}/review`, { expectedRevision: 1, markCurrent: true })
+  await owner.post(`${V1}/documents`, {
+    title: `Old release guide ${s}`,
+    body: 'Older deployment procedure',
+    tags: ['legacy'],
+    searchKeywords: [`go-live-${s}`],
+    status: 'draft',
+  })
+
+  await signIn(page, app)
+  await page.goto(`${app.url}/search?q=go-live-${s}&kind=document`)
+  const target = page.getByRole('listitem').filter({ hasText: `Release guide ${s}` }).first()
+  await expect(target).toContainText(`Matched keyword: go-live-${s}`)
+  await expect(target).toContainText('Current')
+  await expect(target).toContainText(project.name)
+  await page.getByLabel('Tag').fill(`ops-${s}`)
+  await page.getByLabel('Knowledge status').selectOption('current')
+  await page.getByLabel('Knowledge owner').selectOption(agent.id)
+  await page.getByLabel('Linked project').selectOption(project.id)
+  await expect(page).toHaveURL(new RegExp(`tag=ops-${s}`))
+  await expect(page.getByRole('link', { name: `Release guide ${s}` })).toBeVisible()
+  await expect(page.getByRole('link', { name: `Old release guide ${s}` })).toHaveCount(0)
 })
 
 for (const scheme of ['light', 'dark'] as const) {

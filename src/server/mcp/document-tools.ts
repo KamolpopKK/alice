@@ -1,11 +1,26 @@
 import * as z from 'zod'
-import { createDocumentInput, cursorSchema, idSchema, limitSchema, listDocumentsInput, updateDocumentInput } from '../../shared/contracts'
 import {
+  clearDocumentReviewInput,
+  createDocumentInput,
+  createDocumentRelationInput,
+  cursorSchema,
+  idSchema,
+  limitSchema,
+  listDocumentsInput,
+  listDocumentRelationsInput,
+  removeDocumentRelationInput,
+  reviewDocumentInput,
+  updateDocumentInput,
+} from '../../shared/contracts'
+import { createDocumentRelation, listDocumentRelations, removeDocumentRelation } from '../domain/document-relations'
+import {
+  clearDocumentReview,
   createDocument,
   getDocument,
   linkDocument,
   listDocuments,
   listRevisions,
+  reviewDocument,
   restoreDocumentRevision,
   setDocumentArchived,
   unlinkDocument,
@@ -76,6 +91,42 @@ export const DOCUMENT_TOOLS = [
     description: 'Edit a document. Every change creates a new immutable revision; send the complete new body.',
     input: updateDocumentInput.extend({ id: idSchema }),
     handler: (ctx, actor, { id, ...patch }) => updateDocument(ctx, actor, id, patch),
+  }),
+  defineTool({
+    name: 'review_document',
+    title: 'Review document',
+    description: 'Record a review of the expected content revision and, by default, mark the document current.',
+    input: reviewDocumentInput.extend({ id: idSchema }),
+    handler: (ctx, actor, { id, ...input }) => reviewDocument(ctx, actor, id, input),
+  }),
+  defineTool({
+    name: 'clear_document_review',
+    title: 'Clear document review',
+    description: 'Clear review audit fields for the expected revision. A current document becomes unreviewed.',
+    input: clearDocumentReviewInput.extend({ id: idSchema }),
+    handler: (ctx, actor, { id, ...input }) => clearDocumentReview(ctx, actor, id, input),
+  }),
+  defineTool({
+    name: 'list_document_relations',
+    title: 'List document relations',
+    description: 'List paginated incoming or outgoing typed relations. Related relations are symmetric and appear in either direction.',
+    input: listDocumentRelationsInput.extend({ id: idSchema }),
+    readOnly: true,
+    handler: (ctx, _actor, { id, ...input }) => listDocumentRelations(ctx, id, input),
+  }),
+  defineTool({
+    name: 'link_document_relation',
+    title: 'Link document relation',
+    description: 'Create an idempotent references, related or supersedes relation. Supersedes requires explicit acknowledgement and changes the target status.',
+    input: createDocumentRelationInput.extend({ id: idSchema }),
+    handler: (ctx, actor, { id, ...input }) => createDocumentRelation(ctx, actor, id, input),
+  }),
+  defineTool({
+    name: 'unlink_document_relation',
+    title: 'Unlink document relation',
+    description: 'Remove a typed relation idempotently. Removing supersedes does not restore the target status.',
+    input: removeDocumentRelationInput.extend({ id: idSchema }),
+    handler: (ctx, actor, { id, ...input }) => removeDocumentRelation(ctx, actor, id, input),
   }),
   defineTool({
     name: 'archive_document',

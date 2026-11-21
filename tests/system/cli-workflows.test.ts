@@ -21,7 +21,14 @@ describe('alice CLI domain workflows', () => {
   }
 
   beforeAll(async () => {
-    app = await startApp({ env: { ALICE_DEVICE_POLL_INTERVAL: '1' } })
+    app = await startApp({
+      env: {
+        ALICE_DEVICE_POLL_INTERVAL: '1',
+        ALICE_AUTH_RATE_LIMIT: '10000',
+        ALICE_CLIENT_RATE_LIMIT: '10000',
+        ALICE_DEVICE_RATE_LIMIT: '10000',
+      },
+    })
     owner = await bootstrapOwner(app)
     member = await inviteHuman(owner, 'mia', 'Mia Member')
     await buildCli()
@@ -144,8 +151,12 @@ describe('alice CLI domain workflows', () => {
     const file = path.join(tempDataDir('cli-doc'), 'design.md')
     fs.writeFileSync(file, body)
     const task = (await owner.post('/client/v1/tasks', { title: 'Doc target' })).body.task
-    const doc = await json(['doc', 'create', '--title', 'Design notes', '--body-file', file, '--task', task.id])
-    expect(doc.body).toBe(body)
+    const knowledgeOwner = await createAgent(owner, 'Knowledge CLI Bot')
+    const doc = await json([
+      'doc', 'create', '--title', 'Design notes', '--body-file', file, '--task', task.id,
+      '--tag', 'architecture,release', '--keyword', 'system design', '--keyword', 'launch guide', '--status', 'draft', '--owner', knowledgeOwner.id,
+    ])
+    expect(doc).toMatchObject({ body, tags: ['architecture', 'release'], searchKeywords: ['launch guide', 'system design'], status: 'draft', owner: { id: knowledgeOwner.id } })
     expect(doc.links.tasks.map((t: { id: string }) => t.id)).toEqual([task.id])
     const raw = await run(['doc', 'show', doc.id, '--body-only'])
     expect(raw.stdout).toBe(body)
@@ -157,10 +168,40 @@ describe('alice CLI domain workflows', () => {
     const restored = await json(['doc', 'restore-revision', doc.id, '1', '--yes'])
     expect(restored).toMatchObject({ revision: 3, body })
 
+    const metadata = await json(['doc', 'update', doc.id, '--tag', 'architecture,production', '--keyword', 'deployment', '--owner', 'none'])
+    expect(metadata).toMatchObject({ revision: 3, tags: ['architecture', 'production'], searchKeywords: ['deployment'], owner: null })
+    expect((await json(['doc', 'list', '--tag', 'production', '--status', 'draft', '--owner', 'none'])).map((d: { id: string }) => d.id)).toContain(doc.id)
+    const reviewed = await json(['doc', 'review', doc.id, '--revision', '3'])
+    expect(reviewed).toMatchObject({ status: 'current', reviewedRevision: 3, reviewedBy: { displayName: 'Mia Member' } })
+    expect((await json(['doc', 'unreview', doc.id, '--revision', '3'])).reviewedAt).toBeNull()
+    const v4 = await json(['doc', 'update', doc.id, '--body', 'Fourth version'])
+    expect(v4.revision).toBe(4)
+    const staleReview = await run(['doc', 'review', doc.id, '--revision', '3', '--json'])
+    expect(staleReview.code).toBe(4)
+    expect(staleReview.stderr).toContain('revision 4, not 3')
+
+    const related = await json(['doc', 'create', '--title', 'Related CLI note', '--body', 'Related'])
+    expect((await json(['doc', 'relate', doc.id, related.id, '--type', 'related'])).changed).toBe(true)
+    expect((await json(['doc', 'relations', doc.id, '--type', 'related'])).map((r: { document: { id: string } }) => r.document.id)).toContain(related.id)
+    expect((await json(['doc', 'unrelate', doc.id, related.id, '--type', 'related'])).changed).toBe(true)
+    const old = await json(['doc', 'create', '--title', 'Old CLI guide', '--body', 'Old'])
+    await json(['doc', 'review', old.id, '--revision', '1'])
+    const refusedSupersedes = await run(['doc', 'relate', doc.id, old.id, '--type', 'supersedes'])
+    expect(refusedSupersedes.code).toBe(2)
+    expect(refusedSupersedes.stderr).toContain('mark the target Superseded')
+    expect(refusedSupersedes.stderr).toContain('--yes')
+    await json(['doc', 'relate', doc.id, old.id, '--type', 'supersedes', '--yes'])
+    expect((await json(['doc', 'show', old.id])).status).toBe('superseded')
+
     await json(['doc', 'link', doc.id, '--project', 'Mobile app'])
     const unlinked = await json(['doc', 'unlink', doc.id, '--task', task.id])
     expect(unlinked.changed).toBe(true)
     expect((await json(['doc', 'search', 'Design'])).map((d: { id: string }) => d.id)).toContain(doc.id)
+    const search = await json(['search', 'deployment', '--kind', 'document', '--tag', 'production', '--owner', 'none'])
+    expect(search[0]).toMatchObject({ id: doc.id, status: 'unreviewed', match: { field: 'keyword', value: 'deployment' }, owner: null })
+    const humanSearch = await run(['search', 'deployment', '--kind', 'document'])
+    expect(humanSearch.stdout).toMatch(/STATUS\s+OWNER\s+MATCH REASON/)
+    expect(humanSearch.stdout).toContain('keyword: deployment')
     expect((await json(['doc', 'archive', doc.id, '--yes'])).archivedAt).not.toBeNull()
     expect((await json(['doc', 'restore', doc.id])).archivedAt).toBeNull()
     expect((await run(['doc', 'link', doc.id])).code).toBe(2)

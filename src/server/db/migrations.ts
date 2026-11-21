@@ -567,6 +567,92 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX approval_requests_pending ON approval_requests(workspace_id, status, created_at);
     `,
   },
+  {
+    version: 16,
+    name: 'document_knowledge',
+    sql: `
+      ALTER TABLE documents ADD COLUMN knowledge_status TEXT NOT NULL DEFAULT 'unreviewed'
+        CHECK (knowledge_status IN ('unreviewed', 'draft', 'current', 'superseded'));
+      ALTER TABLE documents ADD COLUMN owner_id TEXT REFERENCES actors(id);
+      ALTER TABLE documents ADD COLUMN reviewed_at TEXT;
+      ALTER TABLE documents ADD COLUMN reviewed_by TEXT REFERENCES actors(id);
+      ALTER TABLE documents ADD COLUMN reviewed_revision INTEGER;
+      CREATE INDEX documents_knowledge_status ON documents(workspace_id, archived_at, knowledge_status, updated_at, id);
+      CREATE INDEX documents_owner ON documents(owner_id, archived_at, updated_at, id);
+
+      CREATE TABLE document_tags (
+        document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+        tag_key TEXT NOT NULL,
+        tag_text TEXT NOT NULL,
+        PRIMARY KEY (document_id, tag_key),
+        CHECK (length(tag_text) BETWEEN 1 AND 40)
+      ) STRICT, WITHOUT ROWID;
+      CREATE INDEX document_tags_key ON document_tags(tag_key, document_id);
+
+      CREATE TABLE document_keywords (
+        document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+        keyword_key TEXT NOT NULL,
+        keyword_text TEXT NOT NULL,
+        PRIMARY KEY (document_id, keyword_key),
+        CHECK (length(keyword_text) BETWEEN 1 AND 100)
+      ) STRICT, WITHOUT ROWID;
+      CREATE INDEX document_keywords_key ON document_keywords(keyword_key, document_id);
+
+      CREATE TABLE document_relations (
+        source_document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+        target_document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+        relation_type TEXT NOT NULL CHECK (relation_type IN ('references', 'related', 'supersedes')),
+        created_by TEXT NOT NULL REFERENCES actors(id),
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (source_document_id, target_document_id, relation_type),
+        CHECK (source_document_id <> target_document_id),
+        CHECK (relation_type <> 'related' OR source_document_id < target_document_id)
+      ) STRICT, WITHOUT ROWID;
+      CREATE INDEX document_relations_target ON document_relations(target_document_id, relation_type, source_document_id);
+
+      CREATE TRIGGER documents_review_insert_guard BEFORE INSERT ON documents
+      WHEN
+        ((NEW.reviewed_at IS NULL) <> (NEW.reviewed_by IS NULL)) OR
+        ((NEW.reviewed_at IS NULL) <> (NEW.reviewed_revision IS NULL)) OR
+        (NEW.reviewed_revision IS NOT NULL AND NEW.reviewed_revision < 1) OR
+        (NEW.knowledge_status = 'current' AND
+          (NEW.reviewed_at IS NULL OR NEW.reviewed_by IS NULL OR NEW.reviewed_revision <> NEW.revision))
+      BEGIN
+        SELECT RAISE(ABORT, 'invalid document review state');
+      END;
+
+      CREATE TRIGGER documents_review_update_guard BEFORE UPDATE ON documents
+      WHEN
+        ((NEW.reviewed_at IS NULL) <> (NEW.reviewed_by IS NULL)) OR
+        ((NEW.reviewed_at IS NULL) <> (NEW.reviewed_revision IS NULL)) OR
+        (NEW.reviewed_revision IS NOT NULL AND NEW.reviewed_revision < 1) OR
+        (NEW.knowledge_status = 'current' AND
+          (NEW.reviewed_at IS NULL OR NEW.reviewed_by IS NULL OR NEW.reviewed_revision <> NEW.revision))
+      BEGIN
+        SELECT RAISE(ABORT, 'invalid document review state');
+      END;
+    `,
+  },
+  {
+    version: 17,
+    name: 'document_knowledge_search',
+    sql: `
+      DROP TABLE search_index;
+      CREATE VIRTUAL TABLE search_index USING fts5(title, keywords, tags, body, source, tokenize = 'trigram remove_diacritics 1');
+
+      INSERT INTO search_index (rowid, title, keywords, tags, body, source)
+      SELECT sd.rowid,
+        CASE sd.kind WHEN 'task' THEN t.title WHEN 'document' THEN d.title ELSE '' END,
+        CASE sd.kind WHEN 'document' THEN COALESCE((SELECT group_concat(keyword_text, ' ') FROM document_keywords WHERE document_id = d.id), '') ELSE '' END,
+        CASE sd.kind WHEN 'document' THEN COALESCE((SELECT group_concat(tag_text, ' ') FROM document_tags WHERE document_id = d.id), '') ELSE '' END,
+        CASE sd.kind WHEN 'task' THEN t.description WHEN 'document' THEN d.body WHEN 'comment' THEN c.body ELSE '' END,
+        CASE sd.kind WHEN 'document' THEN COALESCE(d.source_url, '') ELSE '' END
+      FROM search_docs sd
+      LEFT JOIN tasks t ON sd.kind = 'task' AND t.id = sd.resource_id
+      LEFT JOIN documents d ON sd.kind = 'document' AND d.id = sd.resource_id
+      LEFT JOIN comments c ON sd.kind = 'comment' AND c.id = sd.resource_id;
+    `,
+  },
 ]
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version

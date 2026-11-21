@@ -2,22 +2,37 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { FileText, Link2, Plus } from 'lucide-react'
-import type { DocumentDetail, DocumentSummary, Page } from '../../shared/contracts'
+import type { DocumentKnowledgeStatus } from '../../shared/contracts'
 import { client } from '../api'
 import { MarkdownEditor } from '../components/Markdown'
+import { DocumentKnowledgeFields, KNOWLEDGE_STATUS_LABELS, type EditableDocumentStatus } from '../components/DocumentKnowledgeFields'
+import { DocumentFilters, type DocumentFilterKey } from '../components/DocumentFilters'
 import { ActorBadge, formatDate } from '../components/ui'
 import { errorText } from '../tasks/TaskDetail'
 import { Badge, Banner, Button, Dialog, EmptyState, FieldMessage, ResourceItem, ResourceList, SegmentedControl, Skeleton, TextField } from '../ui'
 import { IllustratedState } from '../brand'
 
+const KNOWLEDGE_TONE: Record<DocumentKnowledgeStatus, 'warning' | 'info' | 'success' | 'danger'> = {
+  unreviewed: 'warning',
+  draft: 'info',
+  current: 'success',
+  superseded: 'danger',
+}
+
 export function DocumentsPage() {
   const [params, setParams] = useSearchParams()
   const q = params.get('q') ?? ''
   const archived = (params.get('archived') ?? 'active') as 'active' | 'archived' | 'all'
+  const filters: Partial<Record<DocumentFilterKey, string>> = {
+    tag: params.get('tag') ?? '',
+    status: params.get('status') ?? '',
+    ownerId: params.get('ownerId') ?? '',
+    projectId: params.get('projectId') ?? '',
+  }
   const creating = params.get('new') === '1'
   const query = useInfiniteQuery({
-    queryKey: ['documents', 'list', q, archived],
-    queryFn: ({ pageParam }) => client.documents.list({ q, archived, limit: 30, cursor: pageParam }),
+    queryKey: ['documents', 'list', q, archived, filters],
+    queryFn: ({ pageParam }) => client.documents.list({ q, archived, ...filters, limit: 30, cursor: pageParam }),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
     placeholderData: keepPreviousData,
@@ -27,6 +42,11 @@ export function DocumentsPage() {
     const next = new URLSearchParams(params)
     if (value) next.set(key, value)
     else next.delete(key)
+    setParams(next, { replace: true })
+  }
+  const clearFilters = () => {
+    const next = new URLSearchParams(params)
+    for (const key of ['tag', 'status', 'ownerId', 'projectId']) next.delete(key)
     setParams(next, { replace: true })
   }
   return (
@@ -54,6 +74,7 @@ export function DocumentsPage() {
             { value: 'all', label: 'All' },
           ]}
         />
+        <DocumentFilters values={filters} onChange={update} onClear={clearFilters} />
       </form>
       {query.error && !query.data ? (
         <Banner tone="danger" title="Documents could not be loaded" action={<Button size="sm" onClick={() => void query.refetch()}>Try again</Button>}>
@@ -76,11 +97,19 @@ export function DocumentsPage() {
               meta={
                 <>
                   {d.archivedAt && <Badge>archived</Badge>}
+                  <Badge tone={KNOWLEDGE_TONE[d.status]}>{KNOWLEDGE_STATUS_LABELS[d.status]}</Badge>
+                  {d.tags.map((tag) => (
+                    <Badge key={tag}>{tag}</Badge>
+                  ))}
                   <span>Revision {d.revision}</span>
+                  <span>
+                    Owner: {d.owner ? <ActorBadge actor={d.owner} /> : 'Unassigned'}
+                  </span>
                   <span>
                     Updated {formatDate(d.updatedAt)} by <ActorBadge actor={d.updatedBy} />
                   </span>
                   {d.sourceUrl && <span className="resource-source">{d.sourceUrl}</span>}
+                  {d.match && <span>Matched {d.match.field}{d.match.value ? `: ${d.match.value}` : ''}</span>}
                 </>
               }
             />
@@ -103,9 +132,13 @@ export function NewDocumentForm({ onCancel, link }: { onCancel: () => void; link
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [sourceUrl, setSourceUrl] = useState('')
+  const [tags, setTags] = useState<string[]>([])
+  const [searchKeywords, setSearchKeywords] = useState<string[]>([])
+  const [status, setStatus] = useState<EditableDocumentStatus>('unreviewed')
+  const [ownerId, setOwnerId] = useState<string | null>(null)
   const create = useMutation({
     mutationFn: async () => {
-      const res = await client.documents.create({ title, body, sourceUrl: sourceUrl.trim() || null })
+      const res = await client.documents.create({ title, body, sourceUrl: sourceUrl.trim() || null, tags, searchKeywords, status, ownerId })
       if (link) await client.documents.link(res.document.id, link)
       return res.document
     },
@@ -135,6 +168,16 @@ export function NewDocumentForm({ onCancel, link }: { onCancel: () => void; link
         placeholder="https://…"
         value={sourceUrl}
         onChange={(e) => setSourceUrl(e.target.value)}
+      />
+      <DocumentKnowledgeFields
+        tags={tags}
+        onTagsChange={setTags}
+        searchKeywords={searchKeywords}
+        onSearchKeywordsChange={setSearchKeywords}
+        status={status}
+        onStatusChange={setStatus}
+        ownerId={ownerId}
+        onOwnerChange={setOwnerId}
       />
       {create.error && <FieldMessage tone="error">{errorText(create.error)}</FieldMessage>}
       <div className="resource-actions">

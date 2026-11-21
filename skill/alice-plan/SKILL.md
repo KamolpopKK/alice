@@ -12,6 +12,9 @@ questions, no hunting for files. You act through the `alice` MCP server, the `al
 project's `.alice/` files, under your own agent identity.
 Requires an Alice server speaking MCP contract v1.
 
+For runtime Alice Documents, read [DOCUMENT-KNOWLEDGE.md](DOCUMENT-KNOWLEDGE.md) before discovery or
+updating the planning reference. Project files do not have these lifecycle fields or typed relations.
+
 Plan implementation from agreed needs and a sufficient technical approach. A separate spec is not
 required when existing patterns clearly cover the work. Do not create or replace the main technical
 design in planning; if it is missing, recommend `alice-spec` and wait for the person to choose the next

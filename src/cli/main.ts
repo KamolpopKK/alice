@@ -32,8 +32,8 @@ Workspaces
 Work
   project list|show|create|update|archive|restore
   task list|show|create|update|assign|claim|comment|comments|complete|archive|restore|parent|block|unblock|relations|activity
-  document list|search|show|create|update|link|unlink|archive|restore|revisions|restore-revision   (alias: doc)
-  search QUERY [--kind task|document|comment]
+  document list|search|show|create|update|review|unreview|relations|relate|unrelate|link|unlink|archive|restore|revisions|restore-revision   (alias: doc)
+  search QUERY [--kind task|document|comment] [--tag TAG] [--status STATUS] [--owner ACTOR|none] [--project ID|NAME]
   import [DIR] [--project ID|NAME] [--dry-run]   Bring a board kept as Markdown files (.alice/) into this workspace
   activity [--actor ID] [--type task|project|document] [--limit N | --all]
   actor list

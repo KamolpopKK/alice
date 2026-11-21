@@ -16,6 +16,9 @@ step without invoking another skill. You act through the `alice` MCP server, the
 project's `.alice/` files, under your own agent identity.
 Requires an Alice server speaking MCP contract v1.
 
+For runtime Alice Documents, read [DOCUMENT-KNOWLEDGE.md](DOCUMENT-KNOWLEDGE.md) before discovery or
+saving a brief. Project files do not have these lifecycle fields or typed relations.
+
 Before formatting a brief, task or spike, read [TEMPLATE.md](TEMPLATE.md). It defines the output shape
 and links the shared requirement-reference and Mermaid conventions. Select relevant content using
 this skill; keep the selected template headings and fields.

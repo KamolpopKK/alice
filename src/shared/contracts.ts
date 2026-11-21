@@ -311,20 +311,46 @@ export const HIGHLIGHT_END = '\u0002'
 export const searchInput = z.object({
   q: z.string().trim().min(1, 'Enter a search term').max(200),
   kind: z.preprocess((v) => (v === undefined || v === '' ? undefined : Array.isArray(v) ? v : String(v).split(',')), z.array(z.enum(SEARCH_KINDS)).optional()),
+  tag: listOf(z.string().trim().min(1).max(40)),
+  status: listOf(z.enum(['unreviewed', 'draft', 'current', 'superseded'])),
+  /** Actor ids; the literal `none` matches documents without an owner. */
+  ownerId: listOf(idSchema),
+  projectId: listOf(idSchema),
   archived: archiveFilterSchema,
   cursor: cursorSchema,
   limit: limitSchema,
 })
 
-export interface SearchResult {
-  kind: SearchKind
+export interface DocumentSearchMatch {
+  field: 'title' | 'keyword' | 'tag' | 'body' | 'sourceUrl'
+  value?: string
+  excerpt: string
+}
+
+interface SearchResultBase {
   id: string
-  /** Task id for task and comment results. */
-  taskId: string | null
   title: string
   snippet: string
   archived: boolean
 }
+
+export interface TaskOrCommentSearchResult extends SearchResultBase {
+  kind: 'task' | 'comment'
+  taskId: string
+}
+
+export interface DocumentSearchResult extends SearchResultBase {
+  kind: 'document'
+  taskId: null
+  match: DocumentSearchMatch
+  tags: string[]
+  status: DocumentKnowledgeStatus
+  owner: ActorRef | null
+  reviewedAt: string | null
+  projectContext: { items: ProjectRef[]; total: number }
+}
+
+export type SearchResult = TaskOrCommentSearchResult | DocumentSearchResult
 
 // ---------- Documents ----------
 export const documentTitleSchema = z.string().trim().min(1, 'Title is required').max(200)
@@ -337,12 +363,23 @@ export const sourceUrlSchema = z
 
 const hasContent = (d: { body?: string; sourceUrl?: string | null }) => (d.body ?? '').trim().length > 0 || !!d.sourceUrl
 export const DOCUMENT_CONTENT_MESSAGE = 'A document needs a Markdown body or a source URL'
+export const DOCUMENT_KNOWLEDGE_STATUSES = ['unreviewed', 'draft', 'current', 'superseded'] as const
+export type DocumentKnowledgeStatus = (typeof DOCUMENT_KNOWLEDGE_STATUSES)[number]
+export const documentKnowledgeStatusSchema = z.enum(DOCUMENT_KNOWLEDGE_STATUSES)
+export const documentTagSchema = z.string().trim().min(1, 'Tag cannot be empty').max(40)
+export const documentKeywordSchema = z.string().trim().min(1, 'Search keyword cannot be empty').max(100)
+export const documentTagsSchema = z.array(documentTagSchema).max(20)
+export const documentKeywordsSchema = z.array(documentKeywordSchema).max(40)
 
 export const createDocumentInput = z
   .object({
     title: documentTitleSchema,
     body: markdownSchema.default(''),
     sourceUrl: sourceUrlSchema.nullish(),
+    tags: documentTagsSchema.optional(),
+    searchKeywords: documentKeywordsSchema.optional(),
+    status: documentKnowledgeStatusSchema.optional(),
+    ownerId: idSchema.nullable().optional(),
   })
   .strict()
   .refine(hasContent, { message: DOCUMENT_CONTENT_MESSAGE, path: ['body'] })
@@ -352,13 +389,30 @@ export const updateDocumentInput = z
     title: documentTitleSchema.optional(),
     body: markdownSchema.optional(),
     sourceUrl: sourceUrlSchema.nullable().optional(),
+    tags: documentTagsSchema.optional(),
+    searchKeywords: documentKeywordsSchema.optional(),
+    status: documentKnowledgeStatusSchema.optional(),
+    ownerId: idSchema.nullable().optional(),
   })
   .strict()
+
+export const reviewDocumentInput = z
+  .object({
+    expectedRevision: z.number().int().min(1),
+    markCurrent: z.boolean().default(true),
+  })
+  .strict()
+
+export const clearDocumentReviewInput = z.object({ expectedRevision: z.number().int().min(1) }).strict()
 
 export const listDocumentsInput = z.object({
   q: z.string().trim().max(200).optional(),
   taskId: idSchema.optional(),
-  projectId: idSchema.optional(),
+  projectId: listOf(idSchema),
+  tag: listOf(documentTagSchema),
+  status: listOf(documentKnowledgeStatusSchema),
+  /** Actor ids; the literal `none` matches documents without an owner. */
+  ownerId: listOf(idSchema),
   archived: archiveFilterSchema,
   cursor: cursorSchema,
   limit: limitSchema,
@@ -384,6 +438,15 @@ export interface DocumentSummary {
   excerpt: string
   bodyLength: number
   revision: number
+  tags: string[]
+  searchKeywords: string[]
+  status: DocumentKnowledgeStatus
+  owner: ActorRef | null
+  reviewedAt: string | null
+  reviewedBy: ActorRef | null
+  reviewedRevision: number | null
+  /** Present when this summary came from a text query. */
+  match: DocumentSearchMatch | null
   archivedAt: string | null
   updatedAt: string
   updatedBy: ActorRef
@@ -403,6 +466,44 @@ export interface DocumentRevision {
   body: string
   sourceUrl: string | null
   restoredFrom: number | null
+  createdAt: string
+  createdBy: ActorRef
+}
+
+export const DOCUMENT_RELATION_TYPES = ['references', 'related', 'supersedes'] as const
+export type DocumentRelationType = (typeof DOCUMENT_RELATION_TYPES)[number]
+export const documentRelationTypeSchema = z.enum(DOCUMENT_RELATION_TYPES)
+export const documentRelationDirectionSchema = z.enum(['outgoing', 'incoming'])
+
+export const createDocumentRelationInput = z
+  .object({
+    targetId: idSchema,
+    type: documentRelationTypeSchema,
+    /** Required and true when type is supersedes because the target becomes superseded. */
+    acknowledgeSupersedes: z.boolean().optional(),
+  })
+  .strict()
+
+export const removeDocumentRelationInput = z.object({ targetId: idSchema, type: documentRelationTypeSchema }).strict()
+
+export const listDocumentRelationsInput = z.object({
+  direction: documentRelationDirectionSchema.default('outgoing'),
+  type: listOf(documentRelationTypeSchema),
+  cursor: cursorSchema,
+  limit: limitSchema,
+})
+
+export interface DocumentRelationRef {
+  id: string
+  title: string
+  status: DocumentKnowledgeStatus
+  archivedAt: string | null
+}
+
+export interface DocumentRelation {
+  type: DocumentRelationType
+  direction: 'outgoing' | 'incoming'
+  document: DocumentRelationRef
   createdAt: string
   createdBy: ActorRef
 }

@@ -21,7 +21,10 @@ export interface BackupManifest {
   counts: Record<string, number>
 }
 
-const COUNTED_TABLES = ['actors', 'projects', 'tasks', 'comments', 'documents', 'document_revisions', 'task_documents', 'project_documents', 'task_blockers', 'activity_events', 'pads', 'pad_blocks']
+const COUNTED_TABLES = [
+  'actors', 'projects', 'tasks', 'comments', 'documents', 'document_revisions', 'task_documents', 'project_documents',
+  'document_tags', 'document_keywords', 'document_relations', 'task_blockers', 'activity_events', 'pads', 'pad_blocks',
+]
 
 export function fileSha256(file: string): string {
   const hash = createHash('sha256')

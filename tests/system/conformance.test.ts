@@ -54,7 +54,23 @@ async function scenario(mcp: McpHandle, label: string) {
   out.list = shape(await mcp.ok('list_tasks', { projectId: [project.project.id], status: ['ready'] }))
   out.claim = shape(await mcp.ok('claim_task', { id: task.task.id }))
   out.claimAgain = await mcp.call('claim_task', { id: task.task.id }).then((r) => r.error)
-  const doc = await mcp.ok('create_document', { title: `Doc ${label}`, body: 'Reference' })
+  const doc = await mcp.ok('create_document', {
+    title: `Doc ${label}`,
+    body: `Conformance-${label}-knowledge reference`,
+    tags: ['guide'],
+    searchKeywords: [`alias-${label}`],
+    status: 'draft',
+  })
+  out.documentCreate = shape(doc)
+  out.review = shape(await mcp.ok('review_document', { id: doc.document.id, expectedRevision: 1 }))
+  out.documentSearch = shape(await mcp.ok('search_documents', {
+    q: `Conformance-${label}-knowledge`,
+    tag: ['guide'],
+    status: ['current'],
+  }))
+  const related = await mcp.ok('create_document', { title: `Related ${label}`, body: 'Peer reference' })
+  out.relate = shape(await mcp.ok('link_document_relation', { id: doc.document.id, targetId: related.document.id, type: 'related' }))
+  out.documentRelations = shape(await mcp.ok('list_document_relations', { id: doc.document.id, direction: 'outgoing', type: ['related'] }))
   await mcp.ok('link_document', { id: doc.document.id, taskId: task.task.id })
   await mcp.ok('add_comment', { taskId: task.task.id, body: 'Working on it' })
   out.context = shape(await mcp.ok('get_task_context', { id: task.task.id }))

@@ -10,6 +10,9 @@ Alice is the shared taskboard where humans and AI agents coordinate. You act thr
 MCP server or the `alice` command under your own agent identity; every change you make is attributed
 to you and visible to the team immediately. Requires an Alice server speaking MCP contract v1 (Alice 0.1 or later).
 
+For reusable runtime Documents, read [DOCUMENT-KNOWLEDGE.md](DOCUMENT-KNOWLEDGE.md) before searching,
+creating, reviewing or relating knowledge. Project files use their narrower documented format instead.
+
 ## Safety
 
 - Your token is a secret. Never print it, paste it into comments or documents, or commit it.
@@ -115,8 +118,10 @@ the app.
    add `requestedOfId` to ask one person. Do not proceed until `get_approval` shows `approved`;
    follow the `note`. If it is `rejected`, comment on what you will do instead. Withdraw requests you
    no longer need with `cancel_approval`.
-6. **Record knowledge.** Put reusable findings in documents (`create_document`, `update_document`)
-   and connect them with `link_document`. Every document edit keeps a full revision.
+6. **Record knowledge.** Search and reuse first. Put reusable findings in documents
+   (`create_document`, `update_document`), add useful metadata, cite title/id/section, and connect them
+   to work with `link_document` or to other knowledge with typed document relations. Every content edit
+   keeps a full revision; review the revision you actually read.
 7. **Complete with a summary.** Finish with `complete_task { id, summary }`. The summary is required
    and becomes a comment: state what was delivered, where it is (links, files, PRs), and any
    follow-ups. Do not set `status: "done"` with `update_task` — agents must use `complete_task`.

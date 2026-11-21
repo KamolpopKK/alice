@@ -197,6 +197,7 @@ describe('alice-spec distribution', () => {
       const named = [...text.matchAll(/`([a-z]+(?:_[a-z]+)+)\b/g)].map((m) => m[1]).filter((n) => /^(get|list|create|update|archive|restore|claim|complete|add|link|unlink|search|set|remove)_/.test(n))
       for (const tool of named) expect(ALL_TOOLS).toContain(tool)
       expect(fs.readFileSync(path.join(dir, 'alice-spec/PROJECT-FILES.md'), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, 'skill/_shared/PROJECT-FILES.md'), 'utf8'))
+      expect(fs.readFileSync(path.join(dir, 'alice-spec/DOCUMENT-KNOWLEDGE.md'), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, 'skill/_shared/DOCUMENT-KNOWLEDGE.md'), 'utf8'))
       expect(fs.readFileSync(path.join(dir, 'alice-spec/OUTPUT-FORMATS.md'), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, 'skill/_shared/OUTPUT-FORMATS.md'), 'utf8'))
     }
   })
@@ -232,9 +233,14 @@ describe('documented installation in a clean environment', () => {
     expect(runCli(['install-skill', '--client', 'codex', '--skill', 'alice-plan'], { HOME: only }).status).toBe(0)
     expect(fs.readdirSync(path.join(only, '.codex/skills'))).toEqual(['alice-plan'])
     // ไฟล์กลาง (skill/_shared/) ติดไปกับทุก skill แม้ติดตั้งตัวเดียว
-    const guide = fs.readFileSync(path.join(ROOT, 'skill/_shared/PROJECT-FILES.md'), 'utf8')
-    expect(fs.readFileSync(path.join(only, '.codex/skills/alice-plan/PROJECT-FILES.md'), 'utf8')).toBe(guide)
-    for (const skill of ['alice', 'alice-plan', 'alice-think', 'alice-spec']) expect(fs.readFileSync(path.join(home, '.claude/skills', skill, 'PROJECT-FILES.md'), 'utf8')).toBe(guide)
+    const sharedFiles = ['PROJECT-FILES.md', 'DOCUMENT-KNOWLEDGE.md', 'OUTPUT-FORMATS.md']
+    for (const file of sharedFiles) {
+      const guide = fs.readFileSync(path.join(ROOT, 'skill/_shared', file), 'utf8')
+      expect(fs.readFileSync(path.join(only, '.codex/skills/alice-plan', file), 'utf8')).toBe(guide)
+      for (const skill of ['alice', 'alice-plan', 'alice-think', 'alice-spec']) {
+        expect(fs.readFileSync(path.join(home, '.claude/skills', skill, file), 'utf8')).toBe(guide)
+      }
+    }
 
     const unknown = runCli(['install-skill', '--client', 'codex', '--skill', 'alice-ops'], { HOME: only })
     expect(unknown.status).toBe(1)

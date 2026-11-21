@@ -116,6 +116,11 @@ alice task complete tsk_… --summary "Flows approved"
 alice task block tsk_A --by tsk_B && alice task relations tsk_A
 alice task ask tsk_… --question "Deploy tonight?" --of mia   # someone else decides; see `task approval apr_…`
 alice doc create --title "Design notes" --body-file design.md --task tsk_…
+alice doc create --title "Runbook" --body-file runbook.md --tag ops --keyword "restore drill" --status draft --owner mia
+alice doc list --tag ops --status current --owner mia --project "Mobile app"
+alice doc review doc_… --revision 3             # add --no-current to record without marking current
+alice doc relations doc_… --direction outgoing
+alice doc relate doc_NEW doc_OLD --type supersedes --yes
 alice doc show doc_… --body-only > design.md      # raw Markdown, byte for byte
 alice doc restore-revision doc_… 1 --yes
 alice search "onboarding" --kind task
@@ -133,8 +138,11 @@ alice import                         # create a project with its tasks, document
   stdin. The content is sent unchanged and never appears on the command line.
 - **Pagination.** Lists follow server cursors automatically and stop after 50 items. When more exist, a note
   on stderr says so. Use `--limit N` (up to 10 000) or `--all`.
-- **Confirmation.** `archive` and `doc restore-revision` ask before acting. In scripts and other
+- **Confirmation.** `archive`, `doc restore-revision` and `doc relate … --type supersedes` ask before acting. In scripts and other
   non-interactive use, pass `--yes`; without it they exit with code 2 and change nothing.
+- **Document knowledge.** `--tag`/`--keyword` are repeatable or comma-separated. `review`/`unreview`
+  require the revision you actually read and surface stale changes as exit 4. Human search output shows
+  status, owner and match reason; `--json` keeps the enriched server fields. Search is lexical, not semantic.
 - **`alice import [DIR]`.** Reads a board kept as Markdown files (`.alice/` by default), checks every file
   first, and creates nothing when one is invalid. It creates a project named after `board.md` unless
   `--project` names an existing one, records the new ids in `DIR/imported.json`, and refuses a second

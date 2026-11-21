@@ -11,6 +11,9 @@ decisions again. Choose content by relevance; not every change needs architectur
 a rollout design. Act through the `alice` MCP server, the `alice` command or the project's `.alice/`
 files, under your own agent identity. Requires an Alice server speaking MCP contract v1.
 
+For runtime Alice Documents, read [DOCUMENT-KNOWLEDGE.md](DOCUMENT-KNOWLEDGE.md) before finding or
+saving designs. Project files do not have these lifecycle fields or typed relations.
+
 Before formatting the design or a spike, read [TEMPLATE.md](TEMPLATE.md). It defines the output shape
 and links the shared requirement-reference and Mermaid conventions. Select only relevant content,
 keeping the selected template headings and fields.
@@ -250,8 +253,10 @@ If it changed since the approval, reconcile and show the changed content for app
 calls return `{ document: { id, … } }`; use `document.id` in subsequent links.
 
 Use `link_document { id, projectId }` for the selected project, and `link_document { id, taskId }` for
-relevant existing tasks or earlier spikes. Source document references go in the body; do not invent a
-document-to-document link tool. If saving or linking fails, report which operations succeeded and their
+relevant existing tasks or earlier spikes. In runtime Alice, use `link_document_relation` for an
+intentional `references`, `related` or acknowledged `supersedes` relationship; cite the source
+title/id/section in the body as well. In project files, use body references only and do not invent
+runtime metadata or relations. If saving or linking fails, report which operations succeeded and their
 ids, re-read before retrying, and avoid duplicate documents or spikes.
 
 Report the saved document id/title (or file path), what it designs and any verification limitations.
