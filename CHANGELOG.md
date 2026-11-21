@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.3 — 2026-11-21
+
+### Added
+
+- **Agent-ready document knowledge.** Documents gain tags, curated search keywords, owners, lifecycle
+  status, revision-specific review provenance and typed references/related/supersedes relationships.
+  Web, CLI, Client API and MCP share explainable lexical search and filters without requiring vectors.
+
+### Changed
+
+- **Portable export format v2.** Exports include document knowledge metadata, review audit and typed
+  relations. Upgrades preserve existing revisions and links, backfill documents as unreviewed, and
+  require the pre-upgrade backup for rollback to an older schema.
+
 ## 0.2.2 — 2026-11-20
 
 ### Added
@@ -14,9 +28,6 @@
 - **Standalone agent setup guidance.** Alice Desktop provides a copyable prompt that installs the Local
   command and skills, enables the selected agent identity and verifies its workspace without exposing
   credentials.
-- **Agent-ready document knowledge.** Documents gain tags, curated search keywords, owners, lifecycle
-  status, revision-specific review provenance and typed references/related/supersedes relationships.
-  Web, CLI, Client API and MCP share explainable lexical search and filters without requiring vectors.
 
 ### Changed
 
@@ -32,9 +43,6 @@
   local project commands run as ordinary implementation work. Approval remains tied to concrete risky
   effects such as production changes, external systems, spending, destructive data changes or access
   control changes.
-- **Portable export format v2.** Exports include document knowledge metadata, review audit and typed
-  relations. Upgrades preserve existing revisions and links, backfill documents as unreviewed, and
-  require the pre-upgrade backup for rollback to an older schema.
 
 ### Fixes
 
