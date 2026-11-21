@@ -7,7 +7,7 @@ import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { testDir } from '../helpers/tmp'
 
-/** The macOS install script verifies the release and installs without quarantine. */
+/** The macOS install script verifies the release archive and installs without quarantine. */
 const ROOT = path.resolve(import.meta.dirname, '../..')
 const mac = process.platform === 'darwin'
 let server: http.Server
@@ -53,11 +53,12 @@ function install(dest: string): Promise<{ status: number | null; stderr: string 
 }
 
 describe.skipIf(!mac)('install-macos.sh', () => {
-  it('installs a verified, signed app with no quarantine attribute and without sudo', async () => {
+  it('installs a checksum-verified, signed app with no quarantine attribute and without sudo', async () => {
     const dest = testDir('alice-apps-')
     const res = await install(dest)
     expect(res.status, res.stderr).toBe(0)
     expect(fs.existsSync(path.join(dest, 'Alice.app/Contents/MacOS/alice-desktop'))).toBe(true)
+    expect(spawnSync('codesign', ['--display', path.join(dest, 'Alice.app')]).status).toBe(0)
     const quarantine = spawnSync('xattr', ['-p', 'com.apple.quarantine', path.join(dest, 'Alice.app')])
     expect(quarantine.status).not.toBe(0)
     expect(fs.readFileSync(path.join(ROOT, 'scripts/install-macos.sh'), 'utf8')).not.toMatch(/\bsudo\b(?! and)|spctl --master-disable/)

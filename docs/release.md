@@ -107,7 +107,7 @@ release for each tag:
 | Artifact | Signing |
 |---|---|
 | `Alice_<version>_aarch64.dmg` and `Alice_aarch64.app.tar.gz` (with the Local runtime) | Self-signed or ad-hoc code signature, **not notarized**, updater-signed. See [macOS Local release](#macos-local-release-apple-silicon). |
-| `install-macos.sh` | Installs `Alice_aarch64.app.tar.gz` after checking `SHA256SUMS`; no quarantine and no sudo |
+| `install-macos.sh` | Installs `Alice_aarch64.app.tar.gz` after checking `SHA256SUMS` and signature presence; no quarantine and no sudo |
 | `Alice_<version>_x64-setup.exe`, `Alice_<version>_x64_en-US.msi` | Not code-signed yet (SmartScreen warns on first run), updater-signed |
 | `Alice_<version>_amd64.AppImage`, `.deb`, `.rpm` (x64 and arm64) | Updater-signed |
 | `alice-cli-v<version>.js` and `alice-cli.js` | Standalone CLI (the same file; the second name is stable for `releases/latest/download/`), listed in `SHA256SUMS` |
@@ -141,9 +141,12 @@ It is released **without an Apple Developer ID**:
    curl -fsSL https://<release folder>/install-macos.sh | sh
    ```
 
-   The script downloads `Alice_aarch64.app.tar.gz` and checks it against `SHA256SUMS` and its code
-   signature. It then installs `Alice.app` into `/Applications`, or into `~/Applications` if
-   `/Applications` is not writable. It never uses sudo and never changes Gatekeeper settings.
+   The script downloads `Alice_aarch64.app.tar.gz`, checks the complete archive against
+   `SHA256SUMS`, and confirms that the app contains the code signature already verified during the
+   release build. A clean Mac cannot independently trust Alice's self-signed certificate, so the
+   installer does not claim Developer ID validation. It then installs `Alice.app` into
+   `/Applications`, or into `~/Applications` if `/Applications` is not writable. It never uses sudo
+   and never changes Gatekeeper settings.
 
 2. **DMG.**
    1. Drag Alice to Applications and open it once. macOS says it cannot verify the developer.
