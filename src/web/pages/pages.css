@@ -109,6 +109,32 @@
 .document-body {
   max-width: 72ch;
 }
+.document-knowledge-fields {
+  display: grid;
+  gap: var(--ui-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.document-knowledge-list {
+  display: grid;
+  gap: var(--ui-space-3);
+  margin: 0;
+}
+.document-knowledge-list > div {
+  display: grid;
+  gap: var(--ui-space-1);
+}
+.document-knowledge-list dt {
+  color: var(--ui-text-muted);
+  font-size: var(--ui-text-sm);
+}
+.document-knowledge-list dd {
+  margin: 0;
+}
+.document-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+}
 .document-links {
   list-style: none;
   margin: 0;

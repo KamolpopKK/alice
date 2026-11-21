@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { ActivityEvent, DocumentDetail, DocumentRevision, Page } from '../../shared/contracts'
+import type { ActivityEvent, DocumentDetail, DocumentKnowledgeStatus, DocumentRevision, Page } from '../../shared/contracts'
 import { FullPageError, isRecoverable } from '../brand'
-import { client } from '../api'
+import { ApiError, client } from '../api'
 import { ActivityList } from '../components/Activity'
 import { Markdown, MarkdownEditor } from '../components/Markdown'
+import { DocumentKnowledgeFields, KNOWLEDGE_STATUS_LABELS } from '../components/DocumentKnowledgeFields'
 import { ActorBadge, formatDate } from '../components/ui'
 import { STATUS_LABELS } from '../../shared/contracts'
 import { STATUS_TONE } from '../tasks/model'
@@ -20,6 +21,13 @@ export function useDocument(id: string) {
 function invalidateDoc(qc: ReturnType<typeof useQueryClient>, id: string) {
   void qc.invalidateQueries({ queryKey: ['document', id] })
   void qc.invalidateQueries({ queryKey: ['documents'] })
+}
+
+const KNOWLEDGE_TONE: Record<DocumentKnowledgeStatus, 'warning' | 'info' | 'success' | 'danger'> = {
+  unreviewed: 'warning',
+  draft: 'info',
+  current: 'success',
+  superseded: 'danger',
 }
 
 export function DocumentDetailPage() {
@@ -58,9 +66,11 @@ export function DocumentDetailPage() {
           <h1>{d.title}</h1>
           <div className="resource-meta-row">
             {archived && <Badge>archived</Badge>}
+            <Badge tone={KNOWLEDGE_TONE[d.status]}>{KNOWLEDGE_STATUS_LABELS[d.status]}</Badge>
             <span>
               Revision {d.revision} · updated {formatDate(d.updatedAt)} by <ActorBadge actor={d.updatedBy} />
             </span>
+            <span>Owner: {d.owner ? <ActorBadge actor={d.owner} /> : 'Unassigned'}</span>
           </div>
         </div>
         <div className="resource-actions" role="group" aria-label="Document actions">
@@ -82,6 +92,16 @@ export function DocumentDetailPage() {
       </div>
       {archive.error && <FieldMessage tone="error">{errorText(archive.error)}</FieldMessage>}
       {archived && <Banner tone="info">This document is archived. Restore it to edit.</Banner>}
+      {d.status === 'unreviewed' && (
+        <Banner tone="warning" title="This document is unreviewed">
+          Check its source and content before treating it as authoritative.
+        </Banner>
+      )}
+      {d.status === 'superseded' && (
+        <Banner tone="danger" title="This document has been superseded">
+          Use it as historical context and check its document relationships for a newer source.
+        </Banner>
+      )}
       {d.sourceUrl && (
         <p className="resource-meta">
           Source:{' '}
@@ -97,6 +117,7 @@ export function DocumentDetailPage() {
           {mode === 'view' && (d.body ? <Markdown source={d.body} className="document-body" /> : <p className="ui-text-muted">This document only references its source.</p>)}
         </div>
         <aside className="document-side" aria-label="Links and activity">
+          <KnowledgeLifecycle doc={d} />
           <Links doc={d} />
           <DocumentActivity id={d.id} />
         </aside>
@@ -105,13 +126,110 @@ export function DocumentDetailPage() {
   )
 }
 
+function KnowledgeLifecycle({ doc }: { doc: DocumentDetail }) {
+  const qc = useQueryClient()
+  const [notice, setNotice] = useState<string | null>(null)
+  const handleError = (error: unknown) => {
+    if (error instanceof ApiError && error.code === 'CONFLICT') {
+      setNotice('The document changed before the review was saved. The latest revision has been loaded; review it again.')
+      invalidateDoc(qc, doc.id)
+    }
+  }
+  const review = useMutation({
+    mutationFn: (markCurrent: boolean) => client.documents.review(doc.id, { expectedRevision: doc.revision, markCurrent }),
+    onSuccess: (result) => {
+      setNotice(result.document.status === 'current' ? 'Review recorded and this revision is now current.' : 'Review recorded for this revision.')
+      invalidateDoc(qc, doc.id)
+    },
+    onError: handleError,
+  })
+  const clear = useMutation({
+    mutationFn: () => client.documents.clearReview(doc.id, { expectedRevision: doc.revision }),
+    onSuccess: () => {
+      setNotice('Review cleared. A current document returns to unreviewed.')
+      invalidateDoc(qc, doc.id)
+    },
+    onError: handleError,
+  })
+  const error = review.error ?? clear.error
+  const conflict = error instanceof ApiError && error.code === 'CONFLICT'
+  return (
+    <section className="task-section document-knowledge" aria-labelledby="knowledge-heading">
+      <h2 id="knowledge-heading" className="task-section-title">
+        Knowledge lifecycle
+      </h2>
+      <dl className="document-knowledge-list">
+        <div>
+          <dt>Status</dt>
+          <dd>
+            <Badge tone={KNOWLEDGE_TONE[doc.status]}>{KNOWLEDGE_STATUS_LABELS[doc.status]}</Badge>
+          </dd>
+        </div>
+        <div>
+          <dt>Owner</dt>
+          <dd>{doc.owner ? <ActorBadge actor={doc.owner} /> : 'Unassigned'}</dd>
+        </div>
+        <div>
+          <dt>Reviewed</dt>
+          <dd>
+            {doc.reviewedAt && doc.reviewedBy && doc.reviewedRevision ? (
+              <>
+                Revision {doc.reviewedRevision}, {formatDate(doc.reviewedAt)} by <ActorBadge actor={doc.reviewedBy} />
+              </>
+            ) : (
+              'Not reviewed'
+            )}
+          </dd>
+        </div>
+      </dl>
+      {doc.tags.length > 0 && (
+        <div className="document-chip-row" aria-label="Tags">
+          {doc.tags.map((tag) => (
+            <Badge key={tag}>{tag}</Badge>
+          ))}
+        </div>
+      )}
+      {doc.searchKeywords.length > 0 && <p className="ui-text-muted">Search keywords: {doc.searchKeywords.join(', ')}</p>}
+      {notice && <FieldMessage tone="info">{notice}</FieldMessage>}
+      {error && !conflict ? <FieldMessage tone="error">{errorText(error)}</FieldMessage> : null}
+      <div className="resource-actions">
+        <Button size="sm" variant="primary" loading={review.isPending} disabled={doc.archivedAt !== null || clear.isPending} onClick={() => review.mutate(true)}>
+          Review and mark current
+        </Button>
+        <Button size="sm" loading={review.isPending} disabled={doc.archivedAt !== null || clear.isPending} onClick={() => review.mutate(false)}>
+          Record review
+        </Button>
+        {doc.reviewedAt && (
+          <Button size="sm" variant="ghost" loading={clear.isPending} disabled={doc.archivedAt !== null || review.isPending} onClick={() => clear.mutate()}>
+            Clear review
+          </Button>
+        )}
+      </div>
+    </section>
+  )
+}
+
 function EditDocument({ doc, onDone }: { doc: DocumentDetail; onDone: () => void }) {
   const qc = useQueryClient()
   const [title, setTitle] = useState(doc.title)
   const [body, setBody] = useState(doc.body)
   const [sourceUrl, setSourceUrl] = useState(doc.sourceUrl ?? '')
+  const [tags, setTags] = useState(doc.tags)
+  const [searchKeywords, setSearchKeywords] = useState(doc.searchKeywords)
+  const [status, setStatus] = useState<DocumentKnowledgeStatus>(doc.status)
+  const [ownerId, setOwnerId] = useState<string | null>(doc.owner?.id ?? null)
+  const contentChanged = title !== doc.title || body !== doc.body || (sourceUrl.trim() || null) !== doc.sourceUrl
   const save = useMutation({
-    mutationFn: () => client.documents.update(doc.id, { title, body, sourceUrl: sourceUrl.trim() || null }),
+    mutationFn: () =>
+      client.documents.update(doc.id, {
+        title,
+        body,
+        sourceUrl: sourceUrl.trim() || null,
+        tags,
+        searchKeywords,
+        ownerId,
+        ...(status === doc.status ? {} : { status }),
+      }),
     onSuccess: () => {
       invalidateDoc(qc, doc.id)
       onDone()
@@ -129,11 +247,25 @@ function EditDocument({ doc, onDone }: { doc: DocumentDetail; onDone: () => void
       <TextField label="Document title" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} />
       <MarkdownEditor id="doc-body" label="Body (Markdown)" value={body} onChange={setBody} rows={18} />
       <TextField label="Source URL (optional)" type="url" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} />
-      <p className="ui-text-muted">Saving creates revision {doc.revision + 1}. Earlier revisions stay available in History.</p>
+      <DocumentKnowledgeFields
+        tags={tags}
+        onTagsChange={setTags}
+        searchKeywords={searchKeywords}
+        onSearchKeywordsChange={setSearchKeywords}
+        status={status}
+        onStatusChange={setStatus}
+        ownerId={ownerId}
+        onOwnerChange={setOwnerId}
+      />
+      <p className="ui-text-muted">
+        {contentChanged
+          ? 'Saving content creates revision ' + (doc.revision + 1) + ' and clears its review. Earlier revisions stay available in History.'
+          : 'Metadata-only changes keep the current content revision and review.'}
+      </p>
       {save.error && <FieldMessage tone="error">{errorText(save.error)}</FieldMessage>}
       <div className="resource-actions">
         <Button variant="primary" type="submit" loading={save.isPending}>
-          Save revision
+          Save changes
         </Button>
         <Button onClick={onDone}>Cancel</Button>
       </div>

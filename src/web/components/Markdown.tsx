@@ -9,7 +9,11 @@ export function Markdown({ source, className = '' }: { source: string; className
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         skipHtml
-        components={{ a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer nofollow" /> }}
+        components={{
+          a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer nofollow" />,
+          // GFM task-list inputs are read-only, but still need an accessible name.
+          input: ({ node: _node, type, ...props }) => <input {...props} type={type} aria-label={type === 'checkbox' ? 'Task list item' : undefined} />,
+        }}
       >
         {source}
       </ReactMarkdown>

@@ -2,13 +2,21 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { keepPreviousData, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { FileText, Link2, Plus } from 'lucide-react'
-import type { DocumentDetail, DocumentSummary, Page } from '../../shared/contracts'
+import type { DocumentKnowledgeStatus } from '../../shared/contracts'
 import { client } from '../api'
 import { MarkdownEditor } from '../components/Markdown'
+import { DocumentKnowledgeFields, KNOWLEDGE_STATUS_LABELS, type EditableDocumentStatus } from '../components/DocumentKnowledgeFields'
 import { ActorBadge, formatDate } from '../components/ui'
 import { errorText } from '../tasks/TaskDetail'
 import { Badge, Banner, Button, Dialog, EmptyState, FieldMessage, ResourceItem, ResourceList, SegmentedControl, Skeleton, TextField } from '../ui'
 import { IllustratedState } from '../brand'
+
+const KNOWLEDGE_TONE: Record<DocumentKnowledgeStatus, 'warning' | 'info' | 'success' | 'danger'> = {
+  unreviewed: 'warning',
+  draft: 'info',
+  current: 'success',
+  superseded: 'danger',
+}
 
 export function DocumentsPage() {
   const [params, setParams] = useSearchParams()
@@ -76,7 +84,14 @@ export function DocumentsPage() {
               meta={
                 <>
                   {d.archivedAt && <Badge>archived</Badge>}
+                  <Badge tone={KNOWLEDGE_TONE[d.status]}>{KNOWLEDGE_STATUS_LABELS[d.status]}</Badge>
+                  {d.tags.map((tag) => (
+                    <Badge key={tag}>{tag}</Badge>
+                  ))}
                   <span>Revision {d.revision}</span>
+                  <span>
+                    Owner: {d.owner ? <ActorBadge actor={d.owner} /> : 'Unassigned'}
+                  </span>
                   <span>
                     Updated {formatDate(d.updatedAt)} by <ActorBadge actor={d.updatedBy} />
                   </span>
@@ -103,9 +118,13 @@ export function NewDocumentForm({ onCancel, link }: { onCancel: () => void; link
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [sourceUrl, setSourceUrl] = useState('')
+  const [tags, setTags] = useState<string[]>([])
+  const [searchKeywords, setSearchKeywords] = useState<string[]>([])
+  const [status, setStatus] = useState<EditableDocumentStatus>('unreviewed')
+  const [ownerId, setOwnerId] = useState<string | null>(null)
   const create = useMutation({
     mutationFn: async () => {
-      const res = await client.documents.create({ title, body, sourceUrl: sourceUrl.trim() || null })
+      const res = await client.documents.create({ title, body, sourceUrl: sourceUrl.trim() || null, tags, searchKeywords, status, ownerId })
       if (link) await client.documents.link(res.document.id, link)
       return res.document
     },
@@ -135,6 +154,16 @@ export function NewDocumentForm({ onCancel, link }: { onCancel: () => void; link
         placeholder="https://…"
         value={sourceUrl}
         onChange={(e) => setSourceUrl(e.target.value)}
+      />
+      <DocumentKnowledgeFields
+        tags={tags}
+        onTagsChange={setTags}
+        searchKeywords={searchKeywords}
+        onSearchKeywordsChange={setSearchKeywords}
+        status={status}
+        onStatusChange={setStatus}
+        ownerId={ownerId}
+        onOwnerChange={setOwnerId}
       />
       {create.error && <FieldMessage tone="error">{errorText(create.error)}</FieldMessage>}
       <div className="resource-actions">
