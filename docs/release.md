@@ -24,7 +24,7 @@
 Workflow and templates: [agents.md](agents.md). The versioned release notes below describe their
 respective releases; current skill behaviour is documented in the agent guide.
 
-# Unreleased — Agent-ready document knowledge
+# Alice 0.2.3 — Agent-ready document knowledge
 
 - Documents now have curated tags/keywords, owner, lifecycle and revision-specific review provenance.
 - Lexical search explains whether title, keyword, tag, body or source URL matched and supports lifecycle,
