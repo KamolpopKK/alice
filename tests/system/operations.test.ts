@@ -11,6 +11,7 @@ let app: RunningApp
 let owner: HttpClient
 let backupDir: string
 let snapshotAtBackup: unknown
+let agentId: string
 
 async function all(client: HttpClient, url: string): Promise<any[]> {
   const items: any[] = []
@@ -37,6 +38,7 @@ async function snapshot(client: HttpClient) {
     relations: await Promise.all(tasks.map(async (t) => (await client.get(`/api/tasks/${t.id}/relations`)).body)),
     documents: await Promise.all(documents.map(async (d) => (await client.get(`/api/documents/${d.id}`)).body.document)),
     revisions: await Promise.all(documents.map((d) => all(client, `/api/documents/${d.id}/revisions`))),
+    documentRelations: await Promise.all(documents.map((d) => all(client, `/api/documents/${d.id}/relations?direction=outgoing`))),
     activity: await all(client, '/api/activity'),
   }
 }
@@ -52,6 +54,7 @@ beforeAll(async () => {
   owner = await bootstrapOwner(app)
   await inviteHuman(owner, 'bob', 'Bob')
   const agent = await createAgent(owner, 'Ops Agent')
+  agentId = agent.id
   const mcp = await connectMcp(app.url, agent.token)
   const project = (await owner.post('/api/projects', { name: 'Ops project', labels: ['ops'] })).body.project
   const t1 = (await owner.post('/api/tasks', { title: 'Backup me', projectId: project.id, status: 'ready', labels: ['x'] })).body.task
@@ -59,11 +62,20 @@ beforeAll(async () => {
   await owner.post(`/api/tasks/${t2.id}/blockers`, { blockerId: t1.id })
   await mcp.ok('claim_task', { id: t1.id })
   await mcp.ok('add_comment', { taskId: t1.id, body: 'ความคืบหน้า: 50%' })
-  const doc = (await owner.post('/api/documents', { title: 'Runbook', body: 'v1' })).body.document
+  const doc = (await owner.post('/api/documents', {
+    title: 'Runbook',
+    body: 'v1',
+    tags: ['operations', 'recovery'],
+    searchKeywords: ['restore drill', 'service recovery'],
+    status: 'draft',
+    ownerId: agent.id,
+  })).body.document
   await owner.patch(`/api/documents/${doc.id}`, { body: 'v2' })
+  await owner.post(`/api/documents/${doc.id}/review`, { expectedRevision: 2, markCurrent: true })
   await owner.post(`/api/documents/${doc.id}/links`, { taskId: t1.id })
   await owner.post(`/api/documents/${doc.id}/links`, { projectId: project.id })
   const dup = (await owner.post('/api/documents', { title: 'Runbook', sourceUrl: 'https://example.com/runbook' })).body.document
+  await owner.post(`/api/documents/${doc.id}/relations`, { targetId: dup.id, type: 'references' })
   await owner.post(`/api/documents/${dup.id}/archive`)
   await mcp.close()
 
@@ -82,6 +94,9 @@ describe('backup and restore', () => {
     expect(manifest).toMatchObject({ format: 'alice-backup', formatVersion: 1, appVersion: APP_VERSION, database: { file: 'alice.db' } })
     expect(manifest.counts.tasks).toBe(2)
     expect(manifest.counts.document_revisions).toBe(3)
+    expect(manifest.counts.document_tags).toBe(2)
+    expect(manifest.counts.document_keywords).toBe(2)
+    expect(manifest.counts.document_relations).toBe(1)
     const db = new Database(path.join(backupDir, 'alice.db'), { readonly: true })
     expect(db.pragma('integrity_check', { simple: true })).toBe('ok')
     db.close()
@@ -97,6 +112,7 @@ describe('backup and restore', () => {
       const after = await snapshot(client)
       expect(after).toEqual(snapshotAtBackup)
       expect((await client.get('/api/search?q=backup')).body.items.map((r: any) => r.title)).toEqual(['Backup me'])
+      expect((await client.get('/api/search?q=restore%20drill')).body.items[0]).toMatchObject({ title: 'Runbook', match: { field: 'keyword', value: 'restore drill' } })
     } finally {
       await restored.stop()
     }
@@ -153,12 +169,26 @@ describe('portable export', () => {
     const res = runCli(['export', '--out', out], { ALICE_DATA_DIR: app.dataDir })
     expect(res.status, res.stderr).toBe(0)
     const data = JSON.parse(fs.readFileSync(path.join(out, 'workspace.json'), 'utf8'))
-    expect(data).toMatchObject({ format: 'alice-export', formatVersion: 1 })
-    for (const key of ['actors', 'projects', 'tasks', 'taskBlockers', 'comments', 'documents', 'documentRevisions', 'taskDocuments', 'projectDocuments', 'activity']) {
+    expect(data).toMatchObject({ format: 'alice-export', formatVersion: 2 })
+    for (const key of ['actors', 'projects', 'tasks', 'taskBlockers', 'comments', 'documents', 'documentRevisions', 'taskDocuments', 'projectDocuments', 'documentTags', 'documentKeywords', 'documentRelations', 'activity']) {
       expect(Array.isArray(data[key]), key).toBe(true)
       expect(data[key].length, key).toBeGreaterThan(0)
     }
     expect(data.tasks.find((t: any) => t.title === 'Child').parentId).toBeTruthy()
+    const exportedRunbook = data.documents.find((document: any) => document.body === undefined && document.status === 'current')
+    expect(exportedRunbook).toMatchObject({
+      title: 'Runbook',
+      status: 'current',
+      ownerId: agentId,
+      tags: ['operations', 'recovery'],
+      searchKeywords: ['restore drill', 'service recovery'],
+      reviewedRevision: 2,
+      reviewedBy: expect.any(String),
+      reviewedAt: expect.any(String),
+    })
+    expect(data.documentRelations).toEqual([
+      expect.objectContaining({ sourceDocumentId: exportedRunbook.id, targetDocumentId: expect.any(String), type: 'references', createdBy: expect.any(String) }),
+    ])
     const raw = fs.readFileSync(path.join(out, 'workspace.json'), 'utf8')
     expect(raw).not.toMatch(/scrypt\$|password|token_hash|alice_at_/)
 
@@ -166,6 +196,9 @@ describe('portable export', () => {
     expect(docs.filter((f) => f.startsWith('runbook--'))).toHaveLength(2)
     const runbook = docs.map((f) => fs.readFileSync(path.join(out, 'documents', f), 'utf8')).find((c) => c.includes('v2'))!
     expect(runbook).toMatch(/^---\nid: "doc_/)
+    expect(runbook).toContain('status: "current"')
+    expect(runbook).toContain('searchKeywords: ["restore drill","service recovery"]')
+    expect(runbook).toContain('relations: [{')
     const taskMd = fs.readFileSync(path.join(out, data.tasks.find((t: any) => t.title === 'Backup me').markdown), 'utf8')
     expect(taskMd).toContain('# Backup me')
     expect(taskMd).toContain('ความคืบหน้า: 50%')

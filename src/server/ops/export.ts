@@ -6,7 +6,7 @@ import { OpsError } from './errors'
 import { exportFileName } from './paths'
 
 export const EXPORT_FORMAT = 'alice-export'
-export const EXPORT_FORMAT_VERSION = 1
+export const EXPORT_FORMAT_VERSION = 2
 
 /** Streams a JSON document entity-by-entity so large workspaces never sit in memory at once. */
 class JsonWriter {
@@ -59,6 +59,12 @@ function frontMatter(data: Record<string, unknown>): string {
 }
 
 const parseLabels = <T extends { labels?: string }>(row: T) => ({ ...row, labels: row.labels ? (JSON.parse(row.labels) as string[]) : [] })
+
+function documentMetadata(db: ReturnType<typeof openDatabase>, documentId: string) {
+  const tags = db.prepare('SELECT tag_text AS value FROM document_tags WHERE document_id = ? ORDER BY tag_key').all(documentId) as Array<{ value: string }>
+  const keywords = db.prepare('SELECT keyword_text AS value FROM document_keywords WHERE document_id = ? ORDER BY keyword_key').all(documentId) as Array<{ value: string }>
+  return { tags: tags.map((row) => row.value), searchKeywords: keywords.map((row) => row.value) }
+}
 
 export interface ExportSummary {
   dir: string
@@ -114,9 +120,10 @@ export function exportWorkspace(dbPath: string, outDir: string): ExportSummary {
     counts.documents = json.array(
       'documents',
       (function* () {
-        for (const d of iter(`SELECT id, title, source_url AS sourceUrl, revision, archived_at AS archivedAt, created_by AS createdBy, updated_by AS updatedBy,
-          created_at AS createdAt, updated_at AS updatedAt FROM documents ORDER BY created_at, id`))
-          yield { ...d, markdown: `documents/${exportFileName(d.title, d.id)}` }
+        for (const d of iter(`SELECT id, title, source_url AS sourceUrl, revision, knowledge_status AS status, owner_id AS ownerId,
+          reviewed_at AS reviewedAt, reviewed_by AS reviewedBy, reviewed_revision AS reviewedRevision, archived_at AS archivedAt,
+          created_by AS createdBy, updated_by AS updatedBy, created_at AS createdAt, updated_at AS updatedAt FROM documents ORDER BY created_at, id`))
+          yield { ...d, ...documentMetadata(db, d.id), markdown: `documents/${exportFileName(d.title, d.id)}` }
       })(),
     )
     counts.documentRevisions = json.array(
@@ -125,6 +132,13 @@ export function exportWorkspace(dbPath: string, outDir: string): ExportSummary {
     )
     counts.taskDocuments = json.array('taskDocuments', iter('SELECT task_id AS taskId, document_id AS documentId, created_by AS createdBy, created_at AS createdAt FROM task_documents ORDER BY created_at, task_id'))
     counts.projectDocuments = json.array('projectDocuments', iter('SELECT project_id AS projectId, document_id AS documentId, created_by AS createdBy, created_at AS createdAt FROM project_documents ORDER BY created_at, project_id'))
+    counts.documentTags = json.array('documentTags', iter('SELECT document_id AS documentId, tag_key AS tagKey, tag_text AS tag FROM document_tags ORDER BY document_id, tag_key'))
+    counts.documentKeywords = json.array('documentKeywords', iter('SELECT document_id AS documentId, keyword_key AS keywordKey, keyword_text AS keyword FROM document_keywords ORDER BY document_id, keyword_key'))
+    counts.documentRelations = json.array(
+      'documentRelations',
+      iter(`SELECT source_document_id AS sourceDocumentId, target_document_id AS targetDocumentId, relation_type AS type,
+        created_by AS createdBy, created_at AS createdAt FROM document_relations ORDER BY source_document_id, target_document_id, relation_type`),
+    )
     counts.activity = json.array(
       'activity',
       (function* () {
@@ -136,9 +150,27 @@ export function exportWorkspace(dbPath: string, outDir: string): ExportSummary {
 
     // Markdown: documents
     const docLinks = db.prepare(`SELECT 'task' AS type, task_id AS id FROM task_documents WHERE document_id = ? UNION ALL SELECT 'project', project_id FROM project_documents WHERE document_id = ?`)
-    for (const d of iter('SELECT id, title, body, source_url, revision, archived_at, updated_at FROM documents ORDER BY id')) {
+    const relationsFor = db.prepare(`SELECT source_document_id AS sourceDocumentId, target_document_id AS targetDocumentId, relation_type AS type
+      FROM document_relations WHERE source_document_id = ? OR target_document_id = ? ORDER BY source_document_id, target_document_id, relation_type`)
+    for (const d of iter(`SELECT id, title, body, source_url, revision, knowledge_status, owner_id, reviewed_at, reviewed_by, reviewed_revision,
+      archived_at, updated_at FROM documents ORDER BY id`)) {
       const links = docLinks.all(d.id, d.id) as Array<{ type: string; id: string }>
-      const meta = { id: d.id, title: d.title, sourceUrl: d.source_url, revision: d.revision, archivedAt: d.archived_at, updatedAt: d.updated_at, links }
+      const meta = {
+        id: d.id,
+        title: d.title,
+        sourceUrl: d.source_url,
+        revision: d.revision,
+        status: d.knowledge_status,
+        ownerId: d.owner_id,
+        ...documentMetadata(db, d.id),
+        reviewedAt: d.reviewed_at,
+        reviewedBy: d.reviewed_by,
+        reviewedRevision: d.reviewed_revision,
+        archivedAt: d.archived_at,
+        updatedAt: d.updated_at,
+        links,
+        relations: relationsFor.all(d.id, d.id),
+      }
       fs.writeFileSync(path.join(outDir, 'documents', exportFileName(d.title, d.id)), frontMatter(meta) + d.body + (d.body.endsWith('\n') ? '' : '\n'))
     }
     // Markdown: tasks (description + comment thread)
