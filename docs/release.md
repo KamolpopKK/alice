@@ -1,4 +1,17 @@
-# Unreleased — Agent discovery, technical design and output templates
+# Alice 0.2.4 — Mermaid diagrams and reusable project understanding
+
+- Mermaid diagrams render locally across task/document content, previews, revision history, project
+  descriptions and comments, following the app theme. Source remains available and invalid syntax
+  shows a per-block error. Active content and external resources are restricted; zoom/pan/export are
+  outside this release.
+- `alice-understand` adds evidence-based discovery, reusable linked knowledge, System graphs and
+  incremental refresh. Existing workflows consult relevant knowledge and update affected details.
+- CLI and Local integrations now distribute five skills. The version bump refreshes installed skills
+  through the normal Local integration update path. No schema or API migration is introduced.
+- The macOS install script supports the release's self-signed code signature without requiring an
+  Apple Developer ID.
+
+# Agent discovery, technical design and output templates
 
 - **Four skills.** `alice-think` agrees needs and scope, the new `alice-spec` produces technical design,
   `alice-plan` breaks settled work into tasks, and `alice` works on tasks. Stages recommend the next
