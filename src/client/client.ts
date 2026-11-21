@@ -31,6 +31,7 @@ import type {
   bootstrapInput,
   createInviteInput,
   createDocumentInput,
+  clearDocumentReviewInput,
   createMilestoneInput,
   listApprovalsInput,
   requestApprovalInput,
@@ -38,6 +39,7 @@ import type {
   createTaskInput,
   listDocumentsInput,
   loginInput,
+  reviewDocumentInput,
   searchInput,
   updateDocumentInput,
   updateMilestoneInput,
@@ -250,6 +252,10 @@ export class AliceClient {
     get: (id: string) => this.get<{ document: DocumentDetail }>(`/documents/${enc(id)}`).then((r) => r.document),
     create: (input: In<typeof createDocumentInput>) => this.call<DocumentResult>('POST', '/documents', { body: input, idempotent: true }),
     update: (id: string, patch: In<typeof updateDocumentInput>) => this.call<DocumentResult>('PATCH', `/documents/${enc(id)}`, { body: patch }),
+    review: (id: string, input: In<typeof reviewDocumentInput>) =>
+      this.call<DocumentResult>('POST', `/documents/${enc(id)}/review`, { body: input, idempotent: true }),
+    clearReview: (id: string, input: In<typeof clearDocumentReviewInput>) =>
+      this.call<DocumentResult>('DELETE', `/documents/${enc(id)}/review`, { body: input }),
     archive: (id: string) => this.call<DocumentResult>('POST', `/documents/${enc(id)}/archive`, { body: {}, idempotent: true }),
     restore: (id: string) => this.call<DocumentResult>('POST', `/documents/${enc(id)}/restore`, { body: {}, idempotent: true }),
     revisions: (id: string, page: { cursor?: string | null; limit?: number } = {}) => this.get<Page<DocumentRevision>>(`/documents/${enc(id)}/revisions`, page),

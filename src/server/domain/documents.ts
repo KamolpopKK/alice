@@ -2,13 +2,16 @@ import type * as z from 'zod'
 import {
   DOCUMENT_CONTENT_MESSAGE,
   type DocumentDetail,
+  type DocumentKnowledgeStatus,
   type DocumentRevision,
   type DocumentSummary,
   type Page,
   type ProjectRef,
   type TaskRef,
   type createDocumentInput,
+  type clearDocumentReviewInput,
   type listDocumentsInput,
+  type reviewDocumentInput,
   type updateDocumentInput,
 } from '../../shared/contracts'
 import { AliceError } from '../../shared/errors'
@@ -16,14 +19,19 @@ import type { AppContext } from '../context'
 import type { DB } from '../db/database'
 import { newId } from '../ids'
 import { mutate, type Mutation } from './activity'
-import type { Actor } from './actors'
+import { requireActiveActor, type Actor } from './actors'
 import { findProjectRow } from './projects'
 import { compileQuery, indexResource, matchClauses } from './search'
 import { actorCols, actorRefFrom, decodeCursor, diff, encodeCursor } from './sql'
 import { requireTaskRow } from './tasks'
 
-const DOC_SELECT = `SELECT d.*, ${actorCols('cb', 'created_by')}, ${actorCols('ub', 'updated_by')}
-  FROM documents d JOIN actors cb ON cb.id = d.created_by JOIN actors ub ON ub.id = d.updated_by`
+const DOC_SELECT = `SELECT d.*, ${actorCols('cb', 'created_by')}, ${actorCols('ub', 'updated_by')},
+    ${actorCols('ow', 'owner')}, ${actorCols('rb', 'reviewed_by')}
+  FROM documents d
+  JOIN actors cb ON cb.id = d.created_by
+  JOIN actors ub ON ub.id = d.updated_by
+  LEFT JOIN actors ow ON ow.id = d.owner_id
+  LEFT JOIN actors rb ON rb.id = d.reviewed_by`
 
 interface DocRow {
   id: string
@@ -32,6 +40,11 @@ interface DocRow {
   body: string
   source_url: string | null
   revision: number
+  knowledge_status: DocumentKnowledgeStatus
+  owner_id: string | null
+  reviewed_at: string | null
+  reviewed_by: string | null
+  reviewed_revision: number | null
   archived_at: string | null
   created_at: string
   updated_at: string
@@ -40,7 +53,31 @@ interface DocRow {
 
 const EXCERPT_CHARS = 200
 
-export function toSummary(row: DocRow): DocumentSummary {
+function metadataValues(db: DB, table: 'document_tags' | 'document_keywords', documentId: string): string[] {
+  const column = table === 'document_tags' ? 'tag' : 'keyword'
+  return (db.prepare(`SELECT ${column}_text AS value FROM ${table} WHERE document_id = ? ORDER BY ${column}_key`).all(documentId) as Array<{ value: string }>).map(
+    (row) => row.value,
+  )
+}
+
+function normalizeValues(values: string[]): Array<{ key: string; text: string }> {
+  const unique = new Map<string, string>()
+  for (const value of values) {
+    const text = value.trim().normalize('NFKC')
+    const key = text.toLocaleLowerCase('en-US')
+    if (!unique.has(key)) unique.set(key, text)
+  }
+  return [...unique].map(([key, text]) => ({ key, text })).sort((a, b) => a.key.localeCompare(b.key))
+}
+
+function replaceMetadata(m: Mutation, documentId: string, table: 'document_tags' | 'document_keywords', values: string[]): void {
+  const column = table === 'document_tags' ? 'tag' : 'keyword'
+  m.db.prepare(`DELETE FROM ${table} WHERE document_id = ?`).run(documentId)
+  const insert = m.db.prepare(`INSERT INTO ${table} (document_id, ${column}_key, ${column}_text) VALUES (?, ?, ?)`)
+  for (const value of normalizeValues(values)) insert.run(documentId, value.key, value.text)
+}
+
+export function toSummary(row: DocRow, db?: DB): DocumentSummary {
   const plain = row.body.replace(/\s+/g, ' ').trim()
   return {
     id: row.id,
@@ -49,6 +86,13 @@ export function toSummary(row: DocRow): DocumentSummary {
     excerpt: plain.length > EXCERPT_CHARS ? `${plain.slice(0, EXCERPT_CHARS - 1)}…` : plain,
     bodyLength: row.body.length,
     revision: row.revision,
+    tags: db ? metadataValues(db, 'document_tags', row.id) : [],
+    searchKeywords: db ? metadataValues(db, 'document_keywords', row.id) : [],
+    status: row.knowledge_status,
+    owner: actorRefFrom(row, 'owner'),
+    reviewedAt: row.reviewed_at,
+    reviewedBy: actorRefFrom(row, 'reviewed_by'),
+    reviewedRevision: row.reviewed_revision,
     archivedAt: row.archived_at,
     updatedAt: row.updated_at,
     updatedBy: actorRefFrom(row, 'updated_by')!,
@@ -78,7 +122,7 @@ function linkedProjects(db: DB, documentId: string): ProjectRef[] {
 }
 
 export function toDetail(db: DB, row: DocRow): DocumentDetail {
-  const { excerpt: _excerpt, ...summary } = toSummary(row)
+  const { excerpt: _excerpt, ...summary } = toSummary(row, db)
   return {
     ...summary,
     body: row.body,
@@ -135,17 +179,22 @@ export interface DocumentMutationResult {
 
 export function createDocument(ctx: AppContext, actor: Actor, input: z.infer<typeof createDocumentInput>): DocumentMutationResult {
   const { value: id, activityId } = mutate(ctx, actor, (m) => {
+    if (input.status === 'current') throw new AliceError('INVALID_STATE', 'Set a document to current through the review operation')
+    if (input.ownerId) requireActiveActor(m.db, m.workspaceId, input.ownerId)
     const id = newId('doc')
     const sourceUrl = input.sourceUrl ?? null
+    const status = input.status ?? 'unreviewed'
     m.db
       .prepare(
-        `INSERT INTO documents (id, workspace_id, title, body, source_url, revision, created_by, updated_by, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
+        `INSERT INTO documents (id, workspace_id, title, body, source_url, revision, knowledge_status, owner_id, created_by, updated_by, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(id, m.workspaceId, input.title, input.body, sourceUrl, actor.id, actor.id, m.now, m.now)
+      .run(id, m.workspaceId, input.title, input.body, sourceUrl, status, input.ownerId ?? null, actor.id, actor.id, m.now, m.now)
+    replaceMetadata(m, id, 'document_tags', input.tags ?? [])
+    replaceMetadata(m, id, 'document_keywords', input.searchKeywords ?? [])
     writeRevision(m, id, 1, { title: input.title, body: input.body, sourceUrl }, null)
     indexDocument(m, id)
-    m.record({ verb: 'document.created', resource: { type: 'document', id }, data: { title: input.title, revision: 1 } })
+    m.record({ verb: 'document.created', resource: { type: 'document', id }, data: { title: input.title, revision: 1, status } })
     return id
   })
   return { document: getDocument(ctx, id), activityId }
@@ -156,26 +205,102 @@ export function updateDocument(ctx: AppContext, actor: Actor, id: string, patch:
   const { activityId } = mutate(ctx, actor, (m) => {
     const row = requireDocRow(m.db, m.workspaceId, id)
     if (row.archived_at) throw new AliceError('INVALID_STATE', `Document ${id} is archived; restore it before editing`)
+    if (patch.status === 'current') throw new AliceError('INVALID_STATE', 'Set a document to current through the review operation')
+    if (patch.ownerId) requireActiveActor(m.db, m.workspaceId, patch.ownerId)
     const current = { title: row.title, body: row.body, sourceUrl: row.source_url }
-    const changes = diff(current, patch)
-    if (Object.keys(changes).length === 0) return
+    const contentPatch = { title: patch.title, body: patch.body, sourceUrl: patch.sourceUrl }
+    const contentChanges = diff(current, contentPatch)
+    const currentMetadata = {
+      tags: metadataValues(m.db, 'document_tags', id),
+      searchKeywords: metadataValues(m.db, 'document_keywords', id),
+      status: row.knowledge_status,
+      ownerId: row.owner_id,
+    }
+    const metadataPatch = {
+      tags: patch.tags === undefined ? undefined : normalizeValues(patch.tags).map((v) => v.text),
+      searchKeywords: patch.searchKeywords === undefined ? undefined : normalizeValues(patch.searchKeywords).map((v) => v.text),
+      status: patch.status,
+      ownerId: patch.ownerId,
+    }
+    const metadataChanges = diff(currentMetadata, metadataPatch)
+    const contentChanged = Object.keys(contentChanges).length > 0
+    if (!contentChanged && Object.keys(metadataChanges).length === 0) return
     const next = {
       title: patch.title ?? current.title,
       body: patch.body ?? current.body,
       sourceUrl: patch.sourceUrl === undefined ? current.sourceUrl : patch.sourceUrl,
     }
     if (!next.body.trim() && !next.sourceUrl) throw new AliceError('VALIDATION_ERROR', DOCUMENT_CONTENT_MESSAGE)
-    const revision = row.revision + 1
-    writeRevision(m, id, revision, next, null)
+    const revision = contentChanged ? row.revision + 1 : row.revision
+    if (contentChanged) writeRevision(m, id, revision, next, null)
+    const status = contentChanged && row.knowledge_status === 'current' ? 'unreviewed' : (patch.status ?? row.knowledge_status)
     m.db
-      .prepare('UPDATE documents SET title = ?, body = ?, source_url = ?, revision = ?, updated_by = ?, updated_at = ? WHERE id = ?')
-      .run(next.title, next.body, next.sourceUrl, revision, actor.id, m.now, id)
+      .prepare(
+        `UPDATE documents SET title = ?, body = ?, source_url = ?, revision = ?, knowledge_status = ?, owner_id = ?,
+          reviewed_at = ?, reviewed_by = ?, reviewed_revision = ?, updated_by = ?, updated_at = ? WHERE id = ?`,
+      )
+      .run(
+        next.title,
+        next.body,
+        next.sourceUrl,
+        revision,
+        status,
+        patch.ownerId === undefined ? row.owner_id : patch.ownerId,
+        contentChanged ? null : row.reviewed_at,
+        contentChanged ? null : row.reviewed_by,
+        contentChanged ? null : row.reviewed_revision,
+        actor.id,
+        m.now,
+        id,
+      )
+    if (patch.tags !== undefined) replaceMetadata(m, id, 'document_tags', patch.tags)
+    if (patch.searchKeywords !== undefined) replaceMetadata(m, id, 'document_keywords', patch.searchKeywords)
     indexDocument(m, id)
     // body อาจยาวมาก: เก็บแค่ว่ามีการแก้ ไม่เก็บเนื้อหาซ้ำใน activity
     const summary = Object.fromEntries(
-      Object.entries(changes).map(([k, v]) => [k, k === 'body' ? { fromLength: String(v.from).length, toLength: String(v.to).length } : v]),
+      Object.entries({ ...contentChanges, ...metadataChanges }).map(([k, v]) => [k, k === 'body' ? { fromLength: String(v.from).length, toLength: String(v.to).length } : v]),
     )
     m.record({ verb: 'document.updated', resource: { type: 'document', id }, data: { changes: summary, revision } })
+  })
+  return { document: getDocument(ctx, id), activityId }
+}
+
+function assertExpectedRevision(row: DocRow, expectedRevision: number): void {
+  if (row.revision !== expectedRevision) {
+    throw new AliceError('CONFLICT', `Document ${row.id} is at revision ${row.revision}, not ${expectedRevision}`, { currentRevision: row.revision })
+  }
+}
+
+export function reviewDocument(ctx: AppContext, actor: Actor, id: string, input: z.infer<typeof reviewDocumentInput>): DocumentMutationResult {
+  const { activityId } = mutate(ctx, actor, (m) => {
+    const row = requireDocRow(m.db, m.workspaceId, id)
+    if (row.archived_at) throw new AliceError('INVALID_STATE', `Document ${id} is archived; restore it before reviewing`)
+    assertExpectedRevision(row, input.expectedRevision)
+    const status = input.markCurrent ? 'current' : row.knowledge_status
+    m.db
+      .prepare(
+        `UPDATE documents SET knowledge_status = ?, reviewed_at = ?, reviewed_by = ?, reviewed_revision = ?, updated_by = ?, updated_at = ? WHERE id = ?`,
+      )
+      .run(status, m.now, actor.id, row.revision, actor.id, m.now, id)
+    m.record({ verb: 'document.reviewed', resource: { type: 'document', id }, data: { revision: row.revision, status } })
+  })
+  return { document: getDocument(ctx, id), activityId }
+}
+
+export function clearDocumentReview(ctx: AppContext, actor: Actor, id: string, input: z.infer<typeof clearDocumentReviewInput>): DocumentMutationResult {
+  const { activityId } = mutate(ctx, actor, (m) => {
+    const row = requireDocRow(m.db, m.workspaceId, id)
+    if (row.archived_at) throw new AliceError('INVALID_STATE', `Document ${id} is archived; restore it before clearing review`)
+    assertExpectedRevision(row, input.expectedRevision)
+    if (row.reviewed_at === null && row.knowledge_status !== 'current') return
+    const status = row.knowledge_status === 'current' ? 'unreviewed' : row.knowledge_status
+    m.db
+      .prepare(
+        `UPDATE documents SET knowledge_status = ?, reviewed_at = NULL, reviewed_by = NULL, reviewed_revision = NULL,
+          updated_by = ?, updated_at = ? WHERE id = ?`,
+      )
+      .run(status, actor.id, m.now, id)
+    m.record({ verb: 'document.review_cleared', resource: { type: 'document', id }, data: { revision: row.revision, status } })
   })
   return { document: getDocument(ctx, id), activityId }
 }
@@ -191,7 +316,11 @@ export function restoreDocumentRevision(ctx: AppContext, actor: Actor, id: strin
     const revision = row.revision + 1
     writeRevision(m, id, revision, { title: rev.title, body: rev.body, sourceUrl: rev.source_url }, number)
     m.db
-      .prepare('UPDATE documents SET title = ?, body = ?, source_url = ?, revision = ?, updated_by = ?, updated_at = ? WHERE id = ?')
+      .prepare(
+        `UPDATE documents SET title = ?, body = ?, source_url = ?, revision = ?,
+          knowledge_status = CASE WHEN knowledge_status = 'current' THEN 'unreviewed' ELSE knowledge_status END,
+          reviewed_at = NULL, reviewed_by = NULL, reviewed_revision = NULL, updated_by = ?, updated_at = ? WHERE id = ?`,
+      )
       .run(rev.title, rev.body, rev.source_url, revision, actor.id, m.now, id)
     indexDocument(m, id)
     m.record({ verb: 'document.revision_restored', resource: { type: 'document', id }, data: { restoredFrom: number, revision, title: rev.title } })
@@ -265,7 +394,7 @@ export function listDocuments(ctx: AppContext, input: z.infer<typeof listDocumen
   const rows = ctx.db.prepare(`${DOC_SELECT} WHERE ${where.join(' AND ')} ORDER BY d.updated_at DESC, d.id DESC LIMIT ?`).all(...params, limit + 1) as DocRow[]
   const page = rows.slice(0, limit)
   const last = page[page.length - 1]
-  return { items: page.map(toSummary), nextCursor: rows.length > limit ? encodeCursor([last.updated_at, last.id]) : null }
+  return { items: page.map((row) => toSummary(row, ctx.db)), nextCursor: rows.length > limit ? encodeCursor([last.updated_at, last.id]) : null }
 }
 
 // ---------- Links ----------

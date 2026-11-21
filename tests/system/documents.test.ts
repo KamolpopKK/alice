@@ -67,6 +67,90 @@ describe('documents', () => {
     expect((await owner.post(`/api/documents/${doc.id}/revisions/99/restore`)).body.error.code).toBe('NOT_FOUND')
   })
 
+  it('stores normalized knowledge metadata without creating content revisions', async () => {
+    const created = await owner.post('/api/documents', {
+      title: 'Knowledge base',
+      body: 'Reusable guidance',
+      tags: [' Platform ', 'platform', 'Runbook'],
+      searchKeywords: [' K8s ', 'k8s', 'Kubernetes'],
+      status: 'draft',
+      ownerId: agent.id,
+    })
+    expect(created.status).toBe(201)
+    expect(created.body.document).toMatchObject({
+      revision: 1,
+      tags: ['Platform', 'Runbook'],
+      searchKeywords: ['K8s', 'Kubernetes'],
+      status: 'draft',
+      owner: { id: agent.id, kind: 'agent' },
+      reviewedAt: null,
+      reviewedBy: null,
+      reviewedRevision: null,
+    })
+
+    const id = created.body.document.id
+    const updated = await mcp.ok('update_document', { id, tags: ['Operations'], searchKeywords: [], ownerId: null, status: 'unreviewed' })
+    expect(updated.document).toMatchObject({ revision: 1, tags: ['Operations'], searchKeywords: [], owner: null, status: 'unreviewed' })
+    expect((await owner.get(`/api/documents/${id}/revisions`)).body.items).toHaveLength(1)
+
+    const directCurrent = await owner.patch(`/api/documents/${id}`, { status: 'current' })
+    expect(directCurrent.status).toBe(409)
+    expect(directCurrent.body.error.code).toBe('INVALID_STATE')
+
+    const inactive = await createAgent(owner, 'Inactive knowledge owner')
+    await owner.post(`/api/agents/${inactive.id}/deactivate`)
+    const invalidOwner = await owner.patch(`/api/documents/${id}`, { ownerId: inactive.id })
+    expect(invalidOwner.body.error.code).toBe('INVALID_STATE')
+  })
+
+  it('records reviews against an expected revision and clears them on content changes', async () => {
+    const doc = (await owner.post('/api/documents', { title: 'Reviewed runbook', body: 'v1' })).body.document
+    const reviewed = await mcp.ok('review_document', { id: doc.id, expectedRevision: 1 })
+    expect(reviewed.document).toMatchObject({ status: 'current', reviewedBy: { id: agent.id }, reviewedRevision: 1 })
+    expect(reviewed.document.reviewedAt).toEqual(expect.any(String))
+
+    const stale = await owner.post(`/api/documents/${doc.id}/review`, { expectedRevision: 2 })
+    expect(stale.status).toBe(409)
+    expect(stale.body.error).toMatchObject({ code: 'CONFLICT', details: { currentRevision: 1 } })
+
+    const metadataOnly = await owner.patch(`/api/documents/${doc.id}`, { tags: ['runbook'] })
+    expect(metadataOnly.body.document).toMatchObject({ revision: 1, status: 'current', reviewedRevision: 1 })
+
+    const edited = await owner.patch(`/api/documents/${doc.id}`, { body: 'v2' })
+    expect(edited.body.document).toMatchObject({
+      revision: 2,
+      status: 'unreviewed',
+      reviewedAt: null,
+      reviewedBy: null,
+      reviewedRevision: null,
+    })
+
+    const kept = await mcp.ok('review_document', { id: doc.id, expectedRevision: 2, markCurrent: false })
+    expect(kept.document).toMatchObject({ status: 'unreviewed', reviewedRevision: 2 })
+    const current = await owner.post(`/api/documents/${doc.id}/review`, { expectedRevision: 2 })
+    expect(current.body.document.status).toBe('current')
+    const cleared = await mcp.ok('clear_document_review', { id: doc.id, expectedRevision: 2 })
+    expect(cleared.document).toMatchObject({ status: 'unreviewed', reviewedAt: null, reviewedRevision: null })
+  })
+
+  it('rolls review state back when its activity write fails', async () => {
+    const faulty = await startApp({ env: { ALICE_TEST_FAIL_ACTIVITY_VERB: 'document.reviewed' } })
+    try {
+      const client = await bootstrapOwner(faulty)
+      const doc = (await client.post('/api/documents', { title: 'Atomic review', body: 'content' })).body.document
+      const failed = await client.post(`/api/documents/${doc.id}/review`, { expectedRevision: 1 })
+      expect(failed.status).toBe(500)
+      expect((await client.get(`/api/documents/${doc.id}`)).body.document).toMatchObject({
+        status: 'unreviewed',
+        reviewedAt: null,
+        reviewedBy: null,
+        reviewedRevision: null,
+      })
+    } finally {
+      await faulty.stop()
+    }
+  })
+
   it('links one document independently to many tasks and projects', async () => {
     const doc = (await owner.post('/api/documents', { title: 'Shared spec', body: 'Spec' })).body.document
     const t1 = (await owner.post('/api/tasks', { title: 'Task one' })).body.task

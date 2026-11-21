@@ -23,6 +23,24 @@ function seedAt(db: ReturnType<typeof openDatabase>, version: number) {
        VALUES ('tsk_legacy', 'wsp_legacy', 'prj_legacy_untitled', 'Legacy flamingo task', 'from an old schema', 'ready', 'high', 3, '[]', 'usr_legacy', 'usr_legacy', ?, ?)`,
     ).run(now, now)
   }
+  if (version >= 6) {
+    db.prepare(
+      `INSERT INTO documents (id, workspace_id, title, body, revision, created_by, updated_by, created_at, updated_at)
+       VALUES ('doc_legacy', 'wsp_legacy', 'Legacy document', 'legacy body', 1, 'usr_legacy', 'usr_legacy', ?, ?)`,
+    ).run(now, now)
+    db.prepare(
+      `INSERT INTO document_revisions (id, document_id, number, title, body, created_by, created_at)
+       VALUES ('rev_legacy', 'doc_legacy', 1, 'Legacy document', 'legacy body', 'usr_legacy', ?)`,
+    ).run(now)
+    db.prepare(
+      `INSERT INTO task_documents (task_id, document_id, created_by, created_at)
+       VALUES ('tsk_legacy', 'doc_legacy', 'usr_legacy', ?)`,
+    ).run(now)
+    db.prepare(
+      `INSERT INTO project_documents (project_id, document_id, created_by, created_at)
+       VALUES ('prj_legacy_untitled', 'doc_legacy', 'usr_legacy', ?)`,
+    ).run(now)
+  }
 }
 
 describe('upgrades from every supported prior schema', () => {
@@ -58,6 +76,18 @@ describe('upgrades from every supported prior schema', () => {
           .all()
         after.close()
         expect(hit).toEqual([{ resource_id: 'tsk_legacy' }])
+      }
+      if (from >= 6) {
+        const after = openDatabase(path.join(dataDir, 'alice.db'))
+        expect(
+          after
+            .prepare(`SELECT revision, knowledge_status, owner_id, reviewed_at FROM documents WHERE id = 'doc_legacy'`)
+            .get(),
+        ).toEqual({ revision: 1, knowledge_status: 'unreviewed', owner_id: null, reviewed_at: null })
+        expect(after.prepare(`SELECT count(*) AS count FROM document_revisions WHERE document_id = 'doc_legacy'`).get()).toEqual({ count: 1 })
+        expect(after.prepare(`SELECT count(*) AS count FROM task_documents WHERE document_id = 'doc_legacy'`).get()).toEqual({ count: 1 })
+        expect(after.prepare(`SELECT count(*) AS count FROM project_documents WHERE document_id = 'doc_legacy'`).get()).toEqual({ count: 1 })
+        after.close()
       }
     })
   }

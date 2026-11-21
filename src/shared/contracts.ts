@@ -337,12 +337,23 @@ export const sourceUrlSchema = z
 
 const hasContent = (d: { body?: string; sourceUrl?: string | null }) => (d.body ?? '').trim().length > 0 || !!d.sourceUrl
 export const DOCUMENT_CONTENT_MESSAGE = 'A document needs a Markdown body or a source URL'
+export const DOCUMENT_KNOWLEDGE_STATUSES = ['unreviewed', 'draft', 'current', 'superseded'] as const
+export type DocumentKnowledgeStatus = (typeof DOCUMENT_KNOWLEDGE_STATUSES)[number]
+export const documentKnowledgeStatusSchema = z.enum(DOCUMENT_KNOWLEDGE_STATUSES)
+export const documentTagSchema = z.string().trim().min(1, 'Tag cannot be empty').max(40)
+export const documentKeywordSchema = z.string().trim().min(1, 'Search keyword cannot be empty').max(100)
+export const documentTagsSchema = z.array(documentTagSchema).max(20)
+export const documentKeywordsSchema = z.array(documentKeywordSchema).max(40)
 
 export const createDocumentInput = z
   .object({
     title: documentTitleSchema,
     body: markdownSchema.default(''),
     sourceUrl: sourceUrlSchema.nullish(),
+    tags: documentTagsSchema.optional(),
+    searchKeywords: documentKeywordsSchema.optional(),
+    status: documentKnowledgeStatusSchema.optional(),
+    ownerId: idSchema.nullable().optional(),
   })
   .strict()
   .refine(hasContent, { message: DOCUMENT_CONTENT_MESSAGE, path: ['body'] })
@@ -352,8 +363,21 @@ export const updateDocumentInput = z
     title: documentTitleSchema.optional(),
     body: markdownSchema.optional(),
     sourceUrl: sourceUrlSchema.nullable().optional(),
+    tags: documentTagsSchema.optional(),
+    searchKeywords: documentKeywordsSchema.optional(),
+    status: documentKnowledgeStatusSchema.optional(),
+    ownerId: idSchema.nullable().optional(),
   })
   .strict()
+
+export const reviewDocumentInput = z
+  .object({
+    expectedRevision: z.number().int().min(1),
+    markCurrent: z.boolean().default(true),
+  })
+  .strict()
+
+export const clearDocumentReviewInput = z.object({ expectedRevision: z.number().int().min(1) }).strict()
 
 export const listDocumentsInput = z.object({
   q: z.string().trim().max(200).optional(),
@@ -384,6 +408,13 @@ export interface DocumentSummary {
   excerpt: string
   bodyLength: number
   revision: number
+  tags: string[]
+  searchKeywords: string[]
+  status: DocumentKnowledgeStatus
+  owner: ActorRef | null
+  reviewedAt: string | null
+  reviewedBy: ActorRef | null
+  reviewedRevision: number | null
   archivedAt: string | null
   updatedAt: string
   updatedBy: ActorRef

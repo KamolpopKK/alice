@@ -2,21 +2,25 @@ import type { FastifyInstance } from 'fastify'
 import * as z from 'zod'
 import {
   createDocumentInput,
+  clearDocumentReviewInput,
   cursorSchema,
   documentLinkInput,
   idSchema,
   limitSchema,
   listDocumentsInput,
+  reviewDocumentInput,
   updateDocumentInput,
 } from '../../shared/contracts'
 import type { AppContext } from '../context'
 import { listActivity } from '../domain/activity'
 import {
   createDocument,
+  clearDocumentReview,
   getDocument,
   linkDocument,
   listDocuments,
   listRevisions,
+  reviewDocument,
   restoreDocumentRevision,
   setDocumentArchived,
   unlinkDocument,
@@ -45,6 +49,12 @@ export function registerDocumentRoutes(app: FastifyInstance, ctx: AppContext): v
     const actor = requireAuth(req)
     return updateDocument(ctx, actor, parse(idParam, req.params).id, parse(updateDocumentInput, req.body))
   })
+  app.post('/documents/:id/review', async (req) =>
+    reviewDocument(ctx, requireAuth(req), parse(idParam, req.params).id, parse(reviewDocumentInput, req.body)),
+  )
+  app.delete('/documents/:id/review', async (req) =>
+    clearDocumentReview(ctx, requireAuth(req), parse(idParam, req.params).id, parse(clearDocumentReviewInput, req.body)),
+  )
   app.post('/documents/:id/archive', async (req) => setDocumentArchived(ctx, requireAuth(req), parse(idParam, req.params).id, true))
   app.post('/documents/:id/restore', async (req) => setDocumentArchived(ctx, requireAuth(req), parse(idParam, req.params).id, false))
   app.get('/documents/:id/revisions', async (req) => {
