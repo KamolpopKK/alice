@@ -13,6 +13,12 @@ to you and visible to the team immediately. Requires an Alice server speaking MC
 For reusable runtime Documents, read [DOCUMENT-KNOWLEDGE.md](DOCUMENT-KNOWLEDGE.md) before searching,
 creating, reviewing or relating knowledge. Project files use their narrower documented format instead.
 
+For a precise implementation task, begin at the code and briefly look up its component/feature
+relationships in existing project understanding. For unclear or cross-service work, begin with the
+overview. Follow only relevant detail, verify the code being changed, and update owning knowledge and
+System graph when responsibilities, contracts, dependencies or flows change. Internal-only edits need
+no document rewrite. Follow the shared knowledge guide; do not invoke alice-understand automatically.
+
 ## Safety
 
 - Your token is a secret. Never print it, paste it into comments or documents, or commit it.

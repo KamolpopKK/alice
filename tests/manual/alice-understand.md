@@ -4,6 +4,9 @@ Run in temporary repositories and a temporary Alice server/board only. Do not in
 credentials or save fixtures into a real user's workspace. Record the skill revision, inputs, actual
 artifacts and differences from expectations. Static text tests do not prove these behaviors.
 
+See [qualification evidence](alice-understand-results.md) for the author-driven run, executable
+storage/install checks and their explicit evaluation limits.
+
 ## Scenarios
 
 1. **First overview / monolith.** Supply a tiny app with routes, an owned store, package scripts and a

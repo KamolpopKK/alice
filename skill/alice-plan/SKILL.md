@@ -15,6 +15,13 @@ Requires an Alice server speaking MCP contract v1.
 For runtime Alice Documents, read [DOCUMENT-KNOWLEDGE.md](DOCUMENT-KNOWLEDGE.md) before discovery or
 updating the planning reference. Project files do not have these lifecycle fields or typed relations.
 
+During discovery, use project understanding selectively: precise changes can start at code with a
+short relationship lookup, while unclear/cross-service work starts at the overview. Verify relevant
+source baselines and working-tree changes. Include maintenance of affected owning detail/System graph
+when planned work changes responsibilities, contracts, dependencies or flows; internal-only changes
+need no document rewrite. Recommend alice-understand for a material knowledge gap, never invoke it
+automatically. A stale document alone is not a reason to require a whole-system survey.
+
 Plan implementation from agreed needs and a sufficient technical approach. A separate spec is not
 required when existing patterns clearly cover the work. Do not create or replace the main technical
 design in planning; if it is missing, recommend `alice-spec` and wait for the person to choose the next

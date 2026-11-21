@@ -9,6 +9,7 @@
 - ทุก mutation บันทึก activity event พร้อม actor ใน transaction เดียวกัน
 - เอกสารผู้ใช้/operator อยู่ใน `docs/` และ README — งานที่อยู่นอกขอบเขตของงานที่ได้รับ ให้บันทึกเป็น follow-up แทนการเพิ่มเอง
 - Commit message บอกผลลัพธ์ของงาน ไม่ใส่ ID ของ spec/task ภายใน
+- ใช้ alice-understand เมื่อต้องสำรวจ/ทบทวนความรู้ระบบเดิม งานที่จุดแก้ชัดเริ่มจากโค้ดและค้นความสัมพันธ์เฉพาะส่วน งานไม่ชัดเริ่มจากภาพรวม; อัปเดต owning detail/System graph เมื่อหน้าที่ contract dependency หรือ flow เปลี่ยน ไม่บังคับอ่าน docs ทั้งหมดหรือแก้ docs ทุกครั้ง
 
 ## Stack และโครงสร้าง
 

@@ -14,6 +14,12 @@ files, under your own agent identity. Requires an Alice server speaking MCP cont
 For runtime Alice Documents, read [DOCUMENT-KNOWLEDGE.md](DOCUMENT-KNOWLEDGE.md) before finding or
 saving designs. Project files do not have these lifecycle fields or typed relations.
 
+Use existing project understanding to discover the current system before proposing changes. A named
+code location can be the starting point, with a short relationship lookup; unclear/cross-service work
+starts from the overview. Follow relevant detail and verify source baselines and dirty changes. Keep
+as-inspected knowledge distinct from proposed design. Recommend alice-understand only for a material
+knowledge gap; do not invoke it automatically or load all knowledge for every design.
+
 Before formatting the design or a spike, read [TEMPLATE.md](TEMPLATE.md). It defines the output shape
 and links the shared requirement-reference and Mermaid conventions. Select only relevant content,
 keeping the selected template headings and fields.

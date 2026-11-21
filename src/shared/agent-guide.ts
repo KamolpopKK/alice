@@ -188,7 +188,7 @@ export function agentSetupGuide(client: AgentGuideClient, originInput: string): 
     },
     {
       title: 'Install the Alice skills',
-      description: `Installs alice (claim, read context, comment, complete), alice-plan (break work down into ready-to-pick-up tasks), alice-think (think a new idea or request through into a brief) alice-spec (design the technical solution) and alice-understand (understand existing projects) for ${label}.`,
+      description: `Installs alice (claim, read context, comment, complete), alice-plan (break work down into ready-to-pick-up tasks), alice-think (think a new idea or request through into a brief), alice-spec (design the technical solution) and alice-understand (understand existing projects) for ${label}.`,
       code: `alice install-skill --client ${client}`,
     },
     connectStep(client, origin),

@@ -19,6 +19,12 @@ Requires an Alice server speaking MCP contract v1.
 For runtime Alice Documents, read [DOCUMENT-KNOWLEDGE.md](DOCUMENT-KNOWLEDGE.md) before discovery or
 saving a brief. Project files do not have these lifecycle fields or typed relations.
 
+During triage, use existing project understanding according to the question: start at named code for
+a precise issue and briefly check its relationships; start at the overview for unclear/cross-service
+work. Read only relevant detail and verify claims against source evidence. Recommend alice-understand
+when a material understanding gap needs investigation; do not invoke it automatically or require a
+whole-system survey before every brief. Preserve this skill's content-approval boundary.
+
 Before formatting a brief, task or spike, read [TEMPLATE.md](TEMPLATE.md). It defines the output shape
 and links the shared requirement-reference and Mermaid conventions. Select relevant content using
 this skill; keep the selected template headings and fields.
