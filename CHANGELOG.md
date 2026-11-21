@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.4 — 2026-11-22
+
+### Added
+
+- **Mermaid diagrams in Markdown.** Task descriptions, documents, previews, document revisions,
+  project descriptions and comments render diagrams locally in the app theme. Diagram source remains
+  available; invalid diagrams show an error without breaking the surrounding content. Active content
+  and external resources are restricted. Zoom, pan and export are not included.
+- **Reusable project understanding.** The new `alice-understand` skill explores existing systems,
+  records evidence and coverage, maintains linked knowledge and a Mermaid System graph, and refreshes
+  affected sections when called again. CLI and Local integrations distribute all five Alice skills.
+
+### Changed
+
+- **Selective knowledge use.** Think, spec, plan and implementation workflows look up relevant project
+  knowledge and maintain affected details without loading every document for every task.
+
+### Fixes
+
+- **Self-signed macOS installation.** The install script validates the release's existing code
+  signature without requiring an Apple Developer ID, matching the supported self-signed release path.
+
 ## 0.2.3 — 2026-11-21
 
 ### Added
