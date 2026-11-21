@@ -311,20 +311,46 @@ export const HIGHLIGHT_END = '\u0002'
 export const searchInput = z.object({
   q: z.string().trim().min(1, 'Enter a search term').max(200),
   kind: z.preprocess((v) => (v === undefined || v === '' ? undefined : Array.isArray(v) ? v : String(v).split(',')), z.array(z.enum(SEARCH_KINDS)).optional()),
+  tag: listOf(z.string().trim().min(1).max(40)),
+  status: listOf(z.enum(['unreviewed', 'draft', 'current', 'superseded'])),
+  /** Actor ids; the literal `none` matches documents without an owner. */
+  ownerId: listOf(idSchema),
+  projectId: listOf(idSchema),
   archived: archiveFilterSchema,
   cursor: cursorSchema,
   limit: limitSchema,
 })
 
-export interface SearchResult {
-  kind: SearchKind
+export interface DocumentSearchMatch {
+  field: 'title' | 'keyword' | 'tag' | 'body' | 'sourceUrl'
+  value?: string
+  excerpt: string
+}
+
+interface SearchResultBase {
   id: string
-  /** Task id for task and comment results. */
-  taskId: string | null
   title: string
   snippet: string
   archived: boolean
 }
+
+export interface TaskOrCommentSearchResult extends SearchResultBase {
+  kind: 'task' | 'comment'
+  taskId: string
+}
+
+export interface DocumentSearchResult extends SearchResultBase {
+  kind: 'document'
+  taskId: null
+  match: DocumentSearchMatch
+  tags: string[]
+  status: DocumentKnowledgeStatus
+  owner: ActorRef | null
+  reviewedAt: string | null
+  projectContext: { items: ProjectRef[]; total: number }
+}
+
+export type SearchResult = TaskOrCommentSearchResult | DocumentSearchResult
 
 // ---------- Documents ----------
 export const documentTitleSchema = z.string().trim().min(1, 'Title is required').max(200)
@@ -382,7 +408,11 @@ export const clearDocumentReviewInput = z.object({ expectedRevision: z.number().
 export const listDocumentsInput = z.object({
   q: z.string().trim().max(200).optional(),
   taskId: idSchema.optional(),
-  projectId: idSchema.optional(),
+  projectId: listOf(idSchema),
+  tag: listOf(documentTagSchema),
+  status: listOf(documentKnowledgeStatusSchema),
+  /** Actor ids; the literal `none` matches documents without an owner. */
+  ownerId: listOf(idSchema),
   archived: archiveFilterSchema,
   cursor: cursorSchema,
   limit: limitSchema,
@@ -415,6 +445,8 @@ export interface DocumentSummary {
   reviewedAt: string | null
   reviewedBy: ActorRef | null
   reviewedRevision: number | null
+  /** Present when this summary came from a text query. */
+  match: DocumentSearchMatch | null
   archivedAt: string | null
   updatedAt: string
   updatedBy: ActorRef

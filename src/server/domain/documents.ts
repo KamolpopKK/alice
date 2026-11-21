@@ -21,7 +21,7 @@ import { newId } from '../ids'
 import { mutate, type Mutation } from './activity'
 import { requireActiveActor, type Actor } from './actors'
 import { findProjectRow } from './projects'
-import { compileQuery, indexResource, matchClauses } from './search'
+import { indexResource, search } from './search'
 import { actorCols, actorRefFrom, decodeCursor, diff, encodeCursor } from './sql'
 import { requireTaskRow } from './tasks'
 
@@ -93,6 +93,7 @@ export function toSummary(row: DocRow, db?: DB): DocumentSummary {
     reviewedAt: row.reviewed_at,
     reviewedBy: actorRefFrom(row, 'reviewed_by'),
     reviewedRevision: row.reviewed_revision,
+    match: null,
     archivedAt: row.archived_at,
     updatedAt: row.updated_at,
     updatedBy: actorRefFrom(row, 'updated_by')!,
@@ -158,7 +159,10 @@ function indexDocument(m: Mutation, id: string): void {
     resourceId: id,
     displayTitle: row.title,
     title: row.title,
-    body: [row.body, row.source_url ?? ''].join('\n'),
+    keywords: metadataValues(m.db, 'document_keywords', id).join(' '),
+    tags: metadataValues(m.db, 'document_tags', id).join(' '),
+    body: row.body,
+    source: row.source_url ?? '',
     archived: row.archived_at !== null,
   })
 }
@@ -367,6 +371,26 @@ export function listRevisions(ctx: AppContext, id: string, options: { cursor?: s
 
 export function listDocuments(ctx: AppContext, input: z.infer<typeof listDocumentsInput>): Page<DocumentSummary> {
   const limit = input.limit ?? 50
+  if (input.q) {
+    const results = search(ctx, {
+      q: input.q,
+      kind: ['document'],
+      tag: input.tag,
+      status: input.status,
+      ownerId: input.ownerId,
+      projectId: input.projectId,
+      archived: input.archived,
+      cursor: input.cursor,
+      limit,
+    })
+    return {
+      items: results.items.map((result) => {
+        const row = requireDocRow(ctx.db, ctx.workspaceId, result.id)
+        return { ...toSummary(row, ctx.db), match: result.kind === 'document' ? result.match : null }
+      }),
+      nextCursor: results.nextCursor,
+    }
+  }
   const where = ['d.workspace_id = ?']
   const params: unknown[] = [ctx.workspaceId]
   if (input.archived === 'active') where.push('d.archived_at IS NULL')
@@ -375,16 +399,27 @@ export function listDocuments(ctx: AppContext, input: z.infer<typeof listDocumen
     where.push('d.id IN (SELECT document_id FROM task_documents WHERE task_id = ?)')
     params.push(input.taskId)
   }
-  if (input.projectId) {
-    where.push('d.id IN (SELECT document_id FROM project_documents WHERE project_id = ?)')
-    params.push(input.projectId)
+  if (input.projectId?.length) {
+    where.push(`d.id IN (SELECT document_id FROM project_documents WHERE project_id IN (${input.projectId.map(() => '?').join(',')}))`)
+    params.push(...input.projectId)
   }
-  if (input.q) {
-    const { sql, params: p } = matchClauses(compileQuery(input.q))
-    if (sql.length) {
-      where.push(`d.id IN (SELECT sd.resource_id FROM search_index s JOIN search_docs sd ON sd.rowid = s.rowid WHERE sd.kind = 'document' AND ${sql.join(' AND ')})`)
-      params.push(...p)
+  if (input.tag?.length) {
+    where.push(`d.id IN (SELECT document_id FROM document_tags WHERE tag_key IN (${input.tag.map(() => '?').join(',')}))`)
+    params.push(...input.tag.map((tag) => tag.normalize('NFKC').toLocaleLowerCase('en-US')))
+  }
+  if (input.status?.length) {
+    where.push(`d.knowledge_status IN (${input.status.map(() => '?').join(',')})`)
+    params.push(...input.status)
+  }
+  if (input.ownerId?.length) {
+    const ids = input.ownerId.filter((id) => id !== 'none')
+    const owner = [] as string[]
+    if (input.ownerId.includes('none')) owner.push('d.owner_id IS NULL')
+    if (ids.length) {
+      owner.push(`d.owner_id IN (${ids.map(() => '?').join(',')})`)
+      params.push(...ids)
     }
+    where.push(`(${owner.join(' OR ')})`)
   }
   const cursor = decodeCursor(input.cursor)
   if (cursor?.length === 2) {

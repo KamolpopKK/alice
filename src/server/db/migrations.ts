@@ -633,6 +633,26 @@ export const MIGRATIONS: Migration[] = [
       END;
     `,
   },
+  {
+    version: 17,
+    name: 'document_knowledge_search',
+    sql: `
+      DROP TABLE search_index;
+      CREATE VIRTUAL TABLE search_index USING fts5(title, keywords, tags, body, source, tokenize = 'trigram remove_diacritics 1');
+
+      INSERT INTO search_index (rowid, title, keywords, tags, body, source)
+      SELECT sd.rowid,
+        CASE sd.kind WHEN 'task' THEN t.title WHEN 'document' THEN d.title ELSE '' END,
+        CASE sd.kind WHEN 'document' THEN COALESCE((SELECT group_concat(keyword_text, ' ') FROM document_keywords WHERE document_id = d.id), '') ELSE '' END,
+        CASE sd.kind WHEN 'document' THEN COALESCE((SELECT group_concat(tag_text, ' ') FROM document_tags WHERE document_id = d.id), '') ELSE '' END,
+        CASE sd.kind WHEN 'task' THEN t.description WHEN 'document' THEN d.body WHEN 'comment' THEN c.body ELSE '' END,
+        CASE sd.kind WHEN 'document' THEN COALESCE(d.source_url, '') ELSE '' END
+      FROM search_docs sd
+      LEFT JOIN tasks t ON sd.kind = 'task' AND t.id = sd.resource_id
+      LEFT JOIN documents d ON sd.kind = 'document' AND d.id = sd.resource_id
+      LEFT JOIN comments c ON sd.kind = 'comment' AND c.id = sd.resource_id;
+    `,
+  },
 ]
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version

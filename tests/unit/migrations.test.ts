@@ -69,7 +69,7 @@ describe('migration runner', () => {
     db.prepare(`INSERT INTO task_documents (task_id, document_id, created_by, created_at) VALUES ('tsk_old', 'doc_old', 'usr_old', ?)`).run(now)
     db.prepare(`INSERT INTO project_documents (project_id, document_id, created_by, created_at) VALUES ('prj_old', 'doc_old', 'usr_old', ?)`).run(now)
 
-    expect(migrate(db, MIGRATIONS)).toEqual([16])
+    expect(migrate(db, MIGRATIONS)).toEqual([16, 17])
     expect(db.prepare(`SELECT revision, knowledge_status, owner_id, reviewed_at, reviewed_by, reviewed_revision FROM documents WHERE id = 'doc_old'`).get()).toEqual({
       revision: 1,
       knowledge_status: 'unreviewed',
@@ -91,6 +91,39 @@ describe('migration runner', () => {
         .prepare(`UPDATE documents SET knowledge_status = 'current', reviewed_at = ?, reviewed_by = 'usr_old', reviewed_revision = 1 WHERE id = 'doc_old'`)
         .run(now),
     ).not.toThrow()
+    db.close()
+  })
+
+  it('rebuilds the shared search index with existing document metadata', () => {
+    const db = openDatabase(':memory:')
+    migrate(db, MIGRATIONS.slice(0, 16))
+    const now = '2026-11-21T00:00:00.000Z'
+    db.prepare(`INSERT INTO workspaces (id, name, created_at) VALUES ('wsp_search', 'Search', ?)`).run(now)
+    db.prepare(
+      `INSERT INTO actors (id, workspace_id, kind, display_name, is_owner, created_at, updated_at)
+       VALUES ('usr_search', 'wsp_search', 'human', 'Search owner', 1, ?, ?)`,
+    ).run(now, now)
+    db.prepare(
+      `INSERT INTO documents (id, workspace_id, title, body, source_url, revision, created_by, updated_by, created_at, updated_at)
+       VALUES ('doc_search', 'wsp_search', 'Migration title', 'migration body', 'https://source.example.test/provenance', 1, 'usr_search', 'usr_search', ?, ?)`,
+    ).run(now, now)
+    db.prepare(`INSERT INTO document_tags (document_id, tag_key, tag_text) VALUES ('doc_search', 'platform', 'Platform')`).run()
+    db.prepare(`INSERT INTO document_keywords (document_id, keyword_key, keyword_text) VALUES ('doc_search', 'aliasonly', 'AliasOnly')`).run()
+    const rowid = Number(
+      db
+        .prepare(`INSERT INTO search_docs (kind, resource_id, display_title, archived) VALUES ('document', 'doc_search', 'Migration title', 0)`)
+        .run().lastInsertRowid,
+    )
+    db.prepare(`INSERT INTO search_index (rowid, title, body) VALUES (?, 'Migration title', 'migration body https://source.example.test/provenance')`).run(rowid)
+
+    expect(migrate(db, MIGRATIONS)).toEqual([17])
+    for (const query of ['aliasonly', 'platform', 'migration body', 'provenance']) {
+      expect(
+        db
+          .prepare(`SELECT d.resource_id FROM search_index s JOIN search_docs d ON d.rowid = s.rowid WHERE search_index MATCH ?`)
+          .all(`"${query}"`),
+      ).toEqual([{ resource_id: 'doc_search' }])
+    }
     db.close()
   })
 })

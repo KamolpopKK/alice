@@ -196,6 +196,57 @@ describe('documents', () => {
     expect((await owner.post(`/api/documents/${d1.id}/restore`)).body.document.archivedAt).toBeNull()
   })
 
+  it('ranks and explains metadata-aware search while composing document filters', async () => {
+    const p1 = (await owner.post('/api/projects', { name: 'Knowledge Alpha' })).body.project
+    const p2 = (await owner.post('/api/projects', { name: 'Knowledge Beta' })).body.project
+    const title = (await owner.post('/api/documents', {
+      title: 'Phoenix handbook',
+      body: 'general notes',
+      tags: ['platform'],
+      status: 'draft',
+      ownerId: agent.id,
+    })).body.document
+    const keyword = (await owner.post('/api/documents', {
+      title: 'Alias guide',
+      body: 'general notes',
+      searchKeywords: ['Phoenix'],
+      tags: ['operations'],
+      status: 'unreviewed',
+    })).body.document
+    const tag = (await owner.post('/api/documents', { title: 'Tagged guide', body: 'general notes', tags: ['Phoenix'], status: 'superseded' })).body.document
+    const body = (await owner.post('/api/documents', { title: 'Body guide', body: 'The Phoenix procedure', tags: ['platform'] })).body.document
+    const source = (await owner.post('/api/documents', { title: 'Source guide', sourceUrl: 'https://phoenix.example.test/runbook', tags: ['platform'] })).body.document
+    await owner.post(`/api/documents/${body.id}/review`, { expectedRevision: 1 })
+    await owner.post(`/api/documents/${title.id}/links`, { projectId: p1.id })
+    await owner.post(`/api/documents/${keyword.id}/links`, { projectId: p2.id })
+
+    const results = (await owner.get('/api/search?q=phoenix&kind=document')).body.items
+    expect(results.map((r: any) => r.id)).toEqual([title.id, keyword.id, tag.id, body.id, source.id])
+    expect(results.map((r: any) => r.match.field)).toEqual(['title', 'keyword', 'tag', 'body', 'sourceUrl'])
+    expect(results[1]).toMatchObject({
+      match: { field: 'keyword', value: 'Phoenix' },
+      tags: ['operations'],
+      status: 'unreviewed',
+      owner: null,
+      projectContext: { items: [{ id: p2.id }], total: 1 },
+    })
+
+    const documentResults = (await owner.get(`/api/documents?q=phoenix&tag=platform,operations&status=current,draft,unreviewed&ownerId=${agent.id},none&projectId=${p1.id},${p2.id}`)).body.items
+    expect(documentResults.map((d: any) => d.id)).toEqual([title.id, keyword.id])
+    expect(documentResults.every((d: any) => d.match?.field)).toBe(true)
+
+    const titleCurrent = (await owner.post('/api/documents', { title: 'Lifecycle Phoenix', body: 'current' })).body.document
+    const titleDraft = (await owner.post('/api/documents', { title: 'Lifecycle Phoenix', body: 'draft', status: 'draft' })).body.document
+    const titleSuperseded = (await owner.post('/api/documents', { title: 'Lifecycle Phoenix', body: 'old', status: 'superseded' })).body.document
+    await owner.post(`/api/documents/${titleCurrent.id}/review`, { expectedRevision: 1 })
+    const lifecycle = (await owner.get('/api/search?q=lifecycle%20phoenix&kind=document')).body.items
+    expect(lifecycle.map((r: any) => r.id)).toEqual([titleCurrent.id, titleDraft.id, titleSuperseded.id])
+
+    await owner.post(`/api/documents/${source.id}/archive`)
+    expect((await owner.get('/api/search?q=phoenix.example&kind=document')).body.items).toHaveLength(0)
+    expect((await owner.get('/api/search?q=phoenix.example&kind=document&archived=all')).body.items[0]).toMatchObject({ id: source.id, archived: true })
+  })
+
   it('windows long bodies for agents with explicit continuation', async () => {
     const body = 'x'.repeat(250)
     const doc = (await owner.post('/api/documents', { title: 'Long', body })).body.document
