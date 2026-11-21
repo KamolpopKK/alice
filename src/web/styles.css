@@ -692,6 +692,24 @@ main:focus {
 .markdown > :first-child {
   margin-top: 0;
 }
+.mermaid-diagram {
+  margin: 1rem 0;
+  min-width: 0;
+  max-width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.mermaid-diagram img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.mermaid-diagram summary {
+  cursor: pointer;
+  margin-top: 8px;
+}
 .markdown pre {
   background: var(--surface-2);
   padding: 10px;

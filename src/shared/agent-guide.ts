@@ -111,7 +111,7 @@ function buildPrompt(client: AgentGuideClient, label: string, origin: string): s
     ...installCommands(origin).split('\n').map((l) => `   ${l}`),
     `3. Fetch ${origin}/downloads/manifest.json and compare the SHA-256 of both files with it (shasum -a 256, or sha256sum on Linux). If they differ, delete the files and stop.`,
     `   If ${BIN} is not on my PATH, add this line to my shell profile: ${PATH_PROFILE_LINE}`,
-    `4. Install the Alice skills (alice for working on tasks, alice-plan for breaking work down, alice-think for thinking new work through, alice-spec for technical design): ${BIN}/alice install-skill --client ${client}`,
+    `4. Install the Alice skills (alice for working on tasks, alice-plan for breaking work down, alice-think for thinking new work through, alice-spec for technical design, alice-understand for existing project knowledge): ${BIN}/alice install-skill --client ${client}`,
     ...connect,
     '6. Stop here and ask me to place the token myself. Show me this command to run in my own terminal (it reads the token without echoing it):',
     ...tokenFileCommand().split('\n').map((l) => `   ${l}`),
@@ -141,7 +141,7 @@ function updateSteps(client: AgentGuideClient, label: string, origin: string): G
     },
     {
       title: 'Reinstall the skills',
-      description: 'Replaces alice, alice-plan, alice-think and alice-spec with the versions embedded in the new CLI and adds any skill shipped since your first setup.',
+      description: 'Replaces alice, alice-plan, alice-think, alice-spec and alice-understand with the versions embedded in the new CLI and adds any skill shipped since your first setup.',
       code: `alice install-skill --client ${client}`,
     },
     {
@@ -161,7 +161,7 @@ function buildUpdatePrompt(client: AgentGuideClient, label: string, origin: stri
     '- Do not change the MCP configuration. Do not use sudo. Stop and tell me if any step fails.',
     '',
     'Steps:',
-    `1. Run ${BIN}/alice version and fetch ${origin}/downloads/manifest.json. If the CLI, adapter and every skill (alice, alice-plan, alice-think, alice-spec) already match the manifest version, tell me everything is up to date and stop.`,
+    `1. Run ${BIN}/alice version and fetch ${origin}/downloads/manifest.json. If the CLI, adapter and every skill (alice, alice-plan, alice-think, alice-spec, alice-understand) already match the manifest version, tell me everything is up to date and stop.`,
     `2. Download the new files into ${BIN}:`,
     ...installCommands(origin).split('\n').map((l) => `   ${l}`),
     '3. Compare the SHA-256 of both files with the manifest (shasum -a 256, or sha256sum on Linux). If they differ, stop and tell me; do not run them.',
@@ -188,7 +188,7 @@ export function agentSetupGuide(client: AgentGuideClient, originInput: string): 
     },
     {
       title: 'Install the Alice skills',
-      description: `Installs alice (claim, read context, comment, complete), alice-plan (break work down into ready-to-pick-up tasks), alice-think (think a new idea or request through into a brief) and alice-spec (design the technical solution) for ${label}.`,
+      description: `Installs alice (claim, read context, comment, complete), alice-plan (break work down into ready-to-pick-up tasks), alice-think (think a new idea or request through into a brief), alice-spec (design the technical solution) and alice-understand (understand existing projects) for ${label}.`,
       code: `alice install-skill --client ${client}`,
     },
     connectStep(client, origin),
@@ -238,7 +238,7 @@ export function localAgentSetupGuide(client: AgentGuideClient): LocalAgentGuide 
     { title: 'Check the alice command', description: 'Use alice on PATH or ~/.local/bin/alice. If both are missing, choose “Install the alice command” on this page.', code: 'alice version' },
     {
       title: `Give ${label} its own identity and the Alice skills`,
-      description: `Installs the alice, alice-plan, alice-think and alice-spec skills for ${label} and lets it work in every Local workspace under its own name.`,
+      description: `Installs the alice, alice-plan, alice-think, alice-spec and alice-understand skills for ${label} and lets it work in every Local workspace under its own name.`,
       code: `alice integration enable ${client}`,
     },
     { title: 'Choose the Local workspace', description: 'Use the only Local workspace, or choose one if several exist. Pass its alias explicitly when reading tasks.', code: `${as} workspace list --json` },
@@ -257,11 +257,11 @@ export function localAgentSetupGuide(client: AgentGuideClient): LocalAgentGuide 
     '',
     'Steps:',
     `1. Find the installed alice command on PATH or at ~/.local/bin/alice, and run \`alice version\` using the working path. Use that same path below; no new terminal is needed just for PATH. If missing, use your app-control tools to ${LOCAL_CLI_MISSING} Request app-control permission if needed. If you cannot control the app, ask me only to click that button, then continue when I confirm. Do not install an extra runtime or build from source.`,
-    `2. Run \`alice integration enable ${client}\` using the working command path, without --as for this setup operation. It installs all four bundled skills (alice, alice-think, alice-spec and alice-plan) and gives you your own Local identity. Request access for writing the client skill directory and updating Local registration if needed; a permission error is not a completed setup.`,
-    `3. Run \`alice version\` again and inspect only the installed skill files under ${client === 'codex' ? '~/.codex/skills' : '~/.claude/skills'}. Confirm alice, alice-think, alice-spec and alice-plan each have SKILL.md, PROJECT-FILES.md, DOCUMENT-KNOWLEDGE.md and OUTPUT-FORMATS.md; think, spec and plan also need TEMPLATE.md. If the CLI bundles an older set, report that an updated Alice release is needed; do not repeatedly reinstall the same older bundle or fetch unverified files.`,
+    `2. Run \`alice integration enable ${client}\` using the working command path, without --as for this setup operation. It installs all five bundled skills (alice, alice-think, alice-spec, alice-plan and alice-understand) and gives you your own Local identity. Request access for writing the client skill directory and updating Local registration if needed; a permission error is not a completed setup.`,
+    `3. Run \`alice version\` again and inspect only the installed skill files under ${client === 'codex' ? '~/.codex/skills' : '~/.claude/skills'}. Confirm alice, alice-think, alice-spec, alice-plan and alice-understand each have SKILL.md, PROJECT-FILES.md, DOCUMENT-KNOWLEDGE.md and OUTPUT-FORMATS.md; think, spec, plan and understand also need TEMPLATE.md. If the CLI bundles an older set, report that an updated Alice release is needed; do not repeatedly reinstall the same older bundle or fetch unverified files.`,
     `4. Run \`${as} workspace list --json\`. Use the only Local workspace; if several exist, ask me once which to use, naming the choices. If none exists, finish Local first-run setup in Alice through your app-control tools, using displayed defaults and enabling only ${label}. Ask me only for required personal choices or UI actions you cannot perform, then continue. Do not reset or replace existing workspaces.`,
     `5. Read the selected workspace's ready tasks with \`${as} --workspace ALIAS task list --status ready --json\`, replacing ALIAS with its actual alias. Ask for Local daemon access if blocked. Do not claim tasks or begin task work during setup.`,
-    `6. Report installed CLI/skill versions, the selected workspace and ready task count. Explain briefly: alice-think clarifies ideas and requirements, alice-spec designs the technical solution, alice-plan breaks agreed work into tasks, and alice works on tasks. Show one example I can paste: ${client === 'codex' ? '$alice-think ช่วยคิดฟีเจอร์นี้หน่อย' : '/alice-think ช่วยคิดฟีเจอร์นี้หน่อย'}. If the current session has not loaded the new skills, tell me once to start a new session; that is not a reason to leave setup verification unfinished. Use the relevant Alice skill for later work and always pass \`--as ${client}\` on workspace/task commands.`,
+    `6. Report installed CLI/skill versions, the selected workspace and ready task count. Explain briefly: alice-think clarifies ideas and requirements, alice-spec designs the technical solution, alice-plan breaks agreed work into tasks, alice works on tasks, and alice-understand maps existing projects into reusable knowledge. Show one example I can paste: ${client === 'codex' ? '$alice-think ช่วยคิดฟีเจอร์นี้หน่อย' : '/alice-think ช่วยคิดฟีเจอร์นี้หน่อย'}. If the current session has not loaded the new skills, tell me once to start a new session; that is not a reason to leave setup verification unfinished. Use the relevant Alice skill for later work and always pass \`--as ${client}\` on workspace/task commands.`,
   ].join('\n')
   const tryPrompts = [
     'Look at the ready tasks in Alice and take one to work on.',

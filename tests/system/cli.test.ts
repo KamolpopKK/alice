@@ -20,6 +20,30 @@ async function cliLogin(home: CliEnv, approver: HttpClient, profile?: string) {
 const secretsIn = (text: string) => text.match(/alice_(c[ar]|dc)_[a-z0-9]+/g) ?? []
 
 describe('alice CLI artifact', () => {
+  it('installs the embedded understanding skill for both clients and scopes without source files', async () => {
+    const { standalone } = await buildCli()
+    for (const client of ['codex', 'claude-code']) {
+      for (const scope of ['user', 'project']) {
+        const target = tempDataDir('understand-install')
+        const home = cliHome()
+        const result = await alice(home, ['install-skill', '--client', client, '--scope', scope, '--skill', 'alice-understand'], {
+          entry: path.join(standalone, 'alice.js'), extraEnv: { HOME: target }, cwd: target,
+        })
+        expect(result.code, result.stderr).toBe(0)
+        const base = path.join(target, client === 'codex' ? '.codex/skills' : '.claude/skills')
+        expect(fs.readdirSync(base)).toEqual(['alice-understand'])
+        for (const relative of ['skill/_shared', 'skill/alice-understand']) {
+          const source = path.resolve(import.meta.dirname, '../..', relative)
+          for (const file of fs.readdirSync(source)) {
+            expect(fs.readFileSync(path.join(base, 'alice-understand', file), 'utf8')).toBe(fs.readFileSync(path.join(source, file), 'utf8'))
+          }
+        }
+        const version = await alice(home, ['version', '--json'], { entry: path.join(standalone, 'alice.js'), extraEnv: { HOME: target }, cwd: target })
+        expect(JSON.parse(version.stdout).agentSkills['alice-understand'][`${client} (${scope})`]).toBe(APP_VERSION)
+      }
+    }
+  })
+
   it('runs standalone without node_modules, SQLite or server runtime code', async () => {
     const { standalone } = await buildCli()
     expect(fs.readdirSync(standalone)).toEqual(['alice.js'])

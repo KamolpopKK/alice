@@ -23,3 +23,22 @@ Before creating a brief, design, plan or reusable finding:
 
 Task/project links and document relations are different: `link_document` connects a document to work;
 `link_document_relation` connects two knowledge documents.
+
+## Using project understanding during work
+
+Choose the entry point to fit the task. For a precise code change, start at that code and do a short
+search for its component/feature and relationships in the overview or System graph. For an unclear or
+cross-service request, start with the overview, then follow only the relevant detail. Do not load all
+project knowledge or invoke alice-understand automatically for every task.
+
+Check the source evidence in the area you will change: document review is not proof that the current
+code still matches it. Compare relevant repository baselines and working-tree changes, including
+staged, unstaged and untracked files. Look beyond the immediate code for consumers, event contracts,
+data ownership and external integrations. If knowledge conflicts with code, inspect the evidence and
+correct the owning detail rather than silently relying on either source.
+
+When authorized work changes a documented responsibility, contract, dependency or flow, update its
+authoritative detail and affected System graph nodes/edges, and keep overview links accurate. Preserve
+unrelated coverage and earlier evidence. An internal-only change does not require a document rewrite.
+Use the task's knowledge-maintenance authorization; ask before an update outside that scope. Keep the
+normal revision/review rules: content changes clear review, and generation is not review.

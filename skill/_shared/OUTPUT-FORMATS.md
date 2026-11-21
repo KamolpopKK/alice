@@ -86,7 +86,8 @@ Keep node/participant ids stable within the diagram and use meaningful labels. L
 meaning is not obvious. Distinguish current and proposed behaviour in the title or explanation. Split
 large diagrams by concern rather than shrinking them into an unreadable single view.
 
-Alice may show the Mermaid source as code until diagram rendering is implemented. Do not claim it was
+Alice renders Mermaid locally in Markdown content and previews, with source available; invalid diagrams
+show an error and the source. External resources are not supported. Do not claim a diagram was
 rendered or syntax-validated unless that check was actually performed. Under `alice-spec`, every check
 execution requires the person's prior approval.
 

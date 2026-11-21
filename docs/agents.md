@@ -31,7 +31,7 @@ The adapter refuses to start against a server that speaks a different MCP contra
 contract it needs. The `install-skill` and `mcp-config` helpers are part of the `alice` CLI. They also
 work from the standalone `alice.js`, which has every skill embedded.
 
-Alice ships four skills, and `install-skill` installs all of them unless you pass `--skill` with one
+Alice ships five skills, and `install-skill` installs all of them unless you pass `--skill` with one
 name:
 
 | Skill | Use it to |
@@ -40,10 +40,46 @@ name:
 | `alice-think` | Agree the problem, needs and scope. Create one task for small, clear work, or an approved brief with relevant requirements and flows. |
 | `alice-spec` | Design the technical solution for agreed needs: architecture, data model, contracts, migration and operations where relevant. |
 | `alice-plan` | Break agreed requirements and a sufficient technical approach into reviewed tasks, dependencies and verification steps. |
+| `alice-understand` | Understand an existing system, connect business flows to code/services, and maintain reusable knowledge with a separate Mermaid System graph. |
 
-Choose the skill for the work at hand; this is not a mandatory four-stage pipeline. Think and spec
+Choose the skill for the work at hand; this is not a mandatory sequence. Think and spec
 finish by recommending the next skill, with the reason and input document ids/paths. They do not
 invoke it automatically. Plan also recommends think or spec when its input is not ready.
+
+## Understanding an existing project
+
+Use `$alice-understand` in Codex or `/alice-understand` in Claude Code, for example:
+
+```text
+Understand this project and save reusable knowledge and a Mermaid System graph.
+Trace order cancellation across the API and payments repositories.
+Refresh the order-service knowledge after the changes since its recorded baseline.
+```
+
+The skill supports an overview, a focused question or a refresh. It records coverage, repository
+baselines (including working-tree changes), source evidence, conflicts and unknowns. Its coverage
+check includes capabilities, architecture, code structure, contracts, components, stack, dependencies,
+development commands and test/CI facts; it does not score the system or infer team policies from code.
+Commands found are distinguished from commands executed. Configuration alone does not prove
+production behavior. Inaccessible services remain explicit boundaries rather than invented details.
+
+Outputs use existing Documents: one overview, a separate System graph with Mermaid source, and detail
+documents only when useful to maintain independently. The graph shows as-inspected apps/services,
+stores and external systems with evidence-backed, labelled edges and stable IDs. Dense areas get
+smaller views; sequence diagrams belong in flow documents. Mermaid may display as source code in
+Alice; this skill does not add a renderer or promise validation it has not performed.
+
+Later tasks use this knowledge selectively. A precise fix can start at code plus a short relationship
+lookup; unclear work starts at the overview. Update owning detail and graph when responsibilities,
+contracts, dependencies or flows change, not for every internal edit. Focused refresh preserves earlier
+evidence for untouched areas and never labels the whole system freshly checked. A missing baseline
+requires re-inspection. Review is not automatic, and no background scan or new connector is required.
+
+Install with `alice install-skill --client codex --skill alice-understand` (or `claude-code`), or omit
+`--skill` for the whole set. An older released CLI cannot install a skill it does not bundle; use a
+release containing the skill, or build this source for development. See the
+[output templates](../skill/alice-understand/TEMPLATE.md) and
+[walkthrough](../tests/manual/alice-understand.md).
 
 ## Downloading the tools from your server
 
@@ -66,7 +102,7 @@ The recommended setup (the one the Agents page uses) runs the stdio adapter, whi
 from a file every time it connects:
 
 ```bash
-alice install-skill --client claude-code            # ~/.claude/skills/{alice,alice-plan,alice-think,alice-spec} (use --scope project for ./.claude)
+alice install-skill --client claude-code            # ~/.claude/skills/{alice,alice-plan,alice-think,alice-spec,alice-understand} (use --scope project for ./.claude)
 mkdir -p ~/.config/alice && (umask 077; printf 'Paste the Alice agent token: '; read -rs t; printf %s "$t" > ~/.config/alice/token; echo)
 claude mcp add --scope user -e ALICE_URL=https://alice.example.com -e ALICE_TOKEN_FILE=$HOME/.config/alice/token --transport stdio alice -- alice-mcp-stdio
 claude mcp get alice                                # Status: ✔ Connected
@@ -88,7 +124,7 @@ needs a restart.
 ## Codex
 
 ```bash
-alice install-skill --client codex                  # ~/.codex/skills/{alice,alice-plan,alice-think,alice-spec}
+alice install-skill --client codex                  # ~/.codex/skills/{alice,alice-plan,alice-think,alice-spec,alice-understand}
 mkdir -p ~/.config/alice && (umask 077 && printf %s "$ALICE_TOKEN" > ~/.config/alice/token)
 alice mcp-config --client codex --url https://alice.example.com >> ~/.codex/config.toml
 ```
@@ -329,8 +365,9 @@ explaining their purpose in References. No separate artifact-index document is r
 
 Diagrams use fenced Mermaid source: flowcharts for architecture/UI flows, sequence diagrams for
 calls/events, state diagrams for lifecycles and ER diagrams for data relationships. Each has a title,
-purpose and explanation. Alice currently displays the source as code; visual rendering is separate
-future work. Diagram source does not replace precise requirements, contracts or acceptance conditions.
+purpose and explanation. Alice renders diagrams locally, follows the app theme and keeps the source
+available. Invalid syntax shows an error with the source; external resources are not supported.
+Diagram source does not replace precise requirements, contracts or acceptance conditions.
 
 Example prompts (send the next one when you choose to continue):
 
@@ -363,7 +400,7 @@ alice integration unassign codex --workspace personal --yes
 ```
 
 Enabling an agent does three things:
-1. It installs the `alice`, `alice-plan`, `alice-think` and `alice-spec` skills and their supporting files for that client.
+1. It installs the `alice`, `alice-plan`, `alice-think`, `alice-spec` and `alice-understand` skills and their supporting files for that client.
 2. It gives the agent its own identity in every Local workspace. Workspaces created later get it when
    they first open.
 3. It stores the agent's credential in the OS credential store.
@@ -382,7 +419,7 @@ The Remote setup on the **Agents** page (MCP, the stdio adapter and downloads) i
 
 The Local setup prompt carries setup through verification. It finds `alice` on PATH or at
 `~/.local/bin/alice`, uses available app-control tools to install the command if needed, enables only
-the selected client, checks all four skills and supporting files, and selects a Local workspace before
+the selected client, checks all five skills and supporting files, and selects a Local workspace before
 reading ready tasks. With several Local workspaces it asks which to use. It does not claim tasks.
 
 The agent requests the filesystem, network, Local daemon or app-control access an action needs through

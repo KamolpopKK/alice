@@ -99,10 +99,14 @@ describe('Local agent integrations', () => {
     expect((await alice(h, ['integration', 'enable', 'codex'])).code).toBe(0)
     const file = path.join(h.env.HOME, '.codex/skills/alice/SKILL.md')
     fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace(/^version: .*$/m, 'version: 0.1.0'))
+    const understand = path.join(h.env.HOME, '.codex/skills/alice-understand/SKILL.md')
+    expect(fs.existsSync(understand)).toBe(true)
+    fs.unlinkSync(understand)
     fs.mkdirSync(path.join(h.env.HOME, '.claude/skills/alice'), { recursive: true })
     fs.writeFileSync(path.join(h.env.HOME, '.claude/skills/alice/SKILL.md'), 'version: 0.1.0\n')
     const refreshed = json((await alice(h, ['integration', 'refresh', '--json'])).stdout).data.refreshed
-    expect(refreshed).toEqual([{ client: 'codex', installed: ['alice'] }])
+    expect(refreshed).toEqual([{ client: 'codex', installed: ['alice', 'alice-understand'] }])
+    expect(fs.readFileSync(understand, 'utf8')).toContain(`version: ${APP_VERSION}`)
     expect(fs.readFileSync(file, 'utf8')).toContain(`version: ${APP_VERSION}`)
     // Claude ไม่ได้เปิด: ไม่ถูกแตะ
     expect(fs.readFileSync(path.join(h.env.HOME, '.claude/skills/alice/SKILL.md'), 'utf8')).toBe('version: 0.1.0\n')

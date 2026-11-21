@@ -89,8 +89,8 @@ Steps:
    bundled skills and Local identity. Request write permission if needed. Do not
    configure a Remote server, MCP or tokens.
 6. Run `alice version`. Inspect the selected client's ~/.codex/skills or ~/.claude/skills:
-   alice, alice-think, alice-spec and alice-plan must each have SKILL.md,
-   PROJECT-FILES.md and OUTPUT-FORMATS.md; think, spec and plan also need TEMPLATE.md.
+   alice, alice-think, alice-spec, alice-plan and alice-understand must each have SKILL.md,
+   PROJECT-FILES.md, DOCUMENT-KNOWLEDGE.md and OUTPUT-FORMATS.md; think, spec, plan and understand also need TEMPLATE.md.
    If the installed release bundles an older set, explain which skills are missing
    and that an updated release is needed. Do not repeatedly reinstall the same bundle
    or fetch unverified replacements. Do not report complete setup with missing files.
@@ -168,10 +168,11 @@ curl -fsSLo alice-cli.js https://github.com/KamolpopKK/alice/releases/latest/dow
 node alice-cli.js install-skill --client claude-code      # or: --client codex
 ```
 
-This installs the `alice`, `alice-plan`, `alice-think` and `alice-spec` skills for you. Add `--scope project` to put them in this
+This installs the `alice`, `alice-plan`, `alice-think`, `alice-spec` and `alice-understand` skills for you. Add `--scope project` to put them in this
 repository instead (`.claude/skills/` or `.codex/skills/`), so everyone who clones it gets them. Then ask
 your agent to think through needs (`alice-think`), design the technical solution (`alice-spec`), break
-agreed work into tasks (`alice-plan`) or pick up a task (`alice`). It recommends the next skill when
+agreed work into tasks (`alice-plan`), understand an existing system with reusable knowledge and a
+Mermaid System graph (`alice-understand`), or pick up a task (`alice`). It recommends the next skill when
 needed and asks before creating `.alice/`. Workflow and output templates: [agent guide](docs/agents.md).
 
 Keep `alice-cli.js` if you may want the app later: `node alice-cli.js import` brings the board into Alice.
