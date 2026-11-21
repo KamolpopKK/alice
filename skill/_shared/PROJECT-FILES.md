@@ -18,6 +18,10 @@ this same file, so it applies whichever skill you are using.
 Ids are `T-<n>` and `D-<n>`, unique in the folder and never reused; a new id is the highest number in
 its folder plus one. The slug is for people only.
 
+Project-file documents intentionally stop at `id`, `title`, optional `source_url` and Markdown body
+references. Runtime Document fields such as tags, search keywords, owner, lifecycle/review state and
+typed document relations are not supported here; do not add them to front matter.
+
 ## Task files
 
 ```markdown

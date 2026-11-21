@@ -302,6 +302,20 @@ creating every document type. Requirements receive stable local ids such as `REQ
 and tasks cite `<source brief id/path> / REQ-001`. Existing ids are not renumbered or reused. Older
 documents without ids can be cited by section.
 
+### Reuse document knowledge first
+
+In a runtime Alice workspace, agents search before creating a brief, design, plan or reusable finding.
+Document search is lexical across title, curated keywords, tags, body and source URL; its match reason is
+an explanation, not semantic proof. Open and read the relevant section, then inspect lifecycle status,
+owner, source and review audit. Prefer reviewed `current` knowledge, verify `draft`/`unreviewed`, and
+follow relations away from `superseded` sources. Cite title + document id + section wherever knowledge is
+reused. `references`, symmetric `related`, and explicitly acknowledged `supersedes` relations connect
+documents; Task/Project links connect knowledge to work.
+
+Project files remain intentionally narrower: document front matter is only `id`, `title` and optional
+`source_url`, with citations in the Markdown body. Do not invent runtime lifecycle fields or typed
+relations in `.alice/` files.
+
 Each brief, design, new planning reference or separately extracted topic starts with Type, Scope and
 Source in the Markdown body, plus Related documents when present. These describe its role, boundaries
 and origin without adding application metadata or another approval status.

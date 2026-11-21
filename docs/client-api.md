@@ -59,13 +59,27 @@ All routes are below `/client/v1`. Bodies and queries use the shared zod schemas
 | Tasks | `GET/POST /tasks`, `GET/PATCH /tasks/:id`, `POST /tasks/:id/claim`, `POST /tasks/:id/archive`, `POST /tasks/:id/restore`, `GET /tasks/:id/activity` |
 | Discussion | `GET/POST /tasks/:id/comments`, `POST /tasks/:id/complete`, `GET /tasks/:id/context` |
 | Relationships | `GET /tasks/:id/relations`, `PUT /tasks/:id/parent`, `POST /tasks/:id/blockers`, `DELETE /tasks/:id/blockers/:blockerId` |
-| Documents | `GET/POST /documents`, `GET/PATCH /documents/:id`, `POST /documents/:id/archive`, `POST /documents/:id/restore`, `GET /documents/:id/revisions`, `POST /documents/:id/revisions/:n/restore`, `POST/DELETE /documents/:id/links`, `GET /documents/:id/activity` |
+| Documents | `GET/POST /documents`, `GET/PATCH /documents/:id`, `POST/DELETE /documents/:id/review`, `GET/POST/DELETE /documents/:id/relations`, archive/restore, revisions, Task/Project links and activity |
 | Workspace | `GET /board`, `GET /search`, `GET /activity`, `GET /events` |
 | Task Pads (owner only) | See [Task Pads](#task-pads) |
 | Saved views (owner only) | `GET/POST /saved-views`, `DELETE /saved-views/:id`; see [Saved views](#saved-views) |
 
 Lists use keyset pagination: `{ items, nextCursor }`. Pass `cursor=<nextCursor>` until it is `null`. `limit`
 is between 1 and 200. Resource ids are opaque server-generated strings; client-supplied ids are never accepted.
+
+### Document knowledge
+
+Documents expose `tags`, `searchKeywords`, `status`, `owner`, `reviewedAt`, `reviewedBy` and
+`reviewedRevision`. List/search filters accept repeatable `tag`, `status`, `ownerId` (`none` means
+unassigned) and `projectId`. A text query searches title, keywords, tags, body and source URL and returns
+`match: { field, value?, excerpt }`; ranking prefers title/keyword/tag matches and current documents, but
+explicit non-current matches are still returned. This is lexical trigram search, not semantic search.
+
+Review mutations require `{ expectedRevision, markCurrent? }`; delete-review requires
+`{ expectedRevision }`. A stale revision is `409 CONFLICT`. Typed relations use `{ targetId, type }` with
+`references | related | supersedes`; supersedes additionally requires `acknowledgeSupersedes: true` and
+atomically marks the target `superseded`. Removing that relation does not restore the target's old status.
+Task/Project links under `/links` remain separate, untyped relationships.
 
 ## Errors
 

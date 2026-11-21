@@ -199,6 +199,13 @@ header naming their replacement (see [client-api.md](client-api.md#compatibility
 To let people use Alice Desktop and the CLI, make sure `ALICE_PUBLIC_URL` is the `https://` origin people
 open, so that device approval links work.
 
+**Document knowledge rollout.** Migrations 16 and 17 add lifecycle metadata, tags/keywords, typed
+document relations and rebuild the FTS index. Existing documents retain bodies, revisions and
+Task/Project links; they start `unreviewed` with empty metadata. Alice makes and verifies a
+pre-migration backup before opening a Local workspace. Server operators should take the explicit backup
+in step 1. A failed migration is transactional and can be retried; do not run an older build against the
+newer schema.
+
 ## Rollback
 
 Migrations are forward-only. To roll back, set `ALICE_VERSION` back to the previous version and restore
@@ -224,8 +231,9 @@ backup. Desktop and CLI users sign in again once you upgrade back.
 docker compose exec alice alice-server export --out /data/exports/$(date +%F)
 ```
 
-Produces `workspace.json` (all entities: actors, projects, tasks, relationships, comments,
-documents, revisions, links, activity) and Markdown files under `documents/` and `tasks/` named
+Produces `workspace.json` using `alice-export` format v2 (all entities: actors, projects, tasks,
+relationships, comments, document lifecycle metadata, tags, keywords, reviews, typed relations,
+revisions, links and activity) and Markdown files under `documents/` and `tasks/` named
 `<slug>--<id>.md` with JSON front matter. Passwords, sessions and token hashes are never exported.
 
 Private Task Pads are not part of the workspace export. Each human exports their own Pads from the Web

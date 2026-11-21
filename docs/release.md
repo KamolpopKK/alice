@@ -24,6 +24,16 @@
 Workflow and templates: [agents.md](agents.md). The versioned release notes below describe their
 respective releases; current skill behaviour is documented in the agent guide.
 
+# Unreleased — Agent-ready document knowledge
+
+- Documents now have curated tags/keywords, owner, lifecycle and revision-specific review provenance.
+- Lexical search explains whether title, keyword, tag, body or source URL matched and supports lifecycle,
+  owner, tag and project filters across Web, CLI, Client API and MCP. No vector service is required.
+- Typed `references`, symmetric `related` and confirmed `supersedes` relations form a navigable knowledge
+  graph; supersedes atomically marks the target and never happens silently.
+- Migration 16/17 preserves existing revisions and work links, backfills `unreviewed`, and rebuilds FTS.
+  Rollback requires the verified pre-upgrade backup. Portable workspace exports are now format v2.
+
 # Unreleased — Personal Task Pads
 
 User guide: [task-pads.md](task-pads.md).
