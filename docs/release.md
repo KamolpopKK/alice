@@ -9,7 +9,8 @@
   before planning.
 - **Output formats.** Think and spec now ship templates; all skills ship shared requirement-reference,
   Mermaid, small-task and spike conventions. Requirements retain ids such as `REQ-001`. Mermaid source
-  is stored in Markdown; diagram rendering in Alice is future work. Unfinished think/spec work stays in
+  is stored in Markdown and rendered locally in task/document content, previews, revision history,
+  project descriptions and comments. Invalid diagrams show an error and their source. Unfinished think/spec work stays in
   chat, with no saved draft document.
 - **After planning.** First confirm changing eligible tasks to `ready` (พร้อมทำ), then choose continuous
   execution, one task at a time with confirmation, selected tasks, or no start. An explicit execution

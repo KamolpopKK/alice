@@ -365,8 +365,9 @@ explaining their purpose in References. No separate artifact-index document is r
 
 Diagrams use fenced Mermaid source: flowcharts for architecture/UI flows, sequence diagrams for
 calls/events, state diagrams for lifecycles and ER diagrams for data relationships. Each has a title,
-purpose and explanation. Alice currently displays the source as code; visual rendering is separate
-future work. Diagram source does not replace precise requirements, contracts or acceptance conditions.
+purpose and explanation. Alice renders diagrams locally, follows the app theme and keeps the source
+available. Invalid syntax shows an error with the source; external resources are not supported.
+Diagram source does not replace precise requirements, contracts or acceptance conditions.
 
 Example prompts (send the next one when you choose to continue):
 

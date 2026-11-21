@@ -128,8 +128,9 @@ source path where useful. Small tasks and agreed spikes follow the
 [shared output formats](../skill/_shared/OUTPUT-FORMATS.md); a spike may exist before a document is saved.
 
 Keep diagrams as fenced `mermaid` blocks with a title, purpose and explanation. The Markdown source
-travels with the document; visual rendering depends on the reader, and Alice currently displays the
-code. A diagram supplements the requirements, tables and contracts rather than replacing them.
+travels with the document; Alice renders diagrams locally and keeps their source available. Other
+Markdown readers may show only the code. A diagram supplements the requirements, tables and contracts
+rather than replacing them.
 
 ## Working together through git
 
