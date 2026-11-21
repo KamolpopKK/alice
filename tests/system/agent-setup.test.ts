@@ -221,7 +221,7 @@ describe('documented installation in a clean environment', () => {
     const home = tempDataDir('skills-home')
     const all = runCli(['install-skill', '--client', 'claude-code'], { HOME: home })
     expect(all.status).toBe(0)
-    for (const skill of ['alice', 'alice-plan', 'alice-think', 'alice-spec']) {
+    for (const skill of ['alice', 'alice-plan', 'alice-think', 'alice-spec', 'alice-understand']) {
       expect(all.stdout).toContain(`Installed the ${skill} skill to ${path.join(home, '.claude/skills', skill)}`)
       expect(fs.readFileSync(path.join(home, '.claude/skills', skill, 'SKILL.md'), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, 'skill', skill, 'SKILL.md'), 'utf8'))
       for (const file of fs.readdirSync(path.join(ROOT, 'skill', skill))) {
@@ -237,14 +237,14 @@ describe('documented installation in a clean environment', () => {
     for (const file of sharedFiles) {
       const guide = fs.readFileSync(path.join(ROOT, 'skill/_shared', file), 'utf8')
       expect(fs.readFileSync(path.join(only, '.codex/skills/alice-plan', file), 'utf8')).toBe(guide)
-      for (const skill of ['alice', 'alice-plan', 'alice-think', 'alice-spec']) {
+      for (const skill of ['alice', 'alice-plan', 'alice-think', 'alice-spec', 'alice-understand']) {
         expect(fs.readFileSync(path.join(home, '.claude/skills', skill, file), 'utf8')).toBe(guide)
       }
     }
 
     const unknown = runCli(['install-skill', '--client', 'codex', '--skill', 'alice-ops'], { HOME: only })
     expect(unknown.status).toBe(1)
-    expect(unknown.stderr).toContain('--skill must be one of: alice, alice-plan, alice-think, alice-spec')
+    expect(unknown.stderr).toContain('--skill must be one of: alice, alice-plan, alice-think, alice-spec, alice-understand')
   })
 
   it('Claude Code config connects over remote MCP using the token from the environment', async () => {
