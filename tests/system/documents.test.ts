@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { startApp, type RunningApp } from '../helpers/app'
 import { HttpClient, bootstrapOwner, createAgent, inviteHuman, type AgentHandle } from '../helpers/client'
-import { activityFor } from '../helpers/db'
+import { activityFor, inspectDb } from '../helpers/db'
 import { connectMcp, type McpHandle } from '../helpers/mcp'
 import { openEvents } from '../helpers/sse'
 
@@ -146,6 +146,97 @@ describe('documents', () => {
         reviewedBy: null,
         reviewedRevision: null,
       })
+    } finally {
+      await faulty.stop()
+    }
+  })
+
+  it('creates, pages and removes typed relations with symmetric and cycle-safe semantics', async () => {
+    const a = (await owner.post('/api/documents', { title: 'Relation A', body: 'A' })).body.document
+    const b = (await owner.post('/api/documents', { title: 'Relation B', body: 'B' })).body.document
+    const c = (await owner.post('/api/documents', { title: 'Relation C', body: 'C' })).body.document
+
+    expect((await owner.post(`/api/documents/${a.id}/relations`, { targetId: b.id, type: 'references' })).body.changed).toBe(true)
+    expect((await mcp.ok('link_document_relation', { id: a.id, targetId: b.id, type: 'references' })).changed).toBe(false)
+    expect((await mcp.ok('link_document_relation', { id: a.id, targetId: c.id, type: 'related' })).changed).toBe(true)
+    expect((await owner.post(`/api/documents/${c.id}/relations`, { targetId: a.id, type: 'related' })).body.changed).toBe(false)
+
+    const outgoingA = await mcp.ok('list_document_relations', { id: a.id, direction: 'outgoing' })
+    expect(outgoingA.items.map((r: any) => [r.type, r.document.id])).toEqual([
+      ['references', b.id],
+      ['related', c.id],
+    ])
+    expect((await owner.get(`/api/documents/${b.id}/relations?direction=incoming`)).body.items[0]).toMatchObject({
+      type: 'references',
+      direction: 'incoming',
+      document: { id: a.id, status: 'unreviewed' },
+      createdBy: { kind: 'human' },
+    })
+    expect((await owner.get(`/api/documents/${c.id}/relations?direction=incoming&type=related`)).body.items[0].document.id).toBe(a.id)
+    expect((await owner.get(`/api/documents/${c.id}/relations?direction=outgoing&type=related`)).body.items[0].document.id).toBe(a.id)
+
+    expect((await owner.post(`/api/documents/${a.id}/relations`, { targetId: a.id, type: 'references' })).body.error.code).toBe('INVALID_RELATIONSHIP')
+    expect((await owner.post(`/api/documents/${a.id}/relations`, { targetId: b.id, type: 'supersedes' })).body.error.code).toBe('INVALID_STATE')
+
+    await owner.post(`/api/documents/${b.id}/review`, { expectedRevision: 1 })
+    const stream = await openEvents(owner)
+    try {
+      const supersedes = await mcp.ok('link_document_relation', { id: a.id, targetId: b.id, type: 'supersedes', acknowledgeSupersedes: true })
+      expect(supersedes.changed).toBe(true)
+      await stream.waitFor((event) =>
+        event.event === 'invalidate' &&
+        event.data.resources.some((r: any) => r.id === a.id) &&
+        event.data.resources.some((r: any) => r.id === b.id),
+      )
+    } finally {
+      stream.close()
+    }
+    expect((await owner.get(`/api/documents/${b.id}`)).body.document.status).toBe('superseded')
+    expect((await owner.post(`/api/documents/${b.id}/relations`, { targetId: a.id, type: 'supersedes', acknowledgeSupersedes: true })).body.error.code).toBe(
+      'RELATIONSHIP_CYCLE',
+    )
+    expect((await mcp.ok('unlink_document_relation', { id: a.id, targetId: b.id, type: 'supersedes' })).changed).toBe(true)
+    expect((await mcp.ok('unlink_document_relation', { id: a.id, targetId: b.id, type: 'supersedes' })).changed).toBe(false)
+    expect((await owner.get(`/api/documents/${b.id}`)).body.document.status).toBe('superseded')
+
+    const extras: string[] = []
+    for (let i = 0; i < 5; i++) {
+      const extra = (await owner.post('/api/documents', { title: `Relation extra ${i}`, body: String(i) })).body.document
+      extras.push(extra.id)
+      await owner.post(`/api/documents/${a.id}/relations`, { targetId: extra.id, type: 'references' })
+    }
+    const seen: string[] = []
+    let cursor: string | null = null
+    do {
+      const page: any = await owner.get(`/api/documents/${a.id}/relations?direction=outgoing&type=references&limit=2${cursor ? `&cursor=${cursor}` : ''}`)
+      seen.push(...page.body.items.map((r: any) => r.document.id))
+      cursor = page.body.nextCursor
+    } while (cursor)
+    expect(seen).toEqual(expect.arrayContaining([b.id, ...extras]))
+    expect(new Set(seen).size).toBe(6)
+
+    await owner.post(`/api/documents/${c.id}/archive`)
+    expect((await owner.post(`/api/documents/${a.id}/relations`, { targetId: c.id, type: 'references' })).body.error.code).toBe('INVALID_STATE')
+  })
+
+  it('rolls back supersedes edge, status, activity and invalidation when recording fails', async () => {
+    const faulty = await startApp({ env: { ALICE_TEST_FAIL_ACTIVITY_VERB: 'document.superseded' } })
+    try {
+      const client = await bootstrapOwner(faulty)
+      const source = (await client.post('/api/documents', { title: 'New policy', body: 'new' })).body.document
+      const target = (await client.post('/api/documents', { title: 'Old policy', body: 'old' })).body.document
+      const beforeEvents = inspectDb(faulty, (db) => (db.prepare('SELECT count(*) AS n FROM client_events').get() as { n: number }).n)
+      const failed = await client.post(`/api/documents/${source.id}/relations`, {
+        targetId: target.id,
+        type: 'supersedes',
+        acknowledgeSupersedes: true,
+      })
+      expect(failed.status).toBe(500)
+      expect((await client.get(`/api/documents/${target.id}`)).body.document.status).toBe('unreviewed')
+      expect((await client.get(`/api/documents/${source.id}/relations`)).body.items).toHaveLength(0)
+      expect(activityFor(faulty, source.id).map((event) => event.verb)).toEqual(['document.created'])
+      expect(activityFor(faulty, target.id).map((event) => event.verb)).toEqual(['document.created'])
+      expect(inspectDb(faulty, (db) => (db.prepare('SELECT count(*) AS n FROM client_events').get() as { n: number }).n)).toBe(beforeEvents)
     } finally {
       await faulty.stop()
     }

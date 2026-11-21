@@ -2,13 +2,17 @@ import * as z from 'zod'
 import {
   clearDocumentReviewInput,
   createDocumentInput,
+  createDocumentRelationInput,
   cursorSchema,
   idSchema,
   limitSchema,
   listDocumentsInput,
+  listDocumentRelationsInput,
+  removeDocumentRelationInput,
   reviewDocumentInput,
   updateDocumentInput,
 } from '../../shared/contracts'
+import { createDocumentRelation, listDocumentRelations, removeDocumentRelation } from '../domain/document-relations'
 import {
   clearDocumentReview,
   createDocument,
@@ -101,6 +105,28 @@ export const DOCUMENT_TOOLS = [
     description: 'Clear review audit fields for the expected revision. A current document becomes unreviewed.',
     input: clearDocumentReviewInput.extend({ id: idSchema }),
     handler: (ctx, actor, { id, ...input }) => clearDocumentReview(ctx, actor, id, input),
+  }),
+  defineTool({
+    name: 'list_document_relations',
+    title: 'List document relations',
+    description: 'List paginated incoming or outgoing typed relations. Related relations are symmetric and appear in either direction.',
+    input: listDocumentRelationsInput.extend({ id: idSchema }),
+    readOnly: true,
+    handler: (ctx, _actor, { id, ...input }) => listDocumentRelations(ctx, id, input),
+  }),
+  defineTool({
+    name: 'link_document_relation',
+    title: 'Link document relation',
+    description: 'Create an idempotent references, related or supersedes relation. Supersedes requires explicit acknowledgement and changes the target status.',
+    input: createDocumentRelationInput.extend({ id: idSchema }),
+    handler: (ctx, actor, { id, ...input }) => createDocumentRelation(ctx, actor, id, input),
+  }),
+  defineTool({
+    name: 'unlink_document_relation',
+    title: 'Unlink document relation',
+    description: 'Remove a typed relation idempotently. Removing supersedes does not restore the target status.',
+    input: removeDocumentRelationInput.extend({ id: idSchema }),
+    handler: (ctx, actor, { id, ...input }) => removeDocumentRelation(ctx, actor, id, input),
   }),
   defineTool({
     name: 'archive_document',

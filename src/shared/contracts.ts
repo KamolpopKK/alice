@@ -470,6 +470,44 @@ export interface DocumentRevision {
   createdBy: ActorRef
 }
 
+export const DOCUMENT_RELATION_TYPES = ['references', 'related', 'supersedes'] as const
+export type DocumentRelationType = (typeof DOCUMENT_RELATION_TYPES)[number]
+export const documentRelationTypeSchema = z.enum(DOCUMENT_RELATION_TYPES)
+export const documentRelationDirectionSchema = z.enum(['outgoing', 'incoming'])
+
+export const createDocumentRelationInput = z
+  .object({
+    targetId: idSchema,
+    type: documentRelationTypeSchema,
+    /** Required and true when type is supersedes because the target becomes superseded. */
+    acknowledgeSupersedes: z.boolean().optional(),
+  })
+  .strict()
+
+export const removeDocumentRelationInput = z.object({ targetId: idSchema, type: documentRelationTypeSchema }).strict()
+
+export const listDocumentRelationsInput = z.object({
+  direction: documentRelationDirectionSchema.default('outgoing'),
+  type: listOf(documentRelationTypeSchema),
+  cursor: cursorSchema,
+  limit: limitSchema,
+})
+
+export interface DocumentRelationRef {
+  id: string
+  title: string
+  status: DocumentKnowledgeStatus
+  archivedAt: string | null
+}
+
+export interface DocumentRelation {
+  type: DocumentRelationType
+  direction: 'outgoing' | 'incoming'
+  document: DocumentRelationRef
+  createdAt: string
+  createdBy: ActorRef
+}
+
 // ---------- Comments, completion and context ----------
 export const COMMENT_KINDS = ['comment', 'completion_summary'] as const
 export type CommentKind = (typeof COMMENT_KINDS)[number]

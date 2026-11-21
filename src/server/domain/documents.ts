@@ -33,7 +33,7 @@ const DOC_SELECT = `SELECT d.*, ${actorCols('cb', 'created_by')}, ${actorCols('u
   LEFT JOIN actors ow ON ow.id = d.owner_id
   LEFT JOIN actors rb ON rb.id = d.reviewed_by`
 
-interface DocRow {
+export interface DocRow {
   id: string
   workspace_id: string
   title: string
@@ -137,7 +137,7 @@ export function findDocRow(db: DB, workspaceId: string, id: string): DocRow | un
   return db.prepare(`${DOC_SELECT} WHERE d.id = ? AND d.workspace_id = ?`).get(id, workspaceId) as DocRow | undefined
 }
 
-function requireDocRow(db: DB, workspaceId: string, id: string): DocRow {
+export function requireDocRow(db: DB, workspaceId: string, id: string): DocRow {
   const row = findDocRow(db, workspaceId, id)
   if (!row) throw new AliceError('NOT_FOUND', `Document ${id} not found`)
   return row

@@ -2,17 +2,21 @@ import type { FastifyInstance } from 'fastify'
 import * as z from 'zod'
 import {
   createDocumentInput,
+  createDocumentRelationInput,
   clearDocumentReviewInput,
   cursorSchema,
   documentLinkInput,
   idSchema,
   limitSchema,
   listDocumentsInput,
+  listDocumentRelationsInput,
+  removeDocumentRelationInput,
   reviewDocumentInput,
   updateDocumentInput,
 } from '../../shared/contracts'
 import type { AppContext } from '../context'
 import { listActivity } from '../domain/activity'
+import { createDocumentRelation, listDocumentRelations, removeDocumentRelation } from '../domain/document-relations'
 import {
   createDocument,
   clearDocumentReview,
@@ -54,6 +58,16 @@ export function registerDocumentRoutes(app: FastifyInstance, ctx: AppContext): v
   )
   app.delete('/documents/:id/review', async (req) =>
     clearDocumentReview(ctx, requireAuth(req), parse(idParam, req.params).id, parse(clearDocumentReviewInput, req.body)),
+  )
+  app.get('/documents/:id/relations', async (req) => {
+    requireAuth(req)
+    return listDocumentRelations(ctx, parse(idParam, req.params).id, parse(listDocumentRelationsInput, req.query))
+  })
+  app.post('/documents/:id/relations', async (req) =>
+    createDocumentRelation(ctx, requireAuth(req), parse(idParam, req.params).id, parse(createDocumentRelationInput, req.body)),
+  )
+  app.delete('/documents/:id/relations', async (req) =>
+    removeDocumentRelation(ctx, requireAuth(req), parse(idParam, req.params).id, parse(removeDocumentRelationInput, req.body)),
   )
   app.post('/documents/:id/archive', async (req) => setDocumentArchived(ctx, requireAuth(req), parse(idParam, req.params).id, true))
   app.post('/documents/:id/restore', async (req) => setDocumentArchived(ctx, requireAuth(req), parse(idParam, req.params).id, false))
