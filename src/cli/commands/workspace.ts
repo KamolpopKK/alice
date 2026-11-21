@@ -2,12 +2,12 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
-import { SEARCH_KINDS, HIGHLIGHT_END, HIGHLIGHT_START } from '../../shared/contracts'
+import { DOCUMENT_KNOWLEDGE_STATUSES, SEARCH_KINDS, HIGHLIGHT_END, HIGHLIGHT_START, type DocumentKnowledgeStatus, type SearchKind } from '../../shared/contracts'
 import { formatDeepLink, webPath, type DeepLinkKind } from '../../shared/deeplink'
 import { openExternal } from '../browser'
 import { CliContext, parseCommand } from '../context'
 import { CliError } from '../errors'
-import { collect, itemBudget, requireId } from './shared'
+import { checkEnum, collect, itemBudget, listValues, requireId, resolveActor, resolveProject } from './shared'
 import { activityColumns } from './task'
 
 export async function activityCommand(ctx: CliContext, args: string[]): Promise<number> {
@@ -37,19 +37,37 @@ export async function actorCommand(ctx: CliContext, args: string[]): Promise<num
 }
 
 export async function searchCommand(ctx: CliContext, args: string[]): Promise<number> {
-  const { values, positionals } = parseCommand(args, { kind: { type: 'string' }, limit: { type: 'string' }, all: { type: 'boolean' } }, 1)
+  const { values, positionals } = parseCommand(args, {
+    kind: { type: 'string', multiple: true }, tag: { type: 'string', multiple: true }, status: { type: 'string', multiple: true },
+    owner: { type: 'string', multiple: true }, project: { type: 'string', multiple: true }, archived: { type: 'string', default: 'active' },
+    limit: { type: 'string' }, all: { type: 'boolean' },
+  }, 1)
   if (!positionals[0]) throw new CliError('A search query is required')
-  if (values.kind && !(SEARCH_KINDS as readonly string[]).includes(values.kind)) throw new CliError(`--kind must be one of: ${SEARCH_KINDS.join(', ')}`)
+  const kinds = listValues(values.kind)
+  kinds?.forEach((kind) => checkEnum(kind, SEARCH_KINDS, '--kind'))
+  const statuses = listValues(values.status)
+  statuses?.forEach((status) => checkEnum(status, DOCUMENT_KNOWLEDGE_STATUSES, '--status'))
+  checkEnum(values.archived, ['active', 'archived', 'all'], '--archived')
   const c = ctx.client()
+  const ownerId = values.owner ? await Promise.all(listValues(values.owner)!.map(async (owner) => (await resolveActor(c, owner)) ?? 'none')) : undefined
+  const projectId = values.project ? await Promise.all(listValues(values.project)!.map((project) => resolveProject(c, project))) : undefined
   const items = await collect(ctx.out, itemBudget(values.limit, values.all), (cursor, limit) =>
-    c.search({ q: positionals[0], kind: values.kind as 'task' | undefined, cursor, limit }),
+    c.search({ q: positionals[0], kind: kinds as SearchKind[] | undefined, tag: listValues(values.tag), status: statuses as DocumentKnowledgeStatus[] | undefined, ownerId, projectId, archived: values.archived as 'active', cursor, limit }),
   )
   const plain = (s: string) => s.split(HIGHLIGHT_START).join('').split(HIGHLIGHT_END).join('')
-  ctx.out.list(items.map((r) => ({ ...r, snippet: plain(r.snippet) })), [
+  const display = items.map((result) => ({
+    ...result,
+    snippet: plain(result.snippet),
+    ...(result.kind === 'document' ? { match: { ...result.match, excerpt: plain(result.match.excerpt) } } : {}),
+  }))
+  ctx.out.list(display, [
     { header: 'KIND', value: (r) => r.kind },
     { header: 'ID', value: (r) => r.id },
     { header: 'TITLE', value: (r) => r.title, max: 40 },
-    { header: 'MATCH', value: (r) => r.snippet, max: 60 },
+    { header: 'STATUS', value: (r) => r.kind === 'document' ? r.status : '' },
+    { header: 'OWNER', value: (r) => r.kind === 'document' ? r.owner?.displayName : '', max: 24 },
+    { header: 'MATCH REASON', value: (r) => r.kind === 'document' ? `${r.match.field}${r.match.value ? `: ${r.match.value}` : ''}` : '', max: 34 },
+    { header: 'MATCH', value: (r) => r.kind === 'document' ? plain(r.match.excerpt) : plain(r.snippet), max: 60 },
   ], 'No results.')
   return 0
 }

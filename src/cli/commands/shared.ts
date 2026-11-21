@@ -74,6 +74,10 @@ export function requireId(value: string | undefined, what: string): string {
   return value
 }
 
+export function checkEnum(value: string | undefined, allowed: readonly string[], flag: string): void {
+  if (value !== undefined && !allowed.includes(value)) throw new CliError(`${flag} must be one of: ${allowed.join(', ')}`)
+}
+
 /** Splits repeatable/comma-separated flag values. */
 export function listValues(values: string[] | undefined): string[] | undefined {
   if (!values || values.length === 0) return undefined
