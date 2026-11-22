@@ -31,6 +31,18 @@ not permission to modify the systems being studied.
   Review is a separate action against the revision actually checked.
 - Archive instead of deleting; there is no permanent delete for agents.
 
+## Naming tasks and documents
+
+When you talk with the person (questions, approvals, progress, summaries, tables, dependency
+explanations and handoffs), call tasks and documents by their titles, in quotes, never by a bare id or a
+temporary code they would have to look up. When you only have an id, fetch the title; never invent one.
+- When two items share a title, add readable context: the project, the parent task or the document type.
+- Show an id only when the person asks for it or an exact command or technical diagnosis needs it, and
+  keep the title next to it. A link's visible text is the title.
+- Ids stay wherever tools and saved content need them: command and tool arguments, document references,
+  relationships, `docs` and `blocked_by` fields, and source requirement ids such as `REQ-001`, which are
+  part of the content rather than names.
+
 ## Choose where you work first
 
 You can reach Alice in three ways, and they may point at different boards:
@@ -177,11 +189,11 @@ save/update is already authorized. Do not ask again for permission already given
 
 Save only approved content using create_document/update_document (CLI: document create/update),
 link_document and document relations; for project files write the approved Markdown documents.
-Resolve actual ids after creation; if a multi-document save partly fails, report saved ids and remaining
+Resolve actual ids after creation; if a multi-document save partly fails, report the saved documents by title and the remaining
 links rather than recreating successful documents. Existing content changes create revisions and
 invalidate prior review; creation does not imply verification.
 
-Report the saved ids/paths, graph location, inspected scope/baselines and unresolved limitations.
+Report the saved documents by title (paths for project files), graph location, inspected scope/baselines and unresolved limitations.
 Recommend a next skill only when the user has a change request: think for unsettled needs, spec for
 technical design, plan for agreed implementation work, alice for an existing task. Never invoke them
 automatically. Understanding alone can end with reusable knowledge and no new tasks.

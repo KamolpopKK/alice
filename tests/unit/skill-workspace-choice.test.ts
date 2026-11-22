@@ -76,13 +76,29 @@ describe('sections every skill carries word for word', () => {
   }
   const skills = fs.readdirSync(path.join(ROOT, 'skill')).filter((d) => !d.startsWith('_'))
 
-  for (const heading of ['## Choose where you work first', '## Using the `alice` command', '## Recovering from errors', '## Quick reference']) {
+  for (const heading of ['## Naming tasks and documents', '## Choose where you work first', '## Using the `alice` command', '## Recovering from errors', '## Quick reference']) {
     it(heading, () => {
       const [first, ...rest] = skills.map((s) => [s, section(read(s), heading)] as const)
       expect(first[1], `${first[0]} has ${heading}`).not.toBeNull()
       for (const [skill, text] of rest) expect(text, `${skill} matches ${first[0]}`).toBe(first[1])
     })
   }
+
+  // คุยกับคนด้วยชื่อ task/เอกสาร ไม่ใช่ id: รายงานที่เคยสั่งให้บอก id ต้องไม่เหลือ
+  it('talk about tasks and documents by title, keeping ids for tools and saved references', () => {
+    const files = skills.flatMap((s) => fs.readdirSync(path.join(ROOT, 'skill', s)).map((f) => path.join(ROOT, 'skill', s, f)))
+    for (const file of files) {
+      const text = fs.readFileSync(file, 'utf8')
+      expect(text, file).not.toMatch(/[Rr]eport (the |its |their )?(saved |created or updated |task |design |document )*(artifact )?(ids?\/titles?|ids?, title|ids?\/paths?|id and title)|report saved ids|ask which id/)
+    }
+    for (const skill of skills) {
+      const rule = section(read(skill), '## Naming tasks and documents')!
+      expect(rule).toContain('call tasks and documents by their titles')
+      expect(rule).toContain('fetch the title; never invent one')
+      expect(rule).toContain('keep the title next to it')
+      expect(rule).toContain('source requirement ids such as `REQ-001`')
+    }
+  })
 
   it('the shared safety rules', () => {
     for (const skill of skills) {

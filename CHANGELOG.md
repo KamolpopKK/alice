@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **`alice-plan` writes plans directly.** Once discovery and its checks pass, the plan goes straight to
+  the board instead of being shown in chat for approval, and leaves whose dependencies are done become
+  ready without a separate question. The agent reports in a few lines by task title and still asks
+  before starting any work. Missing scope or design decisions are still raised instead of guessed.
+- **Agents name tasks and documents by title.** All five Alice skills talk about tasks and documents by
+  their titles in questions, progress, summaries, tables and handoffs, adding the project or parent when
+  titles repeat. Ids appear only when you ask or an exact command needs them, next to the title, and
+  stay in tool calls, saved references and requirement ids.
+
 ## 0.2.4 — 2026-11-22
 
 ### Added

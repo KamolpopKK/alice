@@ -69,11 +69,23 @@ describe('alice-plan skill', () => {
     }
   })
 
-  it('orders the workflow: discovery, questions, chat draft, approval, backlog creation, release', () => {
-    const steps = ['## 2. Discover', 'one question at a time', '## 3. Draft in chat', 'explicit approval', 'status: "backlog"', '## 5. Release', 'status: "ready"']
+  it('orders the workflow: discovery, questions, internal check, backlog creation, ready, short report', () => {
+    const steps = ['## 2. Discover', 'one question at a time', '## 3. Draft and check, without a chat review', 'status: "backlog"', '## 5. Make eligible tasks ready and report', 'status: "ready"', 'report briefly']
     const at = steps.map((s) => plan.indexOf(s))
     expect(at.every((i) => i > 0)).toBe(true)
     expect(at).toEqual([...at].sort((a, b) => a - b))
+  })
+
+  // แผนเขียนลงบอร์ดได้ทันที: ไม่มีร่างในแชทให้อนุมัติ และไม่ถามก่อนเปลี่ยนงานที่พร้อมเป็น ready
+  it('writes plans directly and makes eligible leaves ready without a confirmation step', () => {
+    expect(plan).toMatch(/without showing the draft in chat or waiting for approval/)
+    expect(plan).toMatch(/Right after creation, without asking/)
+    expect(plan).not.toMatch(/Show the complete plan in chat|after the person approves it|explicit approval|after confirmation/)
+    expect(template).not.toMatch(/before asking for approval|เลยไหมครับ\?/)
+    expect(template).toContain('## Report after creation')
+    // การเริ่มทำงานยังต้องให้คนเลือกเอง
+    expect(plan).toMatch(/Writing a plan\n  or making its tasks ready never implies permission to start/)
+    expect(plan).toMatch(/Do not pick a mode from silence or from the plan having been written/)
   })
 
   it('keeps the leaf template complete and the checklist in place', () => {
@@ -87,7 +99,7 @@ describe('alice-plan skill', () => {
 
   it('never lets the planner work its own tasks and keeps the token rules', () => {
     expect(plan).toMatch(/Never claim, start or complete the tasks you create/)
-    expect(plan).toMatch(/Never create, change or archive anything in Alice before the person approves/)
+    expect(plan).toMatch(/never write a plan with placeholders or missing main design decisions/)
     expect(plan).toMatch(/token is a secret/i)
     expect(plan).not.toMatch(/claim_task|complete_task/)
   })
