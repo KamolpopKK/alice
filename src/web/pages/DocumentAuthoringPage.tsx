@@ -10,7 +10,8 @@ import { DocumentEditor } from '../documents/DocumentEditor'
 import { clearDraft, draftKey, readDraft, trackSave, useDraftScope, writeDraft, type CreatePayload, type DocumentDraft, type DocumentFields } from '../documents/drafts'
 import { safeReturnPath } from '../navigation'
 import { errorText } from '../tasks/TaskDetail'
-import { Banner, Button, FieldMessage, Skeleton, TextField } from '../ui'
+import { Banner, Button, Dialog, FieldMessage, Skeleton, TextField } from '../ui'
+import { ActorBadge, formatDate } from '../components/ui'
 
 const TASK_ID = /^tsk_[a-z0-9]+$/
 const PROJECT_ID = /^prj_[a-z0-9]+$/
@@ -52,6 +53,7 @@ function fieldsOf(doc: DocumentDetail): DocumentFields {
 function fromDocument(doc: DocumentDetail): DocumentDraft {
   return {
     base: fieldsOf(doc),
+    baseUpdatedAt: doc.updatedAt,
     title: doc.title,
     body: doc.body,
     sourceUrl: doc.sourceUrl ?? '',
@@ -106,11 +108,11 @@ function useDraft(key: string | null, initial: () => DocumentDraft) {
   return { draft, setDraft, update, discard: () => key && clearDraft(key) }
 }
 
-function AuthoringFields({ draft, update, bodyRows }: { draft: DocumentDraft; update: ReturnType<typeof useDraft>['update']; bodyRows: number }) {
+function AuthoringFields({ draft, update, bodyRows, editorKey = 0 }: { draft: DocumentDraft; update: ReturnType<typeof useDraft>['update']; bodyRows: number; editorKey?: number }) {
   return (
     <>
       <TextField label="Document title" value={draft.title} onChange={(e) => update('title', e.target.value)} required maxLength={200} autoFocus data-autofocus />
-      <DocumentEditor label="Body" value={draft.body} onChange={(body) => update('body', body)} rows={bodyRows} />
+      <DocumentEditor key={editorKey} label="Body" value={draft.body} onChange={(body) => update('body', body)} rows={bodyRows} />
       <TextField
         label="Source URL (optional)"
         hint="A document needs a body, a source URL, or both."
@@ -170,7 +172,7 @@ export function NewDocumentPage() {
         // เอกสารมีแล้ว: ย้าย draft ไปเป็น Edit ของ id นี้ (เก็บ link ที่ยังต้องทำ และสิ่งที่แก้หลังเริ่มบันทึก)
         const base: DocumentFields = { ...attempt.payload, sourceUrl: attempt.payload.sourceUrl ?? '' }
         const pendingLink = target ? { target, key: newIdempotencyKey() } : undefined
-        const editDraft: DocumentDraft = { ...draft, saveAttempt: undefined, base, baseRevision: created.revision, pendingLink }
+        const editDraft: DocumentDraft = { ...draft, saveAttempt: undefined, base, baseRevision: created.revision, baseUpdatedAt: created.updatedAt, pendingLink }
         if (scope) writeDraft(draftKey(scope, `doc:${created.id}`), editDraft)
         discard()
         let linked = true
@@ -270,7 +272,28 @@ function EditForm({ doc, scope, back }: { doc: DocumentDetail; scope: string | n
   const { draft, setDraft, update, discard } = useDraft(scope && draftKey(scope, `doc:${doc.id}`), () => fromDocument(doc))
   const base = draft.base ?? fieldsOf(doc)
   const patch = changedFields(draft, base)
+  const dirty = Object.keys(patch).length > 0
   const contentChanged = 'title' in patch || 'body' in patch || 'sourceUrl' in patch
+  const [editorKey, setEditorKey] = useState(0)
+  const [conflict, setConflict] = useState<DocumentDetail | null>(null)
+  const [confirmLoad, setConfirmLoad] = useState(false)
+  const baseUpdatedAt = draft.baseUpdatedAt ?? doc.updatedAt
+  // server มีฉบับใหม่ (SSE/refetch): ถ้ายังไม่ได้แก้อะไร รับฉบับใหม่เลย; ถ้าแก้แล้ว เก็บ draft ไว้และเตือน
+  const newer = doc.updatedAt !== baseUpdatedAt
+  useEffect(() => {
+    if (newer && !dirty && !draft.pendingLink) {
+      setDraft(fromDocument(doc))
+      setEditorKey((k) => k + 1)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc.updatedAt])
+  const loadLatest = (latest: DocumentDetail) => {
+    setDraft({ ...fromDocument(latest), pendingLink: draft.pendingLink })
+    setEditorKey((k) => k + 1)
+    setConflict(null)
+    setConfirmLoad(false)
+    void qc.invalidateQueries({ queryKey: ['document', doc.id] })
+  }
   const done = () => {
     discard()
     void qc.invalidateQueries({ queryKey: ['document', doc.id] })
@@ -285,16 +308,26 @@ function EditForm({ doc, scope, back }: { doc: DocumentDetail; scope: string | n
     if ('taskId' in pending.target) void qc.invalidateQueries({ queryKey: ['task', pending.target.taskId] })
   }
   const save = useMutation({
-    mutationFn: () =>
+    mutationFn: ({ overwrite }: { overwrite: boolean }) =>
       trackSave(async () => {
-        if (Object.keys(patch).length > 0) {
+        if (dirty && !overwrite) {
+          // อ่านฉบับล่าสุดก่อนบันทึก: ถ้ามีคนแก้ตั้งแต่เริ่ม ให้คนเลือกเอง (ไม่ merge อัตโนมัติ)
+          const latest = await client.documents.get(doc.id)
+          if (latest.updatedAt !== baseUpdatedAt) return { conflict: latest }
+        }
+        if (dirty) {
           const updated = (await client.documents.update(doc.id, patch)).document
           // บันทึกแล้ว: ฐานใหม่คือค่าที่เพิ่งบันทึก ถ้า link ล้มต่อจากนี้ กด Save อีกครั้งจะไม่ส่งซ้ำ
           setDraft((d) => ({ ...d, base: fieldsOf(updated), baseRevision: updated.revision }))
         }
         await linkNow()
+        return { conflict: null }
       }),
-    onSuccess: done,
+    onSuccess: ({ conflict: latest }) => {
+      if (latest) return setConflict(latest)
+      setConflict(null)
+      done()
+    },
   })
   const retryLink = useMutation({
     mutationFn: () => trackSave(linkNow),
@@ -308,12 +341,54 @@ function EditForm({ doc, scope, back }: { doc: DocumentDetail; scope: string | n
       aria-label="Edit document"
       onSubmit={(e: FormEvent) => {
         e.preventDefault()
-        if (!save.isPending) save.mutate()
+        if (!save.isPending) save.mutate({ overwrite: false })
       }}
     >
+      {newer && dirty && !conflict && (
+        <Banner
+          tone="warning"
+          title="This document changed while you were editing"
+          action={
+            <Button size="sm" onClick={() => setConfirmLoad(true)}>
+              Load latest
+            </Button>
+          }
+        >
+          Revision {doc.revision} was saved {formatDate(doc.updatedAt)} by <ActorBadge actor={doc.updatedBy} />. Your text is kept here; saving will ask
+          whether to replace their version.
+        </Banner>
+      )}
+      <Dialog open={confirmLoad} onOpenChange={setConfirmLoad} title="Load the latest version?">
+        <p>Your unsaved changes to this document will be discarded and the latest saved version opened instead.</p>
+        <div className="resource-actions">
+          <Button variant="danger" onClick={() => void client.documents.get(doc.id).then(loadLatest)}>
+            Discard my changes and load latest
+          </Button>
+          <Button onClick={() => setConfirmLoad(false)}>Keep editing</Button>
+        </div>
+      </Dialog>
+      <Dialog open={conflict !== null} onOpenChange={(o) => !o && setConflict(null)} title="Someone saved a newer version">
+        {conflict && (
+          <>
+            <p>
+              Revision {conflict.revision} was saved {formatDate(conflict.updatedAt)} by <ActorBadge actor={conflict.updatedBy} /> after you started editing. Alice
+              does not merge the two. Choose which version to keep.
+            </p>
+            <div className="resource-actions">
+              <Button variant="primary" loading={save.isPending} onClick={() => save.mutate({ overwrite: true })}>
+                Save mine over theirs
+              </Button>
+              <Button variant="danger" onClick={() => loadLatest(conflict)}>
+                Discard mine and load theirs
+              </Button>
+              <Button onClick={() => setConflict(null)}>Keep editing</Button>
+            </div>
+          </>
+        )}
+      </Dialog>
       {draft.pendingLink && <PendingLink pending={draft.pendingLink} retry={() => retryLink.mutate()} busy={retryLink.isPending} />}
       {retryLink.error && <FieldMessage tone="error">Still not linked: {errorText(retryLink.error)}</FieldMessage>}
-      <AuthoringFields draft={draft} update={update} bodyRows={20} />
+      <AuthoringFields draft={draft} update={update} bodyRows={20} editorKey={editorKey} />
       <p className="ui-text-muted">
         {contentChanged
           ? 'Saving content creates revision ' + (doc.revision + 1) + ' and clears its review. Earlier revisions stay available in History.'

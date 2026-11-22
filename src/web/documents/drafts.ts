@@ -13,6 +13,8 @@ export interface DocumentDraft {
   ownerId: string | null
   /** Revision the edit started from (Edit only). */
   baseRevision?: number
+  /** When the server copy the edit started from was last changed (Edit only); detects newer revisions. */
+  baseUpdatedAt?: string
   /** The saved values the edit started from, to send only what the person changed (Edit only). */
   base?: DocumentFields
   /** One Create attempt: the exact request and its Idempotency-Key, kept until the outcome is known. */
