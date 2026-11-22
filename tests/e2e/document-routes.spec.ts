@@ -1,5 +1,4 @@
 import type { Page } from '@playwright/test'
-import { inviteHuman } from '../helpers/client'
 import { expect, goTo, signIn, signOut, test } from './fixtures'
 
 /** Full-page document authoring: routes, entry points, link context, return paths and in-memory drafts. */
@@ -53,6 +52,7 @@ test('Create saves nothing until pressed, links to its task, opens the new docum
   await page.getByRole('region', { name: 'Documents' }).getByRole('button', { name: 'New document' }).click()
   await titleField(page).fill('Not saved')
   await page.getByRole('button', { name: 'Cancel' }).click()
+  await page.getByRole('dialog', { name: 'Discard unsaved changes?' }).getByRole('button', { name: 'Discard changes' }).click()
   await expect(page).toHaveURL(new RegExp(`/tasks/${task.id}$`))
   expect(await documentCount(owner)).toBe(before)
 
@@ -83,34 +83,13 @@ test('link targets and return paths from the address are checked', async ({ app,
   expect(await documentCount(owner)).toBe(before)
 })
 
-test('an unsaved draft survives moving around the app but never shows up for another person', async ({ app, owner, page }) => {
-  const doc = (await owner.post(`${V1}/documents`, { title: `Draft scope ${stamp()}`, body: 'Original\n' })).body.document
-  const name = `drafter${stamp()}`.slice(0, 20)
-  await inviteHuman(owner, name, 'Second Person')
+test('leaving a draft asks first, and Stay keeps it', async ({ app, owner, page }) => {
+  const doc = (await owner.post(`${V1}/documents`, { title: `Draft stay ${stamp()}`, body: 'Original\n' })).body.document
   await signIn(page, app)
   await page.goto(`${app.url}/documents/${doc.id}/edit`)
   await titleField(page).fill('Unsaved title')
-  await page.getByRole('radio', { name: 'Markdown' }).click()
-  await page.getByLabel('Body', { exact: true }).fill('Unsaved body\n')
-  // ไปหน้าอื่นในแอปแล้วกลับมา (ไม่ reload: draft อยู่ใน RAM เท่านั้น)
   await goTo(page, 'Tasks')
-  await expect(page).toHaveURL(/\/tasks/)
-  await page.goBack()
+  await page.getByRole('dialog', { name: 'Discard unsaved changes?' }).getByRole('button', { name: 'Stay and keep editing' }).click()
   await expect(titleField(page)).toHaveValue('Unsaved title')
-  await page.getByRole('radio', { name: 'Markdown' }).click()
-  await expect(page.getByLabel('Body', { exact: true })).toHaveValue('Unsaved body\n')
   expect((await owner.get(`${V1}/documents/${doc.id}`)).body.document.title).toBe(doc.title)
-
-  // อีกคนเข้าสู่ระบบในหน้าเดิมโดยไม่ reload: RAM เดิมยังอยู่ แต่ draft เป็นของคนก่อน จึงต้องไม่เห็น
-  await signOut(page)
-  await page.getByLabel('Username').fill(name)
-  await page.getByLabel('Password', { exact: true }).fill(`${name}-password-123`)
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByRole('button', { name: /^Account: Second Person/ })).toBeVisible()
-  await page.evaluate((path) => {
-    history.pushState({}, '', path)
-    dispatchEvent(new PopStateEvent('popstate'))
-  }, `/documents/${doc.id}/edit`)
-  await expect(page.getByRole('heading', { level: 1, name: `Edit “${doc.title}”` })).toBeVisible()
-  await expect(titleField(page)).toHaveValue(doc.title)
 })

@@ -8,6 +8,7 @@ import { DevicePage } from './pages/DevicePage'
 import { safeReturnPath } from './navigation'
 import { isDesktop } from './platform'
 import { NotFoundState } from './brand'
+import { LeaveDialogHost } from './documents/leave'
 import { Banner, ThemeProvider, ToastProvider, TooltipProvider } from './ui'
 
 // โค้ดเฉพาะ Desktop โหลดเมื่ออยู่ใน Tauri เท่านั้น
@@ -127,6 +128,7 @@ export function App() {
         <ToastProvider>
           <QueryClientProvider client={queryClient}>
             <RouterProvider router={router} />
+            <LeaveDialogHost />
           </QueryClientProvider>
         </ToastProvider>
       </TooltipProvider>

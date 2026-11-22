@@ -143,6 +143,78 @@ test.describe('Alice Desktop with Local workspaces', () => {
     await expect(page.getByRole('region', { name: 'Workspace', exact: true })).toContainText(b.alias)
   })
 
+  test('switching workspace with an unsaved document asks first and never carries the draft across', async ({ app, page }) => {
+    const home = localHome()
+    const a = createWorkspace(home, { name: 'Docs', alias: 'docs-a' })
+    createWorkspace(home, { name: 'Docs', alias: 'docs-b' })
+    const native = await FakeNativeCore.attach(page, { localHome: home })
+    await native.handle('profile_use', { name: a.id })
+    await page.goto(`${app.url}/documents/new`)
+    await expect(page.getByRole('region', { name: 'Workspace', exact: true })).toContainText('docs-a')
+    await page.getByLabel('Document title').fill('Draft only in docs-a')
+    const leave = page.getByRole('dialog', { name: 'Discard unsaved changes?' })
+
+    await page.getByRole('button', { name: 'Switch workspace' }).click()
+    await expect(leave).toBeVisible()
+    await leave.getByRole('button', { name: 'Stay and keep editing' }).click()
+    await expect(page.getByRole('heading', { name: 'Local workspaces' })).toHaveCount(0)
+    await expect(page.getByLabel('Document title')).toHaveValue('Draft only in docs-a')
+
+    await page.getByRole('button', { name: 'Switch workspace' }).click()
+    await leave.getByRole('button', { name: 'Discard changes' }).click()
+    await page.getByRole('button', { name: 'Use Docs (docs-b)' }).click()
+    await expect(page.getByRole('region', { name: 'Workspace', exact: true })).toContainText('docs-b')
+    await page.goto(`${app.url}/documents/new`)
+    await expect(page.getByLabel('Document title')).toHaveValue('')
+    const conn = await native.localConnect(native.active!)
+    const docs = await fetch(`${conn.baseUrl}/client/v1/documents?archived=all`, { headers: { authorization: `Bearer ${conn.capability}` } })
+    expect(((await docs.json()) as { items: unknown[] }).items).toHaveLength(0)
+  })
+
+  test('a workspace change from outside keeps the draft in its own workspace and never shows it in the other', async ({ app, page }) => {
+    const home = localHome()
+    const a = createWorkspace(home, { name: 'Ext', alias: 'ext-a' })
+    const b = createWorkspace(home, { name: 'Ext', alias: 'ext-b' })
+    const native = await FakeNativeCore.attach(page, { localHome: home })
+    const conn = await native.localConnect(b.id)
+    const created = await fetch(`${conn.baseUrl}/client/v1/tasks`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${conn.capability}` }, body: JSON.stringify({ title: 'Task in B' }) })
+    const taskId = ((await created.json()) as { task: { id: string } }).task.id
+    await native.handle('profile_use', { name: a.id })
+    await page.goto(`${app.url}/documents/new`)
+    await expect(page.getByRole('region', { name: 'Workspace', exact: true })).toContainText('ext-a')
+    await page.getByLabel('Document title').fill('Draft of ext-a')
+
+    // ลิงก์ภายใน workspace เดียวกันผ่าน guard: Stay อยู่หน้าเดิมพร้อม draft
+    const connA = await native.localConnect(a.id)
+    const inA = await fetch(`${connA.baseUrl}/client/v1/tasks`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${connA.capability}` }, body: JSON.stringify({ title: 'Task in A' }) })
+    const taskA = ((await inA.json()) as { task: { id: string } }).task.id
+    expect(await native.deliverDeepLink(`alice://open/task/${taskA}?workspace=${a.id}`)).toBe('accepted')
+    const leave = page.getByRole('dialog', { name: 'Discard unsaved changes?' })
+    await leave.getByRole('button', { name: 'Stay and keep editing' }).click()
+    await expect(page).toHaveURL(/\/documents\/new$/)
+    await expect(page.getByLabel('Document title')).toHaveValue('Draft of ext-a')
+
+    // ลิงก์จากภายนอกพาไป workspace B
+    expect(await native.deliverDeepLink(`alice://open/task/${taskId}?workspace=${b.id}`)).toBe('accepted')
+    await expect(page.getByRole('region', { name: 'Workspace', exact: true })).toContainText('ext-b')
+    // การสลับจากภายนอก unmount หน้าเขียนโดยไม่ทิ้ง draft; ไปหน้า New ใน B แบบไม่ reload (RAM ยังอยู่) ต้องว่าง
+    await expect(page.getByRole('heading', { name: 'Task in B' })).toBeVisible()
+    const newDocument = async () => {
+      await page.getByRole('button', { name: 'New', exact: true }).click()
+      await page.getByRole('menuitem', { name: 'Document' }).click()
+    }
+    await newDocument()
+    await expect(page.getByLabel('Document title')).toHaveValue('')
+    // กลับไป A: draft ของ A ยังอยู่
+    await page.getByRole('button', { name: 'Switch workspace' }).click()
+    await page.getByRole('button', { name: 'Use Ext (ext-a)' }).click()
+    await expect(page.getByRole('region', { name: 'Workspace', exact: true })).toContainText('ext-a')
+    await newDocument()
+    await expect(page.getByLabel('Document title')).toHaveValue('Draft of ext-a')
+    const docsB = await fetch(`${conn.baseUrl}/client/v1/documents?archived=all`, { headers: { authorization: `Bearer ${conn.capability}` } })
+    expect(((await docsB.json()) as { items: unknown[] }).items).toHaveLength(0)
+  })
+
   test('a slow check of the previous workspace never takes the screen back after a switch', async ({ app, page }) => {
     const home = localHome()
     const a = createWorkspace(home, { name: 'Slow A' })

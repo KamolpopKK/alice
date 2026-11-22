@@ -10,6 +10,7 @@ import { ShellWorkspaceContext, type ShellWorkspace } from '../shell/workspace'
 import { TauriTransport } from './transport'
 import { Button, useToast } from '../ui'
 import { saveInFlight } from '../documents/drafts'
+import { guarded } from '../documents/leave'
 
 type Phase =
   | { kind: 'loading' }
@@ -230,7 +231,7 @@ export function DesktopShell({ children }: { children: ReactNode }) {
           <ShellWorkspaceContext.Provider value={profile ? shellWorkspace(profile, () => {
             // ระหว่างบันทึกเอกสาร ห้ามสลับ workspace: คำขอที่ค้างอยู่ต้องจบใน workspace เดิม
             if (saveInFlight()) return toast.show('Wait for the document to finish saving before switching.', { tone: 'info' })
-            setManaging(true)
+            void guarded('switch workspace', () => setManaging(true))
           }) : null}>{children}</ShellWorkspaceContext.Provider>
         </LocalWorkspaceContext.Provider>
       )}

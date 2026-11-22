@@ -8,6 +8,7 @@ import { FullPageError, isRecoverable } from '../brand'
 import { DocumentKnowledgeFields } from '../components/DocumentKnowledgeFields'
 import { DocumentEditor } from '../documents/DocumentEditor'
 import { clearDraft, draftKey, readDraft, trackSave, useDraftScope, writeDraft, type CreatePayload, type DocumentDraft, type DocumentFields } from '../documents/drafts'
+import { confirmLeave, useLeaveGuard } from '../documents/leave'
 import { safeReturnPath } from '../navigation'
 import { errorText } from '../tasks/TaskDetail'
 import { Banner, Button, Dialog, FieldMessage, Skeleton, TextField } from '../ui'
@@ -100,10 +101,16 @@ const UNCERTAIN_SAVE = 'Alice could not confirm the save. Your text is still her
 
 /** The draft for one Create or Edit page, kept in memory for this workspace and person until Save or Cancel. */
 function useDraft(key: string | null, initial: () => DocumentDraft) {
-  const [draft, setDraft] = useState<DocumentDraft>(() => (key && readDraft(key)) || initial())
+  // draft ผูกกับคีย์ (workspace + ผู้ใช้ + เอกสาร) ที่สร้างมัน: ถ้าคีย์เปลี่ยนจากเหตุภายนอก (สลับ workspace,
+  // sign-in ใหม่) draft เดิมยังอยู่ใต้คีย์เดิม และหน้านี้เริ่มจาก draft ของคีย์ใหม่ ไม่ส่งของเดิมข้าม scope
+  const [state, setState] = useState(() => ({ key, draft: (key && readDraft(key)) || initial() }))
+  if (state.key !== key) setState({ key, draft: (key && readDraft(key)) || initial() })
+  const draft = state.key === key ? state.draft : (key && readDraft(key)) || initial()
   useEffect(() => {
-    if (key) writeDraft(key, draft)
-  }, [key, draft])
+    if (state.key && state.key === key) writeDraft(state.key, state.draft)
+  }, [key, state])
+  const setDraft = (next: DocumentDraft | ((d: DocumentDraft) => DocumentDraft)) =>
+    setState((s) => ({ key: s.key, draft: typeof next === 'function' ? next(s.draft) : next }))
   const update = <K extends keyof DocumentDraft>(field: K, value: DocumentDraft[K]) => setDraft((d) => ({ ...d, [field]: value }))
   return { draft, setDraft, update, discard: () => key && clearDraft(key) }
 }
@@ -161,6 +168,8 @@ export function NewDocumentPage() {
   const newKey = scope && draftKey(scope, `new:${target_}`)
   const { draft, setDraft, update, discard } = useDraft(newKey, emptyDraft)
   const [notice, setNotice] = useState('')
+  const dirty = Object.keys(changedFields(draft, emptyDraft())).length > 0
+  const leave = useLeaveGuard(dirty, discard)
   const create = useMutation({
     mutationFn: () =>
       trackSave(async () => {
@@ -190,6 +199,7 @@ export function NewDocumentPage() {
     onSuccess: ({ created, linked, unsaved }) => {
       void qc.invalidateQueries({ queryKey: ['documents'] })
       if (target && 'taskId' in target) void qc.invalidateQueries({ queryKey: ['task', target.taskId] })
+      leave.allowNext()
       if (linked && !unsaved) {
         if (scope) clearDraft(draftKey(scope, `doc:${created.id}`))
         navigate(`/documents/${created.id}`, { replace: true })
@@ -232,10 +242,14 @@ export function NewDocumentPage() {
             Create document
           </Button>
           <Button
-            onClick={() => {
-              discard()
-              navigate(back)
-            }}
+            onClick={() =>
+              void confirmLeave('cancel').then((ok) => {
+                if (!ok) return
+                discard()
+                leave.allowNext()
+                navigate(back)
+              })
+            }
           >
             Cancel
           </Button>
@@ -294,7 +308,9 @@ function EditForm({ doc, scope, back }: { doc: DocumentDetail; scope: string | n
     setConfirmLoad(false)
     void qc.invalidateQueries({ queryKey: ['document', doc.id] })
   }
+  const leave = useLeaveGuard(dirty, discard)
   const done = () => {
+    leave.allowNext()
     discard()
     void qc.invalidateQueries({ queryKey: ['document', doc.id] })
     void qc.invalidateQueries({ queryKey: ['documents'] })
@@ -400,10 +416,14 @@ function EditForm({ doc, scope, back }: { doc: DocumentDetail; scope: string | n
           Save changes
         </Button>
         <Button
-          onClick={() => {
-            discard()
-            navigate(back)
-          }}
+          onClick={() =>
+            void confirmLeave('cancel').then((ok) => {
+              if (!ok) return
+              discard()
+              leave.allowNext()
+              navigate(back)
+            })
+          }
         >
           Cancel
         </Button>
