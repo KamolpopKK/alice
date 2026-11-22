@@ -122,7 +122,8 @@ For an existing reference document, append instead:
 
 ## Pre-creation checklist
 
-Run this on the draft and report the result before asking for approval:
+Run this on the draft before writing anything, and fix every failure yourself. Do not show it in chat;
+mention an item only when it cannot be satisfied without the person's decision.
 
 - [ ] Every leaf has all eight sections with no placeholders, "TBD" or open choices.
 - [ ] Main technical design decisions are settled by source designs or established patterns; no task delegates missing architecture, contracts, data modeling or migration design to implementation.
@@ -134,35 +135,34 @@ Run this on the draft and report the result before asking for approval:
 - [ ] No task duplicates existing Alice work found during discovery; related work is linked.
 - [ ] The repository remote, base branch and commit appear in the reference document and every parent.
 - [ ] Each leaf description is under ~8,000 characters; the reference document is under ~20,000.
-- [ ] Every task carries `plan:<slug>`; statuses are `backlog`; no assignees.
+- [ ] Every task carries `plan:<slug>`; tasks are created `backlog` with no assignees (eligible leaves become `ready` right after creation).
 - [ ] Source requirement ids, when present, are preserved and cited by relevant tasks and acceptance criteria; supporting work cites its design decision or spike question.
 - [ ] Every in-scope requirement maps to one or more leaf tasks, or has an evidence-based reason why no system change is needed; source sections are used when ids are absent.
-- [ ] Leaf acceptance criteria collectively cover the source acceptance conditions. Planning gaps are fixed before approval; gaps requiring main technical design follow the readiness rule and are recommended to `alice-spec` before planning continues.
+- [ ] Leaf acceptance criteria collectively cover the source acceptance conditions. Planning gaps are fixed before writing; gaps requiring main technical design follow the readiness rule and are recommended to `alice-spec` before planning continues.
 - [ ] When an approved design has a DoD, every applicable criterion maps to leaf acceptance criteria, Verification and Done when, with pass criteria and required evidence. Checks spanning leaves appear in parent Done when and have a leaf responsible for execution. The planning reference cites rather than duplicates the design, and the draft does not claim checks have passed.
 - [ ] When an approved design has Testing design, its scenarios and critical cases map to leaf tasks, test files/suites and verification commands without redesign. When it is absent, tasks use source acceptance conditions, established test patterns or agreed prototype/investigation validation.
 - [ ] When no separate technical design is needed, source quality/transition requirements and acceptance conditions provide the task coverage; the plan does not require a spec merely to create a DoD.
 - [ ] Relevant extracted documents have been read, conflicting sources resolved, and each task cites and links the documents/sections it needs with a reason; no separate artifact index is created.
 
-## Closing prompts after creation
+## Report after creation
 
-Use the person's language and keep the questions short. Replace the counts with actual leaf counts;
-keep the status approval separate from choosing to work. Do not ask these prompts before successful
-plan creation, or repeat a question already explicitly answered for this same plan.
+Use the person's language, name tasks and documents by title, and replace the counts with actual
+numbers. Keep it to a few lines; never repeat the plan or print task descriptions.
 
-First ask:
-
-> สร้างแผน <จำนวน> งานเรียบร้อยแล้ว เปลี่ยนสถานะงานที่พร้อมทั้งหมดเป็น **ready (พร้อมทำ)** เลยไหมครับ?
-> สถานะนี้เปิดให้คนหรือ agent หยิบงานไปทำได้ ส่วนงานที่ยังรอ dependency จะอยู่ใน backlog ก่อนครับ
-
-On approval, change only eligible leaves and report the result. If there is available work, then ask:
-
-> เปลี่ยนสถานะ <จำนวน> งานเป็น **ready (พร้อมทำ)** แล้ว อยากเริ่มทำต่อแบบไหนครับ?
+> สร้างแผน “<ชื่อแผน>” บนบอร์ดแล้วครับ: <จำนวน> งานใน <จำนวน> กลุ่ม อ้างอิงเอกสาร “<ชื่อเอกสาร>”
+> - **ready (พร้อมทำ)** <จำนวน> งาน: “<ชื่องาน>”, “<ชื่องาน>”
+> - รอ dependency <จำนวน> งาน เช่น “<ชื่องาน>” รอ “<ชื่องานที่ต้องเสร็จก่อน>”
+> - ครอบคลุม requirement ครบ <หรือ: ยังขาด <รายการ> เพราะ <เหตุผล>>
+>
+> อยากเริ่มทำต่อแบบไหนครับ?
 >
 > **1. ทำต่อเนื่อง** — ไล่ทำทีละงานจนจบแผน
 > **2. ทำทีละงาน** — จบงานแล้วถามก่อนเริ่มงานถัดไป
 > **3. ยังไม่เริ่ม**
 >
-> ตอบแค่เลขได้เลย หรืออยากให้ทำเฉพาะ task ไหน พิมพ์ชื่อหรือรหัสมาได้ครับ
+> ตอบแค่เลขได้เลย หรืออยากให้ทำเฉพาะงานไหน พิมพ์ชื่องานมาได้ครับ
+
+If no task is ready, say what everything waits for and leave out the question.
 
 After each completed task in one-at-a-time mode, report the outcome briefly and ask:
 

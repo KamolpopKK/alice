@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **`alice-plan` writes plans directly.** Once discovery and its checks pass, the plan goes straight to
+  the board instead of being shown in chat for approval, and leaves whose dependencies are done become
+  ready without a separate question. The agent reports in a few lines by task title and still asks
+  before starting any work. Missing scope or design decisions are still raised instead of guessed.
+
 ## 0.2.4 — 2026-11-22
 
 ### Added
