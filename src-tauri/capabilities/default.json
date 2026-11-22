@@ -40,6 +40,8 @@
     "allow-tools-apply",
     "allow-integrations-status",
     "allow-integration-set",
-    "allow-integration-unassign"
+    "allow-integration-unassign",
+    "allow-editor-dirty-set",
+    "allow-editor-leave-reply"
   ]
 }

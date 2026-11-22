@@ -10,7 +10,7 @@ import { ShellWorkspaceContext, type ShellWorkspace } from '../shell/workspace'
 import { TauriTransport } from './transport'
 import { Button, useToast } from '../ui'
 import { saveInFlight } from '../documents/drafts'
-import { guarded } from '../documents/leave'
+import { confirmLeave, guarded, hasUnsavedDrafts, subscribeUnsaved } from '../documents/leave'
 
 type Phase =
   | { kind: 'loading' }
@@ -47,7 +47,33 @@ function useExternalLinks() {
  * Desktop-only chrome: server profiles, browser sign-in, compatibility and the active-profile banner.
  * Everything else is the same React app as the Web dashboard.
  */
+/**
+ * Lets Alice Desktop's core hold a close or quit while a document has unsaved changes: mirrors only the
+ * unsaved flag, and answers the core's question with the shared leave dialog.
+ */
+function useNativeLeaveGuard() {
+  useEffect(() => {
+    let last: boolean | null = null
+    const sync = () => {
+      const dirty = hasUnsavedDrafts()
+      if (dirty === last) return
+      last = dirty
+      void native.editorDirtySet(dirty).catch(() => {})
+    }
+    sync()
+    const stop = subscribeUnsaved(sync)
+    const unlisten = native.onEditorLeaveRequested(({ requestId, action }) => {
+      void confirmLeave(action === 'exit' ? 'quit Alice' : 'close the window').then((discard) => native.editorLeaveReply(requestId, discard).catch(() => {}))
+    })
+    return () => {
+      stop()
+      void unlisten.then((u) => u())
+    }
+  }, [])
+}
+
 export function DesktopShell({ children }: { children: ReactNode }) {
+  useNativeLeaveGuard()
   const qc = useQueryClient()
   const toast = useToast()
   const [view, setView] = useState<ProfilesView | null>(null)
@@ -468,7 +494,7 @@ function UpdateCheck() {
       {installable && (
         <>
           {' '}
-          <Button variant="ghost" size="sm" onClick={() => void native.updateInstall().catch((e) => setStatus(messageOf(e)))}>
+          <Button variant="ghost" size="sm" onClick={() => void guarded('install the update', () => native.updateInstall().catch((e) => setStatus(messageOf(e))))}>
             Install and restart
           </Button>
         </>

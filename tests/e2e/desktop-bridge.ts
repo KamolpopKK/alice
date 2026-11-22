@@ -30,6 +30,9 @@ export class FakeNativeCore {
   private pendingDevice: { profile: string; deviceCode: string; userCode: string } | null = null
   opened: string[] = []
   calls: string[] = []
+  /** Last unsaved-drafts flag the UI reported (the Rust core keeps only this, never content). */
+  editorDirty = false
+  leaveReplies: Array<{ requestId: string; discard: boolean }> = []
 
   constructor(private readonly page: Page) {}
 
@@ -416,6 +419,12 @@ export class FakeNativeCore {
       case 'events_unsubscribe':
         this.stream?.abort()
         this.stream = null
+        return null
+      case 'editor_dirty_set':
+        this.editorDirty = Boolean(args.dirty)
+        return null
+      case 'editor_leave_reply':
+        this.leaveReplies.push({ requestId: args.input.requestId, discard: args.input.discard })
         return null
       default:
         throw { code: 'INVALID_REQUEST', message: `Command ${cmd} not allowed` }

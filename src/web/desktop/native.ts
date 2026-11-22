@@ -139,4 +139,10 @@ export const native = {
   onDeepLink: (fn: (e: DeepLinkEvent) => void): Promise<UnlistenFn> => listen<DeepLinkEvent>('alice://deeplink', (e) => fn(e.payload)),
   onAuth: (fn: (e: AuthEvent) => void): Promise<UnlistenFn> => listen<AuthEvent>('alice://auth', (e) => fn(e.payload)),
   onProfile: (fn: (e: { active: string | null }) => void): Promise<UnlistenFn> => listen<{ active: string | null }>('alice://profile', (e) => fn(e.payload)),
+  /** Tells the core whether any document has unsaved changes (never the content). */
+  editorDirtySet: (dirty: boolean) => invoke<void>('editor_dirty_set', { dirty }),
+  /** Answers a held close/quit: discard runs it once, otherwise it is dropped. */
+  editorLeaveReply: (requestId: string, discard: boolean) => invoke<void>('editor_leave_reply', { input: { requestId, discard } }),
+  onEditorLeaveRequested: (fn: (e: { requestId: string; action: 'close' | 'exit' }) => void): Promise<UnlistenFn> =>
+    listen<{ requestId: string; action: 'close' | 'exit' }>('alice://editor-leave-requested', (e) => fn(e.payload)),
 }

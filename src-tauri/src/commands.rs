@@ -291,3 +291,47 @@ pub async fn integration_set(core: CoreState<'_>, client: String, enabled: bool)
 pub async fn integration_unassign(core: CoreState<'_>, client: String, workspace: String) -> Result<Value> {
     core.integration_unassign(&client, &workspace).await
 }
+
+/// Only the main window may report drafts or answer the close/quit question.
+fn main_window_only(window: &tauri::Window) -> Result<()> {
+    if window.label() == "main" {
+        Ok(())
+    } else {
+        Err(crate::error::NativeError::invalid("Only the main window can do this"))
+    }
+}
+
+/// Whether any document in the UI has unsaved changes. Never receives the content.
+#[tauri::command]
+pub fn editor_dirty_set(window: tauri::Window, guard: State<'_, Arc<crate::drafts::LeaveGuard>>, dirty: bool) -> Result<()> {
+    main_window_only(&window)?;
+    guard.set_dirty(dirty);
+    Ok(())
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LeaveReply {
+    request_id: String,
+    discard: bool,
+}
+
+/// The person's answer to `alice://editor-leave-requested`: Discard runs the held close/quit once.
+#[tauri::command]
+pub fn editor_leave_reply(app: tauri::AppHandle, window: tauri::Window, guard: State<'_, Arc<crate::drafts::LeaveGuard>>, input: LeaveReply) -> Result<()> {
+    use tauri::Manager;
+    main_window_only(&window)?;
+    let action = guard
+        .reply(&input.request_id, input.discard)
+        .map_err(|_| crate::error::NativeError::invalid("This close request is no longer open"))?;
+    match action {
+        Some(crate::drafts::LeaveAction::Close) => {
+            if let Some(main) = app.get_webview_window("main") {
+                let _ = main.close();
+            }
+        }
+        Some(crate::drafts::LeaveAction::Exit) => app.exit(0),
+        None => {}
+    }
+    Ok(())
+}

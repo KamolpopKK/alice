@@ -215,6 +215,33 @@ test.describe('Alice Desktop with Local workspaces', () => {
     expect(((await docsB.json()) as { items: unknown[] }).items).toHaveLength(0)
   })
 
+  test('closing or quitting with an unsaved document asks in the app and answers the core once', async ({ app, page }) => {
+    const home = localHome()
+    const ws = createWorkspace(home, { name: 'Close' })
+    const native = await FakeNativeCore.attach(page, { localHome: home })
+    await native.handle('profile_use', { name: ws.id })
+    await page.goto(`${app.url}/documents/new`)
+    await expect(page.getByLabel('Document title')).toBeVisible()
+    expect(native.editorDirty).toBe(false)
+    await page.getByLabel('Document title').fill('Secret plan')
+    await expect.poll(() => native.editorDirty).toBe(true)
+    // core รู้แค่ว่ามีของค้าง ไม่เคยได้เนื้อหา
+    expect(JSON.stringify(native.calls)).not.toContain('Secret plan')
+
+    const leave = page.getByRole('dialog', { name: 'Discard unsaved changes?' })
+    await native.emit('alice://editor-leave-requested', { requestId: 'leave-1', action: 'close' })
+    await expect(leave).toContainText('close the window')
+    await leave.getByRole('button', { name: 'Stay and keep editing' }).click()
+    await expect.poll(() => native.leaveReplies).toEqual([{ requestId: 'leave-1', discard: false }])
+    await expect(page.getByLabel('Document title')).toHaveValue('Secret plan')
+
+    await native.emit('alice://editor-leave-requested', { requestId: 'leave-2', action: 'exit' })
+    await expect(leave).toContainText('quit Alice')
+    await leave.getByRole('button', { name: 'Discard changes' }).click()
+    await expect.poll(() => native.leaveReplies.at(-1)).toEqual({ requestId: 'leave-2', discard: true })
+    expect(native.leaveReplies).toHaveLength(2)
+  })
+
   test('a slow check of the previous workspace never takes the screen back after a switch', async ({ app, page }) => {
     const home = localHome()
     const a = createWorkspace(home, { name: 'Slow A' })
