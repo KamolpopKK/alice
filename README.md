@@ -11,7 +11,11 @@
 command. Agents such as Claude Code and Codex claim and finish tasks under their own names. Every change
 shows who made it, and everyone sees the same board live.
 
-<p><img src="docs/images/codex-attribution.png" alt="A task in Alice that Codex claimed and completed, with its completion summary and the activity history naming Codex and the person" width="720"></p>
+<p><img src="docs/images/alice-concept.webp" alt="Alice, the mascot, presents one shared board where two people and two AI agents work on the same cards. Arrows link the board to Docs and a System graph and back. Badges say Live updates and Who did what, a four-step flow reads Think, Design, Plan, Work, and a desktop and server mark Local or self-hosted use." width="720"></p>
+
+People and AI agents work on **one shared board**. Ideas go through **Think → Design → Plan → Work**,
+reusable knowledge lives in **Docs** and a **System graph**, every change shows **who did what** and
+appears **live**, and it all runs **on your Mac or your own server**.
 
 ## Quick start with AI agents
 
@@ -324,6 +328,8 @@ More: [project files](docs/project-files.md).
 - **Attributed.** Every change is recorded with the person or agent that made it.
 - **Live.** The web app, Desktop and the CLI all see changes as they happen.
 - **Yours.** Self-hosted (one Node process and SQLite) or entirely on your Mac. AGPL-3.0.
+
+<p><img src="docs/images/codex-attribution.png" alt="A task in Alice that Codex claimed and completed, with its completion summary and the activity history naming Codex and the person" width="720"></p>
 
 ## Clients and agents
 

@@ -54,6 +54,18 @@ describe('README Quick start with AI agents', () => {
   })
 })
 
+describe('README concept image', () => {
+  it('follows the logo, comes before Quick start, stays under 500 KB and says what it shows', () => {
+    const image = /<img src="docs\/images\/alice-concept\.webp" alt="([^"]{80,})"/.exec(readme)
+    expect(image).not.toBeNull()
+    expect(readme.indexOf('alice-logo-horizontal-light.svg')).toBeLessThan(image!.index)
+    expect(image!.index).toBeLessThan(readme.indexOf('## Quick start with AI agents'))
+    expect(fs.statSync(path.join(ROOT, 'docs/images/alice-concept.webp')).size).toBeLessThanOrEqual(500 * 1024)
+    // คำอธิบายข้างภาพต้องสื่อ concept ได้โดยไม่ต้องเห็นภาพ
+    for (const idea of ['one shared board', 'Think → Design → Plan → Work', 'System graph', 'who did what', 'live']) expect(readme).toContain(idea)
+  })
+})
+
 describe('README Get started', () => {
   it('opens with the four paths before any project paperwork', () => {
     const start = readme.indexOf('## Get started')
