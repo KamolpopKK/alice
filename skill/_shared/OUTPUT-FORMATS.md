@@ -34,7 +34,7 @@ reference explicitly naming where the full detail lives, for example "Contract d
 API (D-099) § Create notification". The extracted document references its parent/source document when
 available. Use a title while a new document is awaiting its id, then resolve actual ids/paths before
 finishing the save; do not invent ids. If only part of a multi-document save succeeds, report what was
-saved and which references remain to be resolved.
+saved and which references remain to be resolved, naming documents by title in conversation.
 
 Do not copy evolving details into several documents. Read relevant sections of the referenced source
 before relying on them; if sources conflict, surface the discrepancy and agree which is correct before

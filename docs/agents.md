@@ -42,6 +42,10 @@ name:
 | `alice-plan` | Break agreed requirements and a sufficient technical approach into reviewed tasks, dependencies and verification steps. |
 | `alice-understand` | Understand an existing system, connect business flows to code/services, and maintain reusable knowledge with a separate Mermaid System graph. |
 
+Every skill talks to you about tasks and documents by their titles, adding the project or parent task
+when two share a title. It shows an id only when you ask for it or an exact command needs it, and then
+next to the title; tool calls, saved references and requirement ids such as `REQ-001` keep using ids.
+
 Choose the skill for the work at hand; this is not a mandatory sequence. Think and spec
 finish by recommending the next skill, with the reason and input document ids/paths. They do not
 invoke it automatically. Plan also recommends think or spec when its input is not ready.

@@ -26,6 +26,18 @@ no document rewrite. Follow the shared knowledge guide; do not invoke alice-unde
 - Only act on tasks you have claimed or were explicitly asked to handle.
 - Archive instead of deleting; there is no permanent delete for agents.
 
+## Naming tasks and documents
+
+When you talk with the person (questions, approvals, progress, summaries, tables, dependency
+explanations and handoffs), call tasks and documents by their titles, in quotes, never by a bare id or a
+temporary code they would have to look up. When you only have an id, fetch the title; never invent one.
+- When two items share a title, add readable context: the project, the parent task or the document type.
+- Show an id only when the person asks for it or an exact command or technical diagnosis needs it, and
+  keep the title next to it. A link's visible text is the title.
+- Ids stay wherever tools and saved content need them: command and tool arguments, document references,
+  relationships, `docs` and `blocked_by` fields, and source requirement ids such as `REQ-001`, which are
+  part of the content rather than names.
+
 ## Choose where you work first
 
 You can reach Alice in three ways, and they may point at different boards:
@@ -148,7 +160,8 @@ Do not repeat a workspace or mode question already answered in the conversation.
   the next named eligible task. If it is backlog, say that yes also changes it to **ready (พร้อมทำ)**.
   Wait for the answer; a yes authorizes that task only, then ask again after completing it.
 - **Named task:** work only the selected task or explicitly selected set. Do not add its prerequisites
-  or follow-up work without approval. If the name is ambiguous, ask which id the person meant.
+  or follow-up work without approval. If the name is ambiguous, ask which one the person meant, listing the candidates by title with their
+  project or parent.
 
 For each selection, re-read status, assignment and blockers before acting. Work only on this plan's
 authorized leaf tasks with all blockers done. Resume your own claimed task when appropriate; otherwise

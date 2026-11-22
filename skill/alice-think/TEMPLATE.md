@@ -122,6 +122,6 @@ Do not save this wrapper as part of the brief. Before creating or saving any out
 ```
 
 Scale the detail to the work; small tasks still need the artifact map and direct confirmation. After
-approval and saving, report the id/title or path, the content included, and the recommended next skill
-with the reason and input references. For a task or spike, report its id/title and the next step. Do not
+approval and saving, report it by title (or path), the content included, and the recommended next skill
+with the reason and input references. For a task or spike, report it by title with the next step. Do not
 invoke the recommended skill.

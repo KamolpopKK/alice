@@ -159,6 +159,6 @@ Writing a check in the design or obtaining content approval does not authorize e
 each execution, including Mermaid syntax or render checks. Unresolved main design decisions stay in
 discovery and prevent recommending planning.
 
-After saving, report the design id/title or path, what it designs, verification limitations and the
+After saving, report the design by title (or path), what it designs, verification limitations and the
 recommended next step. Recommend `alice-plan` with design and source requirements references when
 ready; otherwise identify the blocker or spike. Do not invoke another skill.

@@ -41,6 +41,18 @@ keeping the selected template headings and fields.
 - Recommend other skills as next steps; never invoke them as part of this workflow.
 - Archive instead of deleting; there is no permanent delete for agents.
 
+## Naming tasks and documents
+
+When you talk with the person (questions, approvals, progress, summaries, tables, dependency
+explanations and handoffs), call tasks and documents by their titles, in quotes, never by a bare id or a
+temporary code they would have to look up. When you only have an id, fetch the title; never invent one.
+- When two items share a title, add readable context: the project, the parent task or the document type.
+- Show an id only when the person asks for it or an exact command or technical diagnosis needs it, and
+  keep the title next to it. A link's visible text is the title.
+- Ids stay wherever tools and saved content need them: command and tool arguments, document references,
+  relationships, `docs` and `blocked_by` fields, and source requirement ids such as `REQ-001`, which are
+  part of the content rather than names.
+
 ## Choose where you work first
 
 You can reach Alice in three ways, and they may point at different boards:
@@ -207,7 +219,7 @@ a time limit. Create it only after the person agrees:
 - `create_task { title: "Spike: <question>", description, projectId, status: "ready", labels: ["spike"] }`.
 - If a saved design exists, `link_document { id: <design id>, taskId: <spike id> }`. Otherwise include
   source references in the task; do not create a document merely to support it.
-- Report its id, title and the decision waiting on it. Do not claim or execute the spike yourself.
+- Report it by title with the decision waiting on it. Do not claim or execute the spike yourself.
 
 Keep unfinished decisions in chat. If work pauses, summarize settled decisions, evidence, limitations
 and remaining questions there; do not save a draft design. When spike findings arrive, discuss their
@@ -265,7 +277,7 @@ title/id/section in the body as well. In project files, use body references only
 runtime metadata or relations. If saving or linking fails, report which operations succeeded and their
 ids, re-read before retrying, and avoid duplicate documents or spikes.
 
-Report the saved document id/title (or file path), what it designs and any verification limitations.
+Report the saved document by title (or file path), what it designs and any verification limitations.
 Recommend `alice-plan` to break down this design, naming the design and requirements references as
 inputs. Do not invoke `alice-plan`, create its plan or release tasks. If a blocker remains, report the
 question or agreed spike as the next step instead of recommending planning. The person chooses when
