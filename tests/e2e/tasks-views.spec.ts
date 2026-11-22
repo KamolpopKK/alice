@@ -245,6 +245,29 @@ test('List selection changes several tasks at once and keeps failures selected',
   expect(act[0].actor.displayName).toBe('Olivia Owner')
 })
 
+test('clicking anywhere on a Board card opens its task, while its controls keep their own action', async ({ app, owner, page }) => {
+  const s = stamp()
+  const t = await newTask(owner, { title: `Card body ${s}`, status: 'ready', priority: 'high' })
+  await signIn(page, app)
+  await page.goto(`${app.url}/tasks?view=board&q=${s}`)
+  const card = page.getByRole('region', { name: 'Ready' }).getByRole('listitem').filter({ has: page.getByRole('link', { name: t.title }) })
+
+  // ตัวเลือกสถานะทำแค่หน้าที่ของตัวเอง ไม่เปิด task
+  await card.getByLabel(`Status of ${t.title}`).click()
+  await page.keyboard.press('Escape')
+  await expect(panel(page)).toHaveCount(0)
+
+  // metadata และพื้นที่ว่างของการ์ดเปิด task เดียวกับชื่อ
+  await card.getByText('High', { exact: true }).click()
+  await expect(page).toHaveURL(new RegExp(`view=board&q=${s}&task=${t.id}$`))
+  await expect(panel(page).getByRole('heading', { level: 2, name: t.title })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(panel(page)).toHaveCount(0)
+  const box = (await card.boundingBox())!
+  await page.mouse.click(box.x + box.width - 6, box.y + box.height - 6)
+  await expect(panel(page).getByRole('heading', { level: 2, name: t.title })).toBeVisible()
+})
+
 test('dragging a card to another Board column changes its status and says so', async ({ app, owner, page }) => {
   const s = stamp()
   const t = await newTask(owner, { title: `Drag me ${s}`, status: 'ready' })
@@ -256,5 +279,7 @@ test('dragging a card to another Board column changes its status and says so', a
   await card.dragTo(page.getByRole('region', { name: 'In progress' }), { sourcePosition: { x: 16, y: 14 }, targetPosition: { x: 30, y: 20 } })
   await expect(page.getByRole('status').filter({ hasText: `Moved ${t.title} to In progress.` })).toBeVisible()
   await expect(page.getByRole('region', { name: 'In progress' }).getByRole('link', { name: t.title })).toBeVisible()
+  // การลากไม่นับเป็นคลิกเปิด task
+  await expect(panel(page)).toHaveCount(0)
   expect((await owner.get(`${V1}/tasks/${t.id}`)).body.task.status).toBe('in_progress')
 })

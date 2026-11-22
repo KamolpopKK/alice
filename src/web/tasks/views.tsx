@@ -144,6 +144,24 @@ export function MyWorkView({ filters }: { filters: Record<string, string> }) {
 
 const COLUMN_PAGE = 25
 
+// ส่วนที่มีหน้าที่ของตัวเองในการ์ด: คลิกแล้วทำแค่หน้าที่นั้น ไม่เปิด task ซ้ำ
+const CARD_CONTROLS = 'a, button, input, select, textarea, label, summary, [role="button"], [role="checkbox"], [contenteditable="true"]'
+
+/**
+ * A plain click anywhere on a Board card opens its task, through the title link so the Task Panel
+ * (or the full page) behaves exactly as a title click. Controls and links keep their own action, a
+ * text selection is left alone, and modified clicks do nothing: the title link still handles those.
+ */
+function openCardOnClick(e: MouseEvent<HTMLElement>) {
+  if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+  const card = e.currentTarget
+  const target = e.target as Element
+  if (target.closest(CARD_CONTROLS) && card.contains(target.closest(CARD_CONTROLS))) return
+  const selection = window.getSelection()
+  if (selection && !selection.isCollapsed && card.contains(selection.anchorNode)) return
+  card.querySelector<HTMLAnchorElement>('a[data-task-link]')?.click()
+}
+
 const DRAG_TYPE = 'application/x-alice-task'
 type DragPayload = { id: string; title: string; status: TaskStatus }
 type BoardDnd = { move: (task: DragPayload, to: TaskStatus) => void }
@@ -192,6 +210,7 @@ function BoardColumn({ status, filters }: { status: TaskStatus; filters: Record<
               key={t.id}
               draggable={!t.archivedAt}
               className="tasks-card-drag"
+              onClick={openCardOnClick}
               onDragStart={(e) => {
                 e.dataTransfer.setData(DRAG_TYPE, JSON.stringify({ id: t.id, title: t.title, status: t.status } satisfies DragPayload))
                 e.dataTransfer.effectAllowed = 'move'

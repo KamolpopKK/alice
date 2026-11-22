@@ -405,6 +405,10 @@
 }
 
 /* ---------- board drag and drop ---------- */
+/* the whole card opens its task (see openCardOnClick) */
+.tasks-card-drag {
+  cursor: pointer;
+}
 .tasks-card-drag[draggable='true'] {
   cursor: grab;
 }
