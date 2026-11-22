@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Added
+
+- **Full-page document writing with rich text.** Documents are created and edited on their own pages
+  with a rich text editor and a Markdown view a click away. Markdown stays the saved format: untouched
+  blocks keep their exact text, unsupported content stays as written, and pasted scripts and unsafe links
+  are dropped. Interrupted saves can be retried without duplicates, a newer version saved meanwhile is
+  flagged before you overwrite it, and leaving, signing out, switching workspace or closing Alice Desktop
+  with unsaved changes asks first. See [Writing documents](docs/document-authoring.md).
+- **Board cards open and move more easily.** Click anywhere on a card to open it; drag cards by mouse,
+  trackpad or a long press on touch, including to columns off screen.
+- **README quick start.** The README opens with a concept illustration and four copyable prompts that let
+  Codex or Claude Code set up the app, the `alice` command or the skills.
+
 ### Changed
 
 - **`alice-plan` writes plans directly.** Once discovery and its checks pass, the plan goes straight to

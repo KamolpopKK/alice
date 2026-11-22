@@ -18,12 +18,17 @@ React UI (WebView)  ──invoke──▶  Rust core (src-tauri)  ──HTTPS─
   - sign-in: `auth_status`, `auth_login_start`, `auth_login_cancel`, `auth_logout`;
   - data and links: `api_request`, `events_subscribe`, `events_unsubscribe`, `open_external`, `deeplink_take`;
   - Task Pad capture: `capture_take`, `shortcuts_get`, `shortcuts_set`, `shortcuts_reset`;
+  - unsaved documents: `editor_dirty_set`, `editor_leave_reply` (main window only);
   - `app_info`.
 
   None of these return a credential. `api_request` refuses device and refresh endpoints, path tricks, and any
   request tagged with a profile that is no longer active.
 - **Capabilities** (`src-tauri/capabilities/default.json`). Allow only those commands plus listening to
   events. The WebView gets no shell, filesystem, HTTP, dialog or opener access.
+- **Unsaved documents.** The core keeps only a flag saying whether a document has unsaved changes, never
+  its content. Closing the main window or quitting while it is set is held; the core sends
+  `alice://editor-leave-requested` and the UI answers with `editor_leave_reply`. Stay drops the held
+  action, Discard runs it once; unknown or repeated replies are refused. Installing an update asks first.
 - **CSP.** Scripts and assets come only from the bundle. The WebView's only connection is the IPC channel.
   Remote images over `https:` are allowed for Markdown.
 
