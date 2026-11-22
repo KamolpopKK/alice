@@ -57,6 +57,19 @@ describe('retry policy', () => {
     expect(seen[0]?.['alice-client-api']).toBe('1')
   })
 
+  it('lets one save attempt reuse its own key across calls, and retries it', async () => {
+    const { transport, seen } = flaky(1)
+    const client = new AliceClient(transport)
+    await client.documents.create({ title: 'Doc', body: 'x' }, { idempotencyKey: 'attempt-1234' })
+    await client.documents.create({ title: 'Doc', body: 'x' }, { idempotencyKey: 'attempt-1234' })
+    await client.documents.link('doc_1', { taskId: 'tsk_1' }, { idempotencyKey: 'link-attempt-1' })
+    expect(seen.map((h) => h?.['idempotency-key'])).toEqual(['attempt-1234', 'attempt-1234', 'attempt-1234', 'link-attempt-1'])
+    // ไม่ส่ง key เอง: ยังได้ key ใหม่ทุกครั้งเหมือนเดิม
+    await client.documents.create({ title: 'Doc', body: 'x' })
+    await client.documents.create({ title: 'Doc', body: 'x' })
+    expect(new Set(seen.slice(4).map((h) => h?.['idempotency-key'])).size).toBe(2)
+  })
+
   it('never retries a mutation without an idempotency key', async () => {
     const { transport, seen } = flaky(1)
     await expect(new AliceClient(transport).tasks.update('tsk_1', { title: 'y' })).rejects.toMatchObject({ code: 'NETWORK_ERROR' })

@@ -13,6 +13,24 @@ export interface DocumentDraft {
   ownerId: string | null
   /** Revision the edit started from (Edit only). */
   baseRevision?: number
+  /** The saved values the edit started from, to send only what the person changed (Edit only). */
+  base?: DocumentFields
+  /** One Create attempt: the exact request and its Idempotency-Key, kept until the outcome is known. */
+  saveAttempt?: { key: string; payload: CreatePayload }
+  /** A link to a task or project that still has to be made after Create (Edit only). */
+  pendingLink?: { target: { taskId: string } | { projectId: string }; key: string }
+}
+
+export type DocumentFields = Pick<DocumentDraft, 'title' | 'body' | 'sourceUrl' | 'tags' | 'searchKeywords' | 'status' | 'ownerId'>
+
+export interface CreatePayload {
+  title: string
+  body: string
+  sourceUrl: string | null
+  tags: string[]
+  searchKeywords: string[]
+  status: Exclude<DocumentKnowledgeStatus, 'current'>
+  ownerId: string | null
 }
 
 // เก็บใน RAM เท่านั้น (ไม่ลง localStorage หรือ server) และอยู่นอก React tree จึงไม่หายเมื่อ shell/Desktop
@@ -42,4 +60,21 @@ export function writeDraft(key: string, draft: DocumentDraft): void {
 
 export function clearDraft(key: string): void {
   drafts.delete(key)
+}
+
+// มี save กำลังทำงานอยู่กี่รายการ: Desktop ใช้กันการสลับ workspace ระหว่างบันทึก
+let saving = 0
+
+/** Marks a save as in flight until it settles. */
+export async function trackSave<T>(work: () => Promise<T>): Promise<T> {
+  saving++
+  try {
+    return await work()
+  } finally {
+    saving--
+  }
+}
+
+export function saveInFlight(): boolean {
+  return saving > 0
 }

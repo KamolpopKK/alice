@@ -2,11 +2,12 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { DocumentDetail, DocumentKnowledgeStatus } from '../../shared/contracts'
+import { AliceClientError, newIdempotencyKey } from '../../client'
 import { client } from '../api'
 import { FullPageError, isRecoverable } from '../brand'
 import { DocumentKnowledgeFields } from '../components/DocumentKnowledgeFields'
 import { DocumentEditor } from '../documents/DocumentEditor'
-import { clearDraft, draftKey, readDraft, useDraftScope, writeDraft, type DocumentDraft } from '../documents/drafts'
+import { clearDraft, draftKey, readDraft, trackSave, useDraftScope, writeDraft, type CreatePayload, type DocumentDraft, type DocumentFields } from '../documents/drafts'
 import { safeReturnPath } from '../navigation'
 import { errorText } from '../tasks/TaskDetail'
 import { Banner, Button, FieldMessage, Skeleton, TextField } from '../ui'
@@ -36,8 +37,21 @@ function emptyDraft(): DocumentDraft {
   return { title: '', body: '', sourceUrl: '', tags: [], searchKeywords: [], status: 'unreviewed', ownerId: null }
 }
 
+function fieldsOf(doc: DocumentDetail): DocumentFields {
+  return {
+    title: doc.title,
+    body: doc.body,
+    sourceUrl: doc.sourceUrl ?? '',
+    tags: doc.tags,
+    searchKeywords: doc.searchKeywords,
+    status: doc.status,
+    ownerId: doc.owner?.id ?? null,
+  }
+}
+
 function fromDocument(doc: DocumentDetail): DocumentDraft {
   return {
+    base: fieldsOf(doc),
     title: doc.title,
     body: doc.body,
     sourceUrl: doc.sourceUrl ?? '',
@@ -49,6 +63,39 @@ function fromDocument(doc: DocumentDetail): DocumentDraft {
   }
 }
 
+function createPayload(d: DocumentDraft): CreatePayload {
+  return {
+    title: d.title,
+    body: d.body,
+    sourceUrl: d.sourceUrl.trim() || null,
+    tags: d.tags,
+    searchKeywords: d.searchKeywords,
+    status: d.status === 'current' ? 'unreviewed' : d.status,
+    ownerId: d.ownerId,
+  }
+}
+
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
+
+/**
+ * Only the fields the person changed since the edit started, so a save never writes back values it did not
+ * touch (someone else may have changed them) and never sends the stale "current" status.
+ */
+export function changedFields(draft: DocumentFields, base: DocumentFields) {
+  const patch: { title?: string; body?: string; sourceUrl?: string | null; tags?: string[]; searchKeywords?: string[]; ownerId?: string | null; status?: Exclude<DocumentDraft['status'], 'current'> } = {}
+  if (draft.title !== base.title) patch.title = draft.title
+  if (draft.body !== base.body) patch.body = draft.body
+  if (draft.sourceUrl.trim() !== base.sourceUrl.trim()) patch.sourceUrl = draft.sourceUrl.trim() || null
+  if (!same(draft.tags, base.tags)) patch.tags = draft.tags
+  if (!same(draft.searchKeywords, base.searchKeywords)) patch.searchKeywords = draft.searchKeywords
+  if (draft.ownerId !== base.ownerId) patch.ownerId = draft.ownerId
+  if (draft.status !== base.status && draft.status !== 'current') patch.status = draft.status
+  return patch
+}
+
+const uncertain = (e: unknown) => e instanceof AliceClientError && e.code === 'NETWORK_ERROR'
+const UNCERTAIN_SAVE = 'Alice could not confirm the save. Your text is still here; press the button again to finish. It will not make a second copy.'
+
 /** The draft for one Create or Edit page, kept in memory for this workspace and person until Save or Cancel. */
 function useDraft(key: string | null, initial: () => DocumentDraft) {
   const [draft, setDraft] = useState<DocumentDraft>(() => (key && readDraft(key)) || initial())
@@ -56,7 +103,7 @@ function useDraft(key: string | null, initial: () => DocumentDraft) {
     if (key) writeDraft(key, draft)
   }, [key, draft])
   const update = <K extends keyof DocumentDraft>(field: K, value: DocumentDraft[K]) => setDraft((d) => ({ ...d, [field]: value }))
-  return { draft, update, discard: () => key && clearDraft(key) }
+  return { draft, setDraft, update, discard: () => key && clearDraft(key) }
 }
 
 function AuthoringFields({ draft, update, bodyRows }: { draft: DocumentDraft; update: ReturnType<typeof useDraft>['update']; bodyRows: number }) {
@@ -109,26 +156,51 @@ export function NewDocumentPage() {
   const { target, invalid } = linkTarget(params)
   const back = returnPath(params) ?? '/documents'
   const target_ = target ? ('taskId' in target ? `task:${target.taskId}` : `project:${target.projectId}`) : 'none'
-  const { draft, update, discard } = useDraft(scope && draftKey(scope, `new:${target_}`), emptyDraft)
+  const newKey = scope && draftKey(scope, `new:${target_}`)
+  const { draft, setDraft, update, discard } = useDraft(newKey, emptyDraft)
+  const [notice, setNotice] = useState('')
   const create = useMutation({
-    mutationFn: async () => {
-      const res = await client.documents.create({
-        title: draft.title,
-        body: draft.body,
-        sourceUrl: draft.sourceUrl.trim() || null,
-        tags: draft.tags,
-        searchKeywords: draft.searchKeywords,
-        status: draft.status === 'current' ? 'unreviewed' : draft.status,
-        ownerId: draft.ownerId,
-      })
-      if (target) await client.documents.link(res.document.id, target)
-      return res.document
-    },
-    onSuccess: (doc) => {
-      discard()
+    mutationFn: () =>
+      trackSave(async () => {
+        // ใช้ attempt เดิม (payload + key เดิม) จนกว่าจะรู้ผล: กดซ้ำหลัง network ขัดข้องจะไม่สร้างเอกสารซ้ำ
+        const attempt = draft.saveAttempt ?? { key: newIdempotencyKey(), payload: createPayload(draft) }
+        setDraft((d) => ({ ...d, saveAttempt: attempt }))
+        if (newKey) writeDraft(newKey, { ...draft, saveAttempt: attempt })
+        const created = (await client.documents.create(attempt.payload, { idempotencyKey: attempt.key })).document
+        // เอกสารมีแล้ว: ย้าย draft ไปเป็น Edit ของ id นี้ (เก็บ link ที่ยังต้องทำ และสิ่งที่แก้หลังเริ่มบันทึก)
+        const base: DocumentFields = { ...attempt.payload, sourceUrl: attempt.payload.sourceUrl ?? '' }
+        const pendingLink = target ? { target, key: newIdempotencyKey() } : undefined
+        const editDraft: DocumentDraft = { ...draft, saveAttempt: undefined, base, baseRevision: created.revision, pendingLink }
+        if (scope) writeDraft(draftKey(scope, `doc:${created.id}`), editDraft)
+        discard()
+        let linked = true
+        if (pendingLink) {
+          try {
+            await client.documents.link(created.id, pendingLink.target, { idempotencyKey: pendingLink.key })
+            if (scope) writeDraft(draftKey(scope, `doc:${created.id}`), { ...editDraft, pendingLink: undefined })
+          } catch {
+            linked = false
+          }
+        }
+        const unsaved = Object.keys(changedFields(editDraft, base)).length > 0
+        return { created, linked, unsaved }
+      }),
+    onSuccess: ({ created, linked, unsaved }) => {
       void qc.invalidateQueries({ queryKey: ['documents'] })
       if (target && 'taskId' in target) void qc.invalidateQueries({ queryKey: ['task', target.taskId] })
-      navigate(`/documents/${doc.id}`, { replace: true })
+      if (linked && !unsaved) {
+        if (scope) clearDraft(draftKey(scope, `doc:${created.id}`))
+        navigate(`/documents/${created.id}`, { replace: true })
+      } else {
+        // link ไม่สำเร็จหรือมีสิ่งที่แก้หลังเริ่มบันทึก: ต่อที่หน้า Edit ของเอกสารนี้ ไม่สร้างใหม่
+        navigate(`/documents/${created.id}/edit${back !== '/documents' ? `?returnTo=${encodeURIComponent(back)}` : ''}`, { replace: true })
+      }
+    },
+    onError: (error) => {
+      if (uncertain(error)) return setNotice(UNCERTAIN_SAVE)
+      // server ปฏิเสธ: ไม่มีเอกสารถูกสร้าง เริ่ม attempt ใหม่ได้
+      setNotice('')
+      setDraft((d) => ({ ...d, saveAttempt: undefined }))
     },
   })
   return (
@@ -148,11 +220,11 @@ export function NewDocumentPage() {
         aria-label="New document"
         onSubmit={(e: FormEvent) => {
           e.preventDefault()
-          create.mutate()
+          if (!create.isPending) create.mutate()
         }}
       >
         <AuthoringFields draft={draft} update={update} bodyRows={16} />
-        {create.error && <FieldMessage tone="error">{errorText(create.error)}</FieldMessage>}
+        {create.error && <FieldMessage tone="error">{uncertain(create.error) ? notice : errorText(create.error)}</FieldMessage>}
         <div className="resource-actions">
           <Button variant="primary" type="submit" loading={create.isPending}>
             Create document
@@ -171,27 +243,63 @@ export function NewDocumentPage() {
   )
 }
 
+function PendingLink({ pending, retry, busy }: { pending: NonNullable<DocumentDraft['pendingLink']>; retry: () => void; busy: boolean }) {
+  const isTask = 'taskId' in pending.target
+  const id = 'taskId' in pending.target ? pending.target.taskId : pending.target.projectId
+  const task = useQuery({ queryKey: ['task', id], queryFn: () => client.tasks.get(id), enabled: isTask })
+  const project = useQuery({ queryKey: ['project', id], queryFn: () => client.projects.get(id), enabled: !isTask })
+  const name = isTask ? task.data?.title : project.data?.name
+  return (
+    <Banner
+      tone="warning"
+      title="The document was created but is not linked yet"
+      action={
+        <Button size="sm" loading={busy} onClick={retry}>
+          Retry link
+        </Button>
+      }
+    >
+      It still needs to be linked to the {isTask ? 'task' : 'project'} “{name ?? '…'}”. Retrying links it without creating another copy.
+    </Banner>
+  )
+}
+
 function EditForm({ doc, scope, back }: { doc: DocumentDetail; scope: string | null; back: string }) {
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const { draft, update, discard } = useDraft(scope && draftKey(scope, `doc:${doc.id}`), () => fromDocument(doc))
-  const contentChanged = draft.title !== doc.title || draft.body !== doc.body || (draft.sourceUrl.trim() || null) !== doc.sourceUrl
+  const { draft, setDraft, update, discard } = useDraft(scope && draftKey(scope, `doc:${doc.id}`), () => fromDocument(doc))
+  const base = draft.base ?? fieldsOf(doc)
+  const patch = changedFields(draft, base)
+  const contentChanged = 'title' in patch || 'body' in patch || 'sourceUrl' in patch
+  const done = () => {
+    discard()
+    void qc.invalidateQueries({ queryKey: ['document', doc.id] })
+    void qc.invalidateQueries({ queryKey: ['documents'] })
+    navigate(`/documents/${doc.id}`, { replace: true })
+  }
+  const linkNow = async () => {
+    const pending = draft.pendingLink
+    if (!pending) return
+    await client.documents.link(doc.id, pending.target, { idempotencyKey: pending.key })
+    setDraft((d) => ({ ...d, pendingLink: undefined }))
+    if ('taskId' in pending.target) void qc.invalidateQueries({ queryKey: ['task', pending.target.taskId] })
+  }
   const save = useMutation({
     mutationFn: () =>
-      client.documents.update(doc.id, {
-        title: draft.title,
-        body: draft.body,
-        sourceUrl: draft.sourceUrl.trim() || null,
-        tags: draft.tags,
-        searchKeywords: draft.searchKeywords,
-        ownerId: draft.ownerId,
-        ...(draft.status === doc.status ? {} : { status: draft.status === 'current' ? undefined : draft.status }),
+      trackSave(async () => {
+        if (Object.keys(patch).length > 0) {
+          const updated = (await client.documents.update(doc.id, patch)).document
+          // บันทึกแล้ว: ฐานใหม่คือค่าที่เพิ่งบันทึก ถ้า link ล้มต่อจากนี้ กด Save อีกครั้งจะไม่ส่งซ้ำ
+          setDraft((d) => ({ ...d, base: fieldsOf(updated), baseRevision: updated.revision }))
+        }
+        await linkNow()
       }),
+    onSuccess: done,
+  })
+  const retryLink = useMutation({
+    mutationFn: () => trackSave(linkNow),
     onSuccess: () => {
-      discard()
-      void qc.invalidateQueries({ queryKey: ['document', doc.id] })
-      void qc.invalidateQueries({ queryKey: ['documents'] })
-      navigate(`/documents/${doc.id}`, { replace: true })
+      if (Object.keys(patch).length === 0) done()
     },
   })
   return (
@@ -200,16 +308,18 @@ function EditForm({ doc, scope, back }: { doc: DocumentDetail; scope: string | n
       aria-label="Edit document"
       onSubmit={(e: FormEvent) => {
         e.preventDefault()
-        save.mutate()
+        if (!save.isPending) save.mutate()
       }}
     >
+      {draft.pendingLink && <PendingLink pending={draft.pendingLink} retry={() => retryLink.mutate()} busy={retryLink.isPending} />}
+      {retryLink.error && <FieldMessage tone="error">Still not linked: {errorText(retryLink.error)}</FieldMessage>}
       <AuthoringFields draft={draft} update={update} bodyRows={20} />
       <p className="ui-text-muted">
         {contentChanged
           ? 'Saving content creates revision ' + (doc.revision + 1) + ' and clears its review. Earlier revisions stay available in History.'
           : 'Metadata-only changes keep the current content revision and review.'}
       </p>
-      {save.error && <FieldMessage tone="error">{errorText(save.error)}</FieldMessage>}
+      {save.error && <FieldMessage tone="error">{uncertain(save.error) ? UNCERTAIN_SAVE : errorText(save.error)}</FieldMessage>}
       <div className="resource-actions">
         <Button variant="primary" type="submit" loading={save.isPending}>
           Save changes

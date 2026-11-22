@@ -8,7 +8,8 @@ import { AgentsSection, LocalRecovery, LocalWorkspacesSection, Onboarding, onboa
 import { LocalWorkspaceContext } from '../workspace-mode'
 import { ShellWorkspaceContext, type ShellWorkspace } from '../shell/workspace'
 import { TauriTransport } from './transport'
-import { Button } from '../ui'
+import { Button, useToast } from '../ui'
+import { saveInFlight } from '../documents/drafts'
 
 type Phase =
   | { kind: 'loading' }
@@ -47,6 +48,7 @@ function useExternalLinks() {
  */
 export function DesktopShell({ children }: { children: ReactNode }) {
   const qc = useQueryClient()
+  const toast = useToast()
   const [view, setView] = useState<ProfilesView | null>(null)
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' })
   const [managing, setManaging] = useState(false)
@@ -225,7 +227,11 @@ export function DesktopShell({ children }: { children: ReactNode }) {
         <SignInScreen profile={phase.profile} />
       ) : (
         <LocalWorkspaceContext.Provider value={phase.kind === 'ready' && !!phase.profile.local}>
-          <ShellWorkspaceContext.Provider value={profile ? shellWorkspace(profile, () => setManaging(true)) : null}>{children}</ShellWorkspaceContext.Provider>
+          <ShellWorkspaceContext.Provider value={profile ? shellWorkspace(profile, () => {
+            // ระหว่างบันทึกเอกสาร ห้ามสลับ workspace: คำขอที่ค้างอยู่ต้องจบใน workspace เดิม
+            if (saveInFlight()) return toast.show('Wait for the document to finish saving before switching.', { tone: 'info' })
+            setManaging(true)
+          }) : null}>{children}</ShellWorkspaceContext.Provider>
         </LocalWorkspaceContext.Provider>
       )}
     </div>
