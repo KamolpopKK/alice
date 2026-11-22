@@ -268,18 +268,159 @@ test('clicking anywhere on a Board card opens its task, while its controls keep 
   await expect(panel(page).getByRole('heading', { level: 2, name: t.title })).toBeVisible()
 })
 
+async function boardCard(page: Page, column: string, title: string) {
+  return page.getByRole('region', { name: column }).getByRole('listitem').filter({ has: page.getByRole('link', { name: title }) })
+}
+
+/** Presses on a card and moves the mouse in steps, the way a person drags (the Board starts a drag after 8px). */
+async function mouseDrag(page: Page, from: { x: number; y: number }, to: { x: number; y: number }, finish: 'drop' | 'escape' = 'drop') {
+  await page.mouse.move(from.x, from.y)
+  await page.mouse.down()
+  await page.mouse.move(from.x + 12, from.y + 4, { steps: 3 })
+  await page.mouse.move(to.x, to.y, { steps: 12 })
+  if (finish === 'escape') await page.keyboard.press('Escape')
+  await page.mouse.up()
+}
+
+const centre = (box: { x: number; y: number; width: number; height: number }) => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 })
+
 test('dragging a card to another Board column changes its status and says so', async ({ app, owner, page }) => {
   const s = stamp()
   const t = await newTask(owner, { title: `Drag me ${s}`, status: 'ready' })
   await signIn(page, app)
   // กรองให้เหลือการ์ดของ test นี้ (server ใช้ร่วมกันหลาย test: คอลัมน์ยาวจนการ์ดหลุดจอได้)
   await page.goto(`${app.url}/tasks?view=board&q=${s}`)
-  const card = page.getByRole('region', { name: 'Ready' }).getByRole('listitem').filter({ has: page.getByRole('link', { name: t.title }) })
-  // เริ่มลากจากมุมบนของการ์ด (ชื่องาน): จุดกลางการ์ดอาจตกที่ช่องเลือกสถานะ ซึ่งลากไม่ได้ (เห็นบน Linux ที่ฟอนต์กว้างกว่า)
-  await card.dragTo(page.getByRole('region', { name: 'In progress' }), { sourcePosition: { x: 16, y: 14 }, targetPosition: { x: 30, y: 20 } })
+  const card = await boardCard(page, 'Ready', t.title)
+  const box = (await card.boundingBox())!
+  // เริ่มจากพื้นที่ว่างของการ์ด (ไม่ใช่ตัวเลือกสถานะ)
+  await mouseDrag(page, { x: box.x + box.width - 10, y: box.y + 8 }, centre((await page.getByRole('region', { name: 'In progress' }).boundingBox())!))
   await expect(page.getByRole('status').filter({ hasText: `Moved ${t.title} to In progress.` })).toBeVisible()
   await expect(page.getByRole('region', { name: 'In progress' }).getByRole('link', { name: t.title })).toBeVisible()
   // การลากไม่นับเป็นคลิกเปิด task
+  await expect(panel(page)).toHaveCount(0)
+  expect((await owner.get(`${V1}/tasks/${t.id}`)).body.task.status).toBe('in_progress')
+
+  // ลากจากชื่องานก็ได้
+  const titleBox = (await page.getByRole('region', { name: 'In progress' }).getByRole('link', { name: t.title }).boundingBox())!
+  await mouseDrag(page, centre(titleBox), centre((await page.getByRole('region', { name: 'Blocked' }).boundingBox())!))
+  await expect(page.getByRole('status').filter({ hasText: `Moved ${t.title} to Blocked.` })).toBeVisible()
+  await expect(panel(page)).toHaveCount(0)
+})
+
+test('a drag that is cancelled, dropped on its own column or started on a control changes nothing', async ({ app, owner, page }) => {
+  const s = stamp()
+  const t = await newTask(owner, { title: `Stay put ${s}`, status: 'ready' })
+  await signIn(page, app)
+  await page.goto(`${app.url}/tasks?view=board&q=${s}`)
+  let updates = 0
+  page.on('request', (r) => {
+    if (r.method() === 'PATCH' && r.url().includes(`/tasks/${t.id}`)) updates++
+  })
+  const card = await boardCard(page, 'Ready', t.title)
+  const box = (await card.boundingBox())!
+  const start = { x: box.x + box.width - 10, y: box.y + 8 }
+  const progress = centre((await page.getByRole('region', { name: 'In progress' }).boundingBox())!)
+
+  // การ์ดกลับที่เดิมพร้อม animation สั้น ๆ: รอให้จบก่อนลองท่าถัดไป
+  const settled = () => expect(page.locator('.tasks-card-drag.is-drag-source')).toHaveCount(0)
+  await mouseDrag(page, start, progress, 'escape')
+  await settled()
+  await mouseDrag(page, start, { x: start.x, y: start.y + 40 })
+  await settled()
+  // กดที่ตัวเลือกสถานะแล้วขยับ: ไม่เริ่มการลาก (ปล่อยเมาส์ที่เดิมเพื่อไม่ให้ dropdown เลือกค่าใหม่)
+  const status = centre((await card.getByLabel(`Status of ${t.title}`).boundingBox())!)
+  await page.mouse.move(status.x, status.y)
+  await page.mouse.down()
+  await page.mouse.move(status.x + 40, status.y + 30, { steps: 5 })
+  await page.waitForTimeout(150)
+  await settled()
+  await page.mouse.move(status.x, status.y, { steps: 5 })
+  await page.mouse.up()
+  await page.keyboard.press('Escape')
+
+  await expect(page.getByRole('region', { name: 'Ready' }).getByRole('link', { name: t.title })).toBeVisible()
+  await expect(panel(page)).toHaveCount(0)
+  expect(updates).toBe(0)
+  expect((await owner.get(`${V1}/tasks/${t.id}`)).body.task.status).toBe('ready')
+})
+
+test('dragging to the edge of the Board scrolls to columns that were off screen', async ({ app, owner, page }) => {
+  const s = stamp()
+  const t = await newTask(owner, { title: `Far away ${s}`, status: 'backlog' })
+  await page.setViewportSize({ width: 900, height: 800 })
+  await signIn(page, app)
+  await page.goto(`${app.url}/tasks?view=board&q=${s}`)
+  const board = page.getByRole('region', { name: 'Board columns' })
+  const boardBox = (await board.boundingBox())!
+  const canceled = page.getByRole('region', { name: 'Canceled' })
+  expect((await canceled.boundingBox())!.x).toBeGreaterThan(boardBox.x + boardBox.width)
+  const box = (await (await boardCard(page, 'Backlog', t.title)).boundingBox())!
+  const from = { x: box.x + box.width - 10, y: box.y + 8 }
+  await page.mouse.move(from.x, from.y)
+  await page.mouse.down()
+  await page.mouse.move(from.x + 12, from.y + 4, { steps: 3 })
+  // ค้างไว้ใกล้ขอบขวาจน Board เลื่อนเอง
+  await page.mouse.move(boardBox.x + boardBox.width - 4, from.y + 40, { steps: 10 })
+  await expect.poll(async () => (await canceled.boundingBox())!.x, { timeout: 10_000 }).toBeLessThan(boardBox.x + boardBox.width - 120)
+  const target = (await canceled.boundingBox())!
+  await page.mouse.move(Math.min(target.x + 60, boardBox.x + boardBox.width - 20), target.y + 40, { steps: 5 })
+  await page.mouse.up()
+  await expect(page.getByRole('status').filter({ hasText: `Moved ${t.title} to Canceled.` })).toBeVisible()
+  expect((await owner.get(`${V1}/tasks/${t.id}`)).body.task.status).toBe('canceled')
+})
+
+test('a move the server rejects says so and leaves the card where the server has it', async ({ app, owner, page }) => {
+  const s = stamp()
+  const t = await newTask(owner, { title: `Refused ${s}`, status: 'ready' })
+  await signIn(page, app)
+  await page.goto(`${app.url}/tasks?view=board&q=${s}`)
+  await page.route(`**/client/v1/tasks/${t.id}`, (route) =>
+    route.request().method() === 'PATCH' ? route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { code: 'INTERNAL', message: 'Server unavailable' } }) }) : route.fallback(),
+  )
+  const box = (await (await boardCard(page, 'Ready', t.title)).boundingBox())!
+  await mouseDrag(page, { x: box.x + box.width - 10, y: box.y + 8 }, centre((await page.getByRole('region', { name: 'Done' }).boundingBox())!))
+  await expect(page.getByText(`${t.title} was not moved:`)).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: `Moved ${t.title}` })).toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Ready' }).getByRole('link', { name: t.title })).toBeVisible()
+  expect((await owner.get(`${V1}/tasks/${t.id}`)).body.task.status).toBe('ready')
+  await page.unroute(`**/client/v1/tasks/${t.id}`)
+})
+
+test('@mobile a long press drags a card on touch, while a quick swipe scrolls the Board', async ({ app, owner, page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', 'needs a touch screen')
+  const s = stamp()
+  const t = await newTask(owner, { title: `Touch ${s}`, status: 'ready' })
+  await signIn(page, app)
+  await page.goto(`${app.url}/tasks?view=board&q=${s}`)
+  const cdp = await page.context().newCDPSession(page)
+  const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', p?: { x: number; y: number }) =>
+    cdp.send('Input.dispatchTouchEvent', { type, touchPoints: p ? [{ x: p.x, y: p.y }] : [] })
+  const scrollTop = () => page.evaluate(() => document.scrollingElement!.scrollTop)
+  const card = await boardCard(page, 'Ready', t.title)
+  await card.scrollIntoViewIfNeeded()
+
+  // ปัดขึ้นเร็ว ๆ ก่อนครบเวลากดค้าง: หน้าเลื่อน ไม่ใช่ลากการ์ด (บนมือถือคอลัมน์เรียงลงแนวตั้ง)
+  const box = (await card.boundingBox())!
+  const start = { x: box.x + box.width - 12, y: box.y + 10 }
+  const before = await scrollTop()
+  await touch('touchStart', start)
+  for (let i = 1; i <= 6; i++) await touch('touchMove', { x: start.x, y: start.y - i * 25 })
+  await touch('touchEnd')
+  await expect.poll(scrollTop).toBeGreaterThan(before)
+  await expect(page.locator('.tasks-card-drag.is-drag-source')).toHaveCount(0)
+  expect((await owner.get(`${V1}/tasks/${t.id}`)).body.task.status).toBe('ready')
+
+  // กดค้างแล้วลากลงไปที่คอลัมน์ถัดไป
+  await card.scrollIntoViewIfNeeded()
+  const fresh = (await card.boundingBox())!
+  const from = { x: fresh.x + fresh.width - 12, y: fresh.y + 10 }
+  const head = (await page.getByRole('region', { name: 'In progress' }).getByRole('heading').boundingBox())!
+  const target = { x: head.x + head.width / 2, y: head.y + head.height + 8 }
+  await touch('touchStart', from)
+  await page.waitForTimeout(400)
+  for (let i = 1; i <= 10; i++) await touch('touchMove', { x: from.x + ((target.x - from.x) * i) / 10, y: from.y + ((target.y - from.y) * i) / 10 })
+  await touch('touchEnd')
+  await expect(page.getByRole('status').filter({ hasText: `Moved ${t.title} to In progress.` })).toBeVisible()
   await expect(panel(page)).toHaveCount(0)
   expect((await owner.get(`${V1}/tasks/${t.id}`)).body.task.status).toBe('in_progress')
 })

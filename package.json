@@ -36,6 +36,8 @@
     "test:ui": "playwright test --config playwright.storybook.config.ts"
   },
   "dependencies": {
+    "@dnd-kit/dom": "0.5.3",
+    "@dnd-kit/react": "0.5.3",
     "@fastify/cookie": "^11.1.5",
     "@fastify/rate-limit": "^11.2.2",
     "@fastify/static": "^10.1.10",
