@@ -5,7 +5,8 @@ import type { ActivityEvent, DocumentDetail, DocumentKnowledgeStatus, DocumentRe
 import { FullPageError, isRecoverable } from '../brand'
 import { ApiError, client } from '../api'
 import { ActivityList } from '../components/Activity'
-import { Markdown, MarkdownEditor } from '../components/Markdown'
+import { Markdown } from '../components/Markdown'
+import { DocumentEditor } from '../documents/DocumentEditor'
 import { DocumentKnowledgeFields, KNOWLEDGE_STATUS_LABELS } from '../components/DocumentKnowledgeFields'
 import { DocumentRelations } from '../components/DocumentRelations'
 import { ActorBadge, formatDate } from '../components/ui'
@@ -247,7 +248,7 @@ function EditDocument({ doc, onDone }: { doc: DocumentDetail; onDone: () => void
       }}
     >
       <TextField label="Document title" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} />
-      <MarkdownEditor id="doc-body" label="Body (Markdown)" value={body} onChange={setBody} rows={18} />
+      <DocumentEditor label="Body" value={body} onChange={setBody} rows={18} />
       <TextField label="Source URL (optional)" type="url" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} />
       <DocumentKnowledgeFields
         tags={tags}

@@ -1,4 +1,5 @@
 import { getSchema, type AnyExtension, type JSONContent } from '@tiptap/core'
+import CodeBlock from '@tiptap/extension-code-block'
 import { TableKit } from '@tiptap/extension-table'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
 import { MarkdownManager } from '@tiptap/markdown'
@@ -26,7 +27,9 @@ export const MARKDOWN_LIMIT = 100_000
 /** Extensions of the document editor; the editor UI must use this same list. */
 export const documentEditorExtensions: AnyExtension[] = [
   // Markdown ไม่มี underline: ปิดไว้เพื่อไม่ให้เกิดเนื้อหาที่แปลงกลับเป็น Markdown ไม่ได้
-  StarterKit.configure({ underline: false, link: { openOnClick: false, autolink: true } }),
+  StarterKit.configure({ underline: false, codeBlock: false, link: { openOnClick: false, autolink: true } }),
+  // code block แยกออกมาเพื่อให้ editor ใส่ preview ของ Mermaid ได้ โดย schema ยังเหมือนเดิม
+  CodeBlock,
   TableKit,
   TaskList,
   TaskItem.configure({ nested: true }),
@@ -184,7 +187,8 @@ export function importMarkdown(source: string): MarkdownSession {
  * returning partial or oversized text, so the caller can keep what the person wrote.
  */
 export function exportMarkdown(doc: JSONContent, session: MarkdownSession): string {
-  const nodes = (doc.content ?? []).filter((n, i, all) => !(all.length === 1 && n.type === 'paragraph' && !n.content?.length))
+  // ย่อหน้าว่าง (เช่นบรรทัดท้ายที่ editor เติมให้) ไม่มีรูปใน Markdown: ข้ามไป ไม่เติมบรรทัดว่าง
+  const nodes = (doc.content ?? []).filter((n) => !(n.type === 'paragraph' && !n.content?.length))
   const counts = new Map<string, number>()
   for (const n of nodes) {
     const id = n.attrs?.sourceBlock as string | undefined
@@ -208,7 +212,6 @@ export function exportMarkdown(doc: JSONContent, session: MarkdownSession): stri
   }
   if (parts.length === 0) return ''
   const first = session.order[0]
-  const last = session.order[session.order.length - 1]
   let out = parts[0].id === first ? session.leading : ''
   parts.forEach((part, i) => {
     out += part.text
@@ -219,7 +222,8 @@ export function exportMarkdown(doc: JSONContent, session: MarkdownSession): stri
     // บล็อกเดิมที่ยังติดกันเหมือนเดิม: ใช้ตัวคั่นเดิม (เช่น บรรทัดว่างหลายบรรทัด)
     out += a >= 0 && b === a + 1 ? session.blocks.get(part.id!)!.after : '\n\n'
   })
-  out += parts[parts.length - 1].id === last ? session.trailing : '\n'
+  // ท้ายเอกสารเหมือนต้นฉบับเสมอ (เอกสารใหม่ไม่มีบรรทัดว่างท้ายเกินที่พิมพ์)
+  out += session.trailing
   if (out.length > MARKDOWN_LIMIT) {
     throw new MarkdownConversionError(`The document would be ${out.length.toLocaleString('en-US')} characters, over the ${MARKDOWN_LIMIT.toLocaleString('en-US')}-character limit. Nothing was cut; shorten it before saving.`)
   }

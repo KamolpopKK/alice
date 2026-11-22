@@ -20,7 +20,7 @@ test('human and agent operate on one authoritative board @mobile', async ({ app,
   const docs = page.getByRole('region', { name: 'Documents' })
   await docs.getByRole('button', { name: 'New document' }).click()
   await page.getByLabel('Document title').fill('Reset flow spec')
-  await page.getByLabel('Body (Markdown)').fill('Email a one-time link valid for 30 minutes.')
+  await page.getByLabel('Body', { exact: true }).fill('Email a one-time link valid for 30 minutes.')
   await page.getByRole('button', { name: 'Create document' }).click()
   await expect(docs.getByRole('link', { name: 'Reset flow spec' })).toBeVisible()
 

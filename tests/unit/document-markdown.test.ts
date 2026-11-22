@@ -115,6 +115,14 @@ describe('Markdown bridge: editing', () => {
     expect(exportMarkdown(doc, session)).toBe('<div>raw</div>\n\nIntro\n\n**Added**\n')
   })
 
+  it('ignores empty paragraphs such as the one the editor keeps at the end', () => {
+    const session = importMarkdown('# Title\n\nText\n')
+    const doc = { type: 'doc', content: [...session.doc.content!, { type: 'paragraph' }] }
+    expect(exportMarkdown(doc, session)).toBe('# Title\n\nText\n')
+    const edited = { type: 'doc', content: [session.doc.content![0], { type: 'paragraph' }, { type: 'paragraph', content: [{ type: 'text', text: 'New' }] }, { type: 'paragraph' }] }
+    expect(exportMarkdown(edited, session)).toBe('# Title\n\nNew\n')
+  })
+
   it('serializes a split block instead of reusing the original source twice', () => {
     const session = importMarkdown('One two\n')
     const [p] = session.doc.content!

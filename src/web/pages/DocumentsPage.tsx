@@ -4,7 +4,7 @@ import { keepPreviousData, useInfiniteQuery, useMutation, useQueryClient } from 
 import { FileText, Link2, Plus } from 'lucide-react'
 import type { DocumentKnowledgeStatus } from '../../shared/contracts'
 import { client } from '../api'
-import { MarkdownEditor } from '../components/Markdown'
+import { DocumentEditor } from '../documents/DocumentEditor'
 import { DocumentKnowledgeFields, KNOWLEDGE_STATUS_LABELS, type EditableDocumentStatus } from '../components/DocumentKnowledgeFields'
 import { DocumentFilters, type DocumentFilterKey } from '../components/DocumentFilters'
 import { ActorBadge, formatDate } from '../components/ui'
@@ -160,7 +160,7 @@ export function NewDocumentForm({ onCancel, link }: { onCancel: () => void; link
       }}
     >
       <TextField label="Document title" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} autoFocus data-autofocus />
-      <MarkdownEditor id={`new-doc-body-${link?.taskId ?? link?.projectId ?? 'page'}`} label="Body (Markdown)" value={body} onChange={setBody} rows={6} />
+      <DocumentEditor label="Body" value={body} onChange={setBody} rows={8} />
       <TextField
         label="Source URL (optional)"
         hint="A document needs a body, a source URL, or both."
