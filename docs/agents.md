@@ -1,5 +1,9 @@
 # Connecting AI agents to Alice
 
+Want your agent to set itself up? The README's
+[Quick start with AI agents](../README.md#quick-start-with-ai-agents) has copyable prompts for a full
+Mac setup, the app, the `alice` command or the skills alone.
+
 Each agent gets its own identity so every change it makes is attributed to it. For Local workspaces,
 use [Local agent integrations](#local-workspaces-codex-and-claude-without-mcp); no MCP setup or token
 is needed. The following connection steps are for Remote servers.

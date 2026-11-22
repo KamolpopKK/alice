@@ -13,41 +13,26 @@ shows who made it, and everyone sees the same board live.
 
 <p><img src="docs/images/codex-attribution.png" alt="A task in Alice that Codex claimed and completed, with its completion summary and the activity history naming Codex and the person" width="720"></p>
 
-## Get started
+## Quick start with AI agents
 
-Pick the path that fits you. Just want your agents to keep a board in the repository, with no app or
-server? See path 4.
+Copy one prompt into Codex or Claude Code. Each one says what it needs and what it leaves out. The agent
+asks for permissions through your client, keeps existing installations and settings, never asks for
+tokens or passwords, does not claim tasks, and reports setup as incomplete when a check fails.
 
-### 1. Use Alice on your Mac (no server)
+| Prompt | Installs | Needs |
+|---|---|---|
+| Full setup | Alice Desktop, the `alice` command and the five agent skills, working in a Local workspace | Mac with Apple Silicon |
+| App only | Alice Desktop | Mac with Apple Silicon, or Windows/Linux to join a team server |
+| `alice` command only | The command, for a Local workspace or a team server | Alice Desktop on the Mac, or a team server and Node.js 22+ |
+| Skills only | The five agent skills; the board lives in the project's `.alice/` folder | Node.js 22+, any OS |
 
-For one person on a Mac with **Apple Silicon**. Your board stays on your computer, and Codex or Claude
-can work in it through the `alice` command, even while the app is closed.
-
-```bash
-curl -fsSL https://github.com/KamolpopKK/alice/releases/latest/download/install-macos.sh | sh
-```
-
-The script checks the download against `SHA256SUMS`, installs Alice into Applications and needs no
-admin rights. Open Alice, type your name, and you land in your first Task Pad.
-
-**Prefer not to run a script?** Download `Alice_<version>_aarch64.dmg` from the
-[latest release](https://github.com/KamolpopKK/alice/releases/latest) and drag Alice to Applications.
-Alice is code-signed but not notarized by Apple, so the first launch is blocked once:
-
-1. Open Alice. macOS says it *cannot verify* the app. Click **Done**.
-2. Open **System Settings → Privacy & Security**, scroll down, and click **Open Anyway** next to Alice.
-3. Confirm with **Open Anyway** and your password. Later launches open normally.
-
-Windows or Linux? The no-server mode needs a Mac with Apple Silicon for now; use path 2 or 3.
-Alice Desktop no longer supports Macs with Intel processors.
-More: [Local workspaces](docs/local-workspaces.md).
-
-**Let your agent install the app and skills.** Copy this whole prompt into Codex or Claude Code on
-an Apple Silicon Mac. It installs the standalone Local app and enables only the agent you are using:
+<details>
+<summary><b>Full setup</b> (Mac with Apple Silicon)</summary>
 
 ```text
 Install and finish setting up standalone Alice Desktop and its agent skills on this Mac.
 Repository: https://github.com/KamolpopKK/alice
+Prerequisites: macOS on Apple Silicon, and Codex or Claude Code (the agent reading this).
 
 Finish the setup, not just the download. This request authorizes installing Alice,
 its alice command and the integration for the agent I am using. Preserve existing
@@ -107,6 +92,160 @@ For other errors, inspect the cause and fix routine setup issues supported by ev
 ask before an uncertain repair. Never reset workspaces, weaken system protections,
 or silently skip failed installation, permission or verification steps.
 ```
+
+</details>
+
+<details>
+<summary><b>App only</b></summary>
+
+```text
+Install Alice Desktop on this computer. Repository: https://github.com/KamolpopKK/alice
+Prerequisites: macOS on Apple Silicon (Local workspaces or a team server), or Windows or
+Linux (to join a team server only).
+
+This installs only the app. It does not install the alice command or agent skills,
+enable agent integrations or configure a server. Keep an existing installation with its
+workspaces and settings, and do not claim tasks.
+
+Permissions: request access through your host's permission system (command approval in
+Codex, a permission request in Claude Code). Never use sudo, change file permissions or
+disable protections, and never ask for, read or print credentials. If access is declined
+or a step still fails, name the blocker and stop; do not report success.
+
+Steps:
+1. Identify the operating system and CPU.
+2. macOS on Apple Silicon: if Alice.app is already installed, keep it and go to step 4.
+   Otherwise run the official installer, which verifies the checksum and signature:
+   curl -fsSL https://github.com/KamolpopKK/alice/releases/latest/download/install-macos.sh | sh
+   On an Intel Mac, explain that Alice Desktop no longer supports it and stop.
+3. Windows or Linux: do not run installers yourself. Point me to
+   https://github.com/KamolpopKK/alice/releases/latest, name the file for this machine
+   (Windows: the x64-setup.exe or .msi; Linux: the .AppImage, .deb or .rpm for amd64 or
+   arm64), and wait until I say it is installed.
+4. Verify the app exists and read its version (on macOS, CFBundleShortVersionString in
+   Alice.app/Contents/Info.plist). On Windows or Linux, ask me to confirm it opens.
+5. Report the app location and version and the next step: on a Mac, open Alice and finish
+   first-run setup for a Local workspace; on any system, add the team's server address and
+   click Sign in with browser. Do not report the alice command or skills as installed.
+```
+
+</details>
+
+<details>
+<summary><b><code>alice</code> command only</b></summary>
+
+```text
+Install the alice command on this computer. Repository: https://github.com/KamolpopKK/alice
+Prerequisites: either Alice Desktop on an Apple Silicon Mac (Local workspaces), or the
+https address of a team Alice server and Node.js 22 or newer.
+
+This installs only the alice command (plus the stdio MCP adapter for a team server). It
+does not install the app or agent skills, does not give this computer a Local runtime,
+and does not set up tokens. Keep existing installations, profiles and settings, and do
+not claim tasks.
+
+Permissions: request access through your host's permission system (command approval in
+Codex, a permission request in Claude Code). Never use sudo, change file permissions or
+disable protections, and never ask for, read or print credentials. If access is declined
+or a check fails, name the blocker and stop; do not report success.
+
+Steps:
+1. If alice is on PATH or at ~/.local/bin/alice, run `alice version` and keep it unless I
+   ask to update it.
+2. Ask me which board I use: Alice Desktop on this Mac (Local), or a team server (ask for
+   its https address).
+3. Local: the command comes with Alice Desktop. Open its Agents page and choose "Install
+   the alice command", requesting app-control access, or ask me to click it. If Alice
+   Desktop is not installed, stop and tell me to install the app first.
+4. Team server: check `node --version` is 22 or newer, then run
+   mkdir -p ~/.local/bin
+   curl -fsSL <server>/downloads/alice.js -o ~/.local/bin/alice
+   curl -fsSL <server>/downloads/alice-mcp-stdio.js -o ~/.local/bin/alice-mcp-stdio
+   chmod +x ~/.local/bin/alice ~/.local/bin/alice-mcp-stdio
+   Fetch <server>/downloads/manifest.json and compare both files' SHA-256 with it
+   (shasum -a 256, or sha256sum on Linux). If they differ, delete both files and stop.
+   If ~/.local/bin is not on my PATH, show me this line for my shell profile:
+   export PATH="$HOME/.local/bin:$PATH"
+   Then run `alice profile add <short name> --server <server>` and ask me to run
+   `alice auth login` myself; it signs me in through my browser.
+5. Run `alice version` and `alice workspace list --json`. Report the command path, its
+   version and the workspaces it reaches, or which check failed.
+```
+
+</details>
+
+<details>
+<summary><b>Skills only</b> (no app, no server)</summary>
+
+```text
+Install the Alice agent skills for the agent I am using.
+Repository: https://github.com/KamolpopKK/alice
+Prerequisites: Node.js 22 or newer, and Codex or Claude Code (the agent reading this).
+Any operating system.
+
+This installs only the five skills: alice, alice-think, alice-spec, alice-plan and
+alice-understand. It does not install the app, the alice command or a Local runtime;
+without them the skills keep the board as Markdown in this project's .alice/ folder.
+Do not create .alice/ now, and do not claim tasks.
+
+Permissions: request access through your host's permission system (command approval in
+Codex, a permission request in Claude Code). Never use sudo, change file permissions or
+disable protections, and never ask for, read or print credentials. If access is declined
+or a check fails, name the blocker and stop; do not report success.
+
+Steps:
+1. Identify the client: codex for Codex, claude-code for Claude Code. Check that
+   `node --version` is 22 or newer; otherwise stop and say so.
+2. Into ~/.local/share/alice, download alice-cli.js and SHA256SUMS from
+   https://github.com/KamolpopKK/alice/releases/latest/download/
+   and check that the SHA-256 of alice-cli.js matches its line in SHA256SUMS. If the line
+   is missing or differs, delete the download and stop.
+3. If Alice skills are already installed for this client, compare their version: line
+   with the download (node alice-cli.js --version) and replace them only if I agree.
+4. Ask whether to install for me (default) or only for this repository, then run
+   node ~/.local/share/alice/alice-cli.js install-skill --client <client>
+   adding --scope project for this repository only.
+5. Check that alice, alice-think, alice-spec, alice-plan and alice-understand each have
+   SKILL.md, PROJECT-FILES.md, DOCUMENT-KNOWLEDGE.md and OUTPUT-FORMATS.md, and that think,
+   spec, plan and understand also have TEMPLATE.md. Report any missing file as incomplete.
+6. Report where the skills are and their version, that
+   `node ~/.local/share/alice/alice-cli.js import` can move the board into the app later,
+   and tell me to start a new session so the skills load.
+```
+
+</details>
+
+## Get started
+
+Pick the path that fits you. Just want your agents to keep a board in the repository, with no app or
+server? See path 4.
+
+### 1. Use Alice on your Mac (no server)
+
+For one person on a Mac with **Apple Silicon**. Your board stays on your computer, and Codex or Claude
+can work in it through the `alice` command, even while the app is closed.
+
+```bash
+curl -fsSL https://github.com/KamolpopKK/alice/releases/latest/download/install-macos.sh | sh
+```
+
+The script checks the download against `SHA256SUMS`, installs Alice into Applications and needs no
+admin rights. Open Alice, type your name, and you land in your first Task Pad.
+
+**Prefer not to run a script?** Download `Alice_<version>_aarch64.dmg` from the
+[latest release](https://github.com/KamolpopKK/alice/releases/latest) and drag Alice to Applications.
+Alice is code-signed but not notarized by Apple, so the first launch is blocked once:
+
+1. Open Alice. macOS says it *cannot verify* the app. Click **Done**.
+2. Open **System Settings → Privacy & Security**, scroll down, and click **Open Anyway** next to Alice.
+3. Confirm with **Open Anyway** and your password. Later launches open normally.
+
+Windows or Linux? The no-server mode needs a Mac with Apple Silicon for now; use path 2 or 3.
+Alice Desktop no longer supports Macs with Intel processors.
+More: [Local workspaces](docs/local-workspaces.md).
+
+**Let your agent do it:** paste the *Full setup* prompt from
+[Quick start with AI agents](#quick-start-with-ai-agents) into Codex or Claude Code.
 
 ### 2. Host Alice for your team (Docker)
 
