@@ -378,7 +378,8 @@ test('a move the server rejects says so and leaves the card where the server has
     route.request().method() === 'PATCH' ? route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { code: 'INTERNAL', message: 'Server unavailable' } }) }) : route.fallback(),
   )
   const box = (await (await boardCard(page, 'Ready', t.title)).boundingBox())!
-  await mouseDrag(page, { x: box.x + box.width - 10, y: box.y + 8 }, centre((await page.getByRole('region', { name: 'Done' }).boundingBox())!))
+  // วางบนคอลัมน์ที่มองเห็นอยู่ (Done อยู่นอก viewport กว้าง 1280px; การลากไปขอบจนเลื่อนเองทดสอบแยกแล้ว)
+  await mouseDrag(page, { x: box.x + box.width - 10, y: box.y + 8 }, centre((await page.getByRole('region', { name: 'In progress' }).boundingBox())!))
   await expect(page.getByText(`${t.title} was not moved:`)).toBeVisible()
   await expect(page.getByRole('status').filter({ hasText: `Moved ${t.title}` })).toHaveCount(0)
   await expect(page.getByRole('region', { name: 'Ready' }).getByRole('link', { name: t.title })).toBeVisible()

@@ -1,6 +1,18 @@
-import { DragDropProvider, DragOverlay, PointerSensor, useDraggable, useDroppable } from '@dnd-kit/react'
-import { Accessibility, PointerActivationConstraints } from '@dnd-kit/dom'
-import { createContext, useContext, useMemo, useRef, useState, type MouseEvent } from 'react'
+import {
+  DndContext,
+  DragOverlay,
+  MouseSensor,
+  TouchSensor,
+  pointerWithin,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type Announcements,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
+import { createContext, useContext, useMemo, useRef, useState, type MouseEvent, type SyntheticEvent, type TouchEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { STATUS_LABELS, TASK_STATUSES, type Task, type TaskStatus } from '../../shared/contracts'
 import { IllustratedState } from '../brand'
@@ -168,26 +180,25 @@ type DragPayload = { id: string; title: string; status: TaskStatus }
 type BoardDnd = { move: (task: DragPayload, to: TaskStatus) => void; moving: ReadonlySet<string> }
 const BoardDndContext = createContext<BoardDnd | null>(null)
 
-// เมาส์/trackpad เริ่มลากเมื่อขยับเกิน 8px; นิ้วต้องกดค้าง 250ms (ปัดก่อนนั้น = เลื่อนหน้าจอตามปกติ)
-const boardSensors = [
-  PointerSensor.configure({
-    activationConstraints: (event) =>
-      event.pointerType === 'touch'
-        ? [new PointerActivationConstraints.Delay({ value: 250, tolerance: 5 })]
-        : [new PointerActivationConstraints.Distance({ value: 8 })],
-    // controls และลิงก์อื่นในการ์ดไม่เริ่มลาก; ชื่อ task (ลิงก์ของการ์ดเอง) ลากได้
-    preventActivation: (event, source) => {
-      const target = event.target as Element | null
-      const control = target?.closest?.(CARD_CONTROLS)
-      if (!control || !source.element?.contains(control)) return false
-      return !control.matches('a[data-task-link]')
-    },
-  }),
-]
+/** Controls and other links inside a card do not start a drag; the card's own title link does. */
+function startsDrag(event: SyntheticEvent): boolean {
+  const control = (event.target as Element | null)?.closest?.(CARD_CONTROLS)
+  if (!control || !(event.currentTarget as Element).contains(control)) return true
+  return control.matches('a[data-task-link]')
+}
 
-// ไม่ใช้ plugin Accessibility ของ dnd-kit: มันใส่ role="button" ทั้งการ์ด (ครอบ controls ข้างใน) และสอนการลากด้วย
-// คีย์บอร์ด ซึ่ง Board ไม่มี; ผู้ใช้คีย์บอร์ดเปลี่ยนสถานะด้วยตัวเลือกบนการ์ด และผลประกาศผ่าน role="status" ของ Board
-const boardPlugins = <T,>(defaults: T[]): T[] => defaults.filter((p) => p !== (Accessibility as unknown) && (p as { plugin?: unknown }).plugin !== Accessibility)
+// เมาส์/trackpad เริ่มลากเมื่อขยับเกิน 8px; นิ้วต้องกดค้าง 250ms (ปัดก่อนนั้น = เลื่อนหน้าจอตามปกติ)
+// ใช้ @dnd-kit/core (ไม่ใช้ signals): Alice Desktop freeze Object.prototype ซึ่ง @dnd-kit/react 0.x ทำงานไม่ได้
+class BoardMouseSensor extends MouseSensor {
+  static override activators = [{ eventName: 'onMouseDown' as const, handler: (event: MouseEvent) => event.nativeEvent.button === 0 && startsDrag(event) }]
+}
+class BoardTouchSensor extends TouchSensor {
+  static override activators = [{ eventName: 'onTouchStart' as const, handler: (event: TouchEvent) => event.nativeEvent.touches.length <= 1 && startsDrag(event) }]
+}
+
+// ไม่ประกาศผ่าน live region ของ dnd-kit และไม่ใส่ role="button" ให้การ์ด (ครอบ controls ข้างใน): Board ประกาศผลเอง
+// ผ่าน role="status" และผู้ใช้คีย์บอร์ดเปลี่ยนสถานะด้วยตัวเลือกบนการ์ด
+const silent: Announcements = { onDragStart: () => undefined, onDragMove: () => undefined, onDragOver: () => undefined, onDragEnd: () => undefined, onDragCancel: () => undefined }
 
 /** Swallows the click that the browser sends after a drag ends, so a drag never also opens the card. */
 function suppressNextClick() {
@@ -203,13 +214,13 @@ const isStatus = (value: unknown): value is TaskStatus => typeof value === 'stri
 
 function BoardCard({ task }: { task: Task }) {
   const dnd = useContext(BoardDndContext)
-  const { ref, isDragSource } = useDraggable({
+  const { setNodeRef, listeners, isDragging } = useDraggable({
     id: task.id,
     data: { id: task.id, title: task.title, status: task.status } satisfies DragPayload,
     disabled: task.archivedAt !== null || Boolean(dnd?.moving.has(task.id)),
   })
   return (
-    <li ref={ref} className={`tasks-card-drag${task.archivedAt ? '' : ' is-draggable'}${isDragSource ? ' is-drag-source' : ''}`} onClick={openCardOnClick}>
+    <li ref={setNodeRef} {...listeners} className={`tasks-card-drag${task.archivedAt ? '' : ' is-draggable'}${isDragging ? ' is-drag-source' : ''}`} onClick={openCardOnClick}>
       <TaskEntry task={task} layout="card" />
     </li>
   )
@@ -220,9 +231,9 @@ function BoardColumn({ status, filters }: { status: TaskStatus; filters: Record<
   const tasks = query.data?.pages.flatMap((p) => p.items) ?? []
   const headingId = `board-col-${status}`
   // ลากการ์ดมาวางในคอลัมน์ = เปลี่ยนสถานะ; ทางคีย์บอร์ดยังเป็นตัวเลือกสถานะบนการ์ด
-  const { ref, isDropTarget } = useDroppable({ id: status })
+  const { setNodeRef, isOver } = useDroppable({ id: status })
   return (
-    <section ref={ref} className={`tasks-column tasks-column--${STATUS_TONE[status]}${isDropTarget ? ' is-drop-target' : ''}`} aria-labelledby={headingId}>
+    <section ref={setNodeRef} className={`tasks-column tasks-column--${STATUS_TONE[status]}${isOver ? ' is-drop-target' : ''}`} aria-labelledby={headingId}>
       <header className="tasks-column-head">
         <h2 id={headingId}>{STATUS_LABELS[status]}</h2>
         <span className="ui-text-muted">{query.isLoading ? '' : query.hasNextPage ? `${tasks.length}+` : tasks.length}</span>
@@ -253,6 +264,11 @@ export function BoardView({ filters }: { filters: Record<string, string> }) {
   const change = useStatusChange()
   const [message, setMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
   const [moving, setMoving] = useState<ReadonlySet<string>>(new Set())
+  const [dragging, setDragging] = useState<DragPayload | null>(null)
+  const sensors = useSensors(
+    useSensor(BoardMouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(BoardTouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+  )
   const movingRef = useRef(moving)
   movingRef.current = moving
   const dnd = useMemo<BoardDnd>(
@@ -283,16 +299,23 @@ export function BoardView({ filters }: { filters: Record<string, string> }) {
   )
   return (
     <BoardDndContext.Provider value={dnd}>
-      <DragDropProvider
-        sensors={boardSensors}
-        plugins={boardPlugins}
-        onDragStart={() => suppressNextClick()}
-        onDragEnd={(event) => {
+      <DndContext
+        sensors={sensors}
+        collisionDetection={pointerWithin}
+        accessibility={{ announcements: silent, screenReaderInstructions: { draggable: '' } }}
+        onDragStart={(event: DragStartEvent) => {
           suppressNextClick()
-          if (event.canceled) return
-          const { source, target } = event.operation
-          const task = source?.data as DragPayload | undefined
-          const to = target?.id
+          setDragging((event.active.data.current as DragPayload | undefined) ?? null)
+        }}
+        onDragCancel={() => {
+          suppressNextClick()
+          setDragging(null)
+        }}
+        onDragEnd={(event: DragEndEvent) => {
+          suppressNextClick()
+          setDragging(null)
+          const task = event.active.data.current as DragPayload | undefined
+          const to = event.over?.id
           if (!task || !isStatus(to) || to === task.status) return
           dnd.move(task, to)
         }}
@@ -307,10 +330,10 @@ export function BoardView({ filters }: { filters: Record<string, string> }) {
             <BoardColumn key={s} status={s} filters={filters} />
           ))}
         </div>
-        <DragOverlay className="tasks-drag-overlay">
-          {(source) => <div className="ui-task ui-task--card">{(source.data as DragPayload).title}</div>}
+        <DragOverlay className="tasks-drag-overlay" dropAnimation={null}>
+          {dragging && <div className="ui-task ui-task--card">{dragging.title}</div>}
         </DragOverlay>
-      </DragDropProvider>
+      </DndContext>
     </BoardDndContext.Provider>
   )
 }
