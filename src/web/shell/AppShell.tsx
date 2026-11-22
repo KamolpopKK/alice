@@ -277,7 +277,7 @@ export function NewMenu({ compact }: { compact?: boolean }) {
     { label: 'Task', icon: SquarePlus, onSelect: () => navigate('/tasks/new'), navigates: true },
     ...(taskPads ? [{ label: 'Pad', icon: NotebookPen, onSelect: () => newPad.start(), navigates: true } as MenuItem] : []),
     { label: 'Project', icon: FolderPlus, onSelect: () => navigate('/projects', { state: { create: true } }), navigates: true },
-    { label: 'Document', icon: FilePlus2, onSelect: () => navigate('/documents?new=1'), navigates: true },
+    { label: 'Document', icon: FilePlus2, onSelect: () => navigate('/documents/new'), navigates: true },
   ]
   const trigger: ReactElement = compact ? (
     <IconButton icon={Plus} label="New" variant="secondary" />

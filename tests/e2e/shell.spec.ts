@@ -120,8 +120,9 @@ test('New creates a task, project or document in two interactions from any page'
   await page.keyboard.press('Escape')
   await page.getByRole('button', { name: 'New', exact: true }).click()
   await page.getByRole('menuitem', { name: 'Document' }).click()
-  await expect(page.getByRole('dialog', { name: 'New document' }).getByLabel('Document title')).toBeFocused()
-  await page.keyboard.press('Escape')
+  // เอกสารเปิดหน้า Create เต็มหน้า โฟกัสอยู่ที่ชื่อเอกสาร
+  await expect(page).toHaveURL(/\/documents\/new$/)
+  await expect(page.getByRole('form', { name: 'New document' }).getByLabel('Document title')).toBeFocused()
   await page.getByRole('button', { name: 'New', exact: true }).click()
   await page.getByRole('menuitem', { name: 'Pad' }).click()
   await expect(page).toHaveURL(/\/pads\/pad_/)

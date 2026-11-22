@@ -190,7 +190,7 @@ function QuickCreate({ taskPads }: { taskPads: boolean }) {
       <Button size="sm" icon={FolderPlus} onClick={() => navigate('/projects', { state: { create: true } })}>
         New project
       </Button>
-      <Button size="sm" icon={FilePlus2} onClick={() => navigate('/documents?new=1')}>
+      <Button size="sm" icon={FilePlus2} onClick={() => navigate('/documents/new')}>
         New document
       </Button>
     </section>

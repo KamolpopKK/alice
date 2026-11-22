@@ -75,7 +75,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
       { id: 'new:task', group: 'Create', label: 'New task', icon: SquarePlus, run: go('/tasks/new') },
       ...(taskPads ? [{ id: 'new:pad', group: 'Create' as const, label: 'New pad', icon: NotebookPen, run: () => newPad.start() }] : []),
       { id: 'new:project', group: 'Create', label: 'New project', icon: FolderPlus, run: () => navigate('/projects', { state: { create: true } }) },
-      { id: 'new:document', group: 'Create', label: 'New document', icon: FilePlus2, run: () => navigate('/documents?new=1') },
+      { id: 'new:document', group: 'Create', label: 'New document', icon: FilePlus2, run: () => navigate('/documents/new') },
       { id: 'theme:light', group: 'Theme', label: 'Light theme', icon: Sun, keywords: 'appearance', run: () => setPreference('light') },
       { id: 'theme:dark', group: 'Theme', label: 'Dark theme', icon: Moon, keywords: 'appearance', run: () => setPreference('dark') },
       { id: 'theme:system', group: 'Theme', label: 'System theme', icon: Monitor, keywords: 'appearance auto', run: () => setPreference('system') },

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Navigate, Route, RouterProvider, Routes, createBrowserRouter, useLocation } from 'react-router-dom'
 import { lazy, Suspense, type ReactNode } from 'react'
 import { AuthProvider, useAuth } from './auth'
 import { AppShell } from './shell/AppShell'
@@ -16,6 +16,7 @@ import { InvitePage, LoginPage, SetupPage } from './pages/AuthPages'
 import { ActivityPage } from './pages/ActivityPage'
 import { DocumentDetailPage } from './pages/DocumentDetailPage'
 import { DocumentsPage } from './pages/DocumentsPage'
+import { EditDocumentPage, NewDocumentPage } from './pages/DocumentAuthoringPage'
 import { LegacyTasksRedirect, TasksPage } from './pages/TasksPage'
 import { HomeRoute } from './pages/HomePage'
 import { SettingsPage } from './settings/SettingsPage'
@@ -76,6 +77,8 @@ export function AppRoutes() {
         <Route path="pads" element={<TaskPadsPage />} />
         <Route path="pads/:padId" element={<TaskPadsPage />} />
         <Route path="documents" element={<DocumentsPage />} />
+        <Route path="documents/new" element={<NewDocumentPage />} />
+        <Route path="documents/:id/edit" element={<EditDocumentPage />} />
         <Route path="documents/:id" element={<DocumentDetailPage />} />
         <Route path="search" element={<SearchPage />} />
         <Route path="activity" element={<ActivityPage />} />
@@ -96,27 +99,34 @@ export function AppRoutes() {
   )
 }
 
+function Root() {
+  return isDesktop ? (
+    <Suspense fallback={<Loading />}>
+      <DesktopShell>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </DesktopShell>
+    </Suspense>
+  ) : (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
+  )
+}
+
+// data router (ไม่ใช่ BrowserRouter) เพื่อให้หน้าเขียนเอกสารกันการออกจากหน้าโดยไม่ตั้งใจได้ (useBlocker)
+// เส้นทางทั้งหมดยังอยู่ใน AppRoutes ใต้ route เดียวนี้
+let router: ReturnType<typeof createBrowserRouter> | null = null
+
 export function App() {
+  router ??= createBrowserRouter([{ path: '*', element: <Root /> }])
   return (
     <ThemeProvider>
       <TooltipProvider>
         <ToastProvider>
           <QueryClientProvider client={queryClient}>
-            <BrowserRouter>
-        {isDesktop ? (
-          <Suspense fallback={<Loading />}>
-            <DesktopShell>
-              <AuthProvider>
-                <AppRoutes />
-              </AuthProvider>
-            </DesktopShell>
-          </Suspense>
-        ) : (
-          <AuthProvider>
-            <AppRoutes />
-          </AuthProvider>
-        )}
-            </BrowserRouter>
+            <RouterProvider router={router} />
           </QueryClientProvider>
         </ToastProvider>
       </TooltipProvider>
