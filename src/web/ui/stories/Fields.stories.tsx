@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState } from 'react'
-import { Checkbox, FieldMessage, RadioGroup, SelectField, Switch, TextArea, TextField } from '..'
+import { Checkbox, FieldMessage, InlineSelect, RadioGroup, SelectField, Switch, TextArea, TextField } from '..'
 
 const meta: Meta = { title: 'Alice UI/Fields' }
 export default meta
@@ -48,6 +48,39 @@ export const Choices: Story = {
             { value: 'list', label: 'List' },
           ]}
         />
+      </div>
+    )
+  },
+}
+
+const STATUS = [
+  { value: 'backlog', label: 'Backlog' },
+  { value: 'ready', label: 'Ready' },
+  { value: 'in_progress', label: 'In progress' },
+]
+
+/** Every form control in one row, as in Task detail: one height, border, radius and icon style. */
+export const SideBySide: Story = {
+  render: function SideBySide() {
+    const [due, setDue] = useState('2026-11-23')
+    const [empty, setEmpty] = useState('')
+    return (
+      <div style={{ display: 'grid', gap: 16, maxWidth: 720 }}>
+        <div data-testid="control-row" style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', alignItems: 'end' }}>
+          <SelectField label="Status" defaultValue="backlog" options={STATUS} />
+          <SelectField label="Assignee" defaultValue="" options={[{ value: '', label: 'Unassigned' }, { value: 'a', label: 'An agent with a very long display name' }]} />
+          <TextField label="Due date" type="date" value={due} onChange={(e) => setDue(e.target.value)} />
+          <TextField label="Title" defaultValue="Refine requirements" />
+        </div>
+        <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', alignItems: 'start' }}>
+          <TextField label="Start date" type="date" value={empty} onChange={(e) => setEmpty(e.target.value)} hint="Empty" />
+          <SelectField label="Priority" defaultValue="none" options={[{ value: 'none', label: 'No priority' }]} disabled hint="Disabled" />
+          <TextField label="Target date" type="date" defaultValue="2020-01-01" error="Pick a later date." />
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <InlineSelect label="Status of Draft brief" defaultValue="backlog" options={STATUS} />
+          <InlineSelect label="Status of Write tests" defaultValue="in_progress" tone="info" options={STATUS} />
+        </div>
       </div>
     )
   },

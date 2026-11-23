@@ -50,6 +50,12 @@ from `src/web/ui` directly.
   them.
 - **Status.** State is never shown by colour alone: there is always text, an icon or a shape.
 - **Touch targets.** On touch screens (`pointer: coarse`), core controls are at least 44 px.
+- **Form controls.** Text, select and date fields share one height, border, radius and focus ring.
+  Selects and date fields stay native elements (platform keyboard, screen reader and mobile pickers)
+  but drop the platform look: every `<select>` shows the Alice chevron and date fields show a
+  calendar icon, both from theme tokens. The opened option list, the calendar and the date format
+  stay the platform's. An empty date field (`value=""` on `TextField`) is muted, because WebKit
+  fills it with today's date as an example. The Fields / Side by side story shows every state.
 - **Reduced motion.** Removes overlay and skeleton animation.
 
 - **Errors.** A `FieldMessage` with an `id` belongs to a field (read through its `aria-describedby`);

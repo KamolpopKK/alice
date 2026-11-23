@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **Form controls look the same everywhere.** Selects and date fields now match text fields in
+  height, border, radius and focus ring, with an Alice chevron and calendar icon instead of the
+  macOS look. An empty due date is muted instead of looking like today's date in Alice Desktop. The
+  option list and calendar stay native.
+
 ## 0.2.6 — 2026-11-23
 
 ### Added

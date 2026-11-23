@@ -21,7 +21,7 @@ export function Field({ label, hint, children, id }: { label: string; hint?: Rea
 }
 
 export function TextInput({ label, hint, ...props }: { label: string; hint?: ReactNode } & InputHTMLAttributes<HTMLInputElement>) {
-  return <Field label={label} hint={hint}>{(id) => <input id={id} {...props} />}</Field>
+  return <Field label={label} hint={hint}>{(id) => <input id={id} {...props} className={['ui-input', props.className].filter(Boolean).join(' ')} />}</Field>
 }
 
 /**
@@ -36,7 +36,7 @@ export function PasswordInput({ label, hint, ...props }: { label: string; hint?:
     <Field label={label} hint={hint}>
       {(id) => (
         <div className="secret-field">
-          <input id={id} {...props} type={visible ? 'text' : 'password'} spellCheck={false} autoCapitalize="off" />
+          <input id={id} {...props} className={['ui-input', props.className].filter(Boolean).join(' ')} type={visible ? 'text' : 'password'} spellCheck={false} autoCapitalize="off" />
           <button
             type="button"
             className="secret-toggle"
@@ -65,7 +65,7 @@ export function Select({ label, hint, children, ...props }: { label: string; hin
   return (
     <Field label={label} hint={hint}>
       {(id) => (
-        <select id={id} {...props}>
+        <select id={id} {...props} className={['ui-input', 'ui-select', props.className].filter(Boolean).join(' ')}>
           {children}
         </select>
       )}

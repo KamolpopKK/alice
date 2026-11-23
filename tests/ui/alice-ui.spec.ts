@@ -169,6 +169,26 @@ test('an explicit theme overrides the operating system, and System follows it', 
   expect(await canvas()).toBe(systemDark)
 })
 
+test('selects and date fields match text fields and drop the platform look', async ({ page }) => {
+  await openStory(page, 'alice-ui-fields--side-by-side', 'dark')
+  const row = page.getByTestId('control-row')
+  const boxes = await row.locator('select, input').evaluateAll((els) =>
+    els.map((el) => {
+      const style = getComputedStyle(el)
+      return { height: el.getBoundingClientRect().height, radius: style.borderTopLeftRadius, border: style.borderTopColor, appearance: style.appearance, icon: style.backgroundImage !== 'none' }
+    }),
+  )
+  expect(boxes).toHaveLength(4)
+  for (const box of boxes.slice(1)) expect({ height: box.height, radius: box.radius, border: box.border }).toEqual({ height: boxes[0].height, radius: boxes[0].radius, border: boxes[0].border })
+  // select ไม่มีหน้าตาของ OS แต่มี chevron, ช่องวันที่มีไอคอนปฏิทิน
+  expect(boxes.slice(0, 2).map((b) => [b.appearance, b.icon])).toEqual([['none', true], ['none', true]])
+  expect(boxes[2].icon).toBe(true)
+  // ตัวเลือกยาวไม่ทับ chevron
+  const assignee = page.getByLabel('Assignee')
+  await assignee.selectOption('a')
+  expect(await assignee.evaluate((el) => parseFloat(getComputedStyle(el).paddingRight))).toBeGreaterThanOrEqual(24)
+})
+
 // ภาพ baseline ต่อแพลตฟอร์ม เปิดด้วย ALICE_UI_VISUAL=1 (CI บน Linux ยังไม่มี baseline ที่คนรีวิวแล้ว)
 test.describe('visual snapshots', () => {
   test.skip(process.env.ALICE_UI_VISUAL !== '1', 'opt-in: ALICE_UI_VISUAL=1')

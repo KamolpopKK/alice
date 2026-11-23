@@ -38,7 +38,9 @@ function Frame({ id, label, hint, error, hideLabel, required, children }: FieldF
   )
 }
 
-const describedBy = (id: string, hint: unknown, error: unknown) => [hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(' ') || undefined
+const DATE_TYPES = new Set(['date', 'datetime-local', 'month'])
+
+const describedBy =(id: string, hint: unknown, error: unknown) => [hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(' ') || undefined
 
 export const TextField = forwardRef<HTMLInputElement, FieldFrame & Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> & { id?: string }>(function TextField(
   { label, hint, error, hideLabel, id: given, className, ...rest },
@@ -46,9 +48,11 @@ export const TextField = forwardRef<HTMLInputElement, FieldFrame & Omit<InputHTM
 ) {
   const auto = useId()
   const id = given ?? auto
+  // ช่องวันที่ไม่มี placeholder: ช่องว่างแสดงรูปแบบวันที่ด้วยสีจาง (เฉพาะ controlled value ที่รู้ว่าว่าง)
+  const empty = DATE_TYPES.has(rest.type ?? '') && rest.value === ''
   return (
     <Frame id={id} label={label} hint={hint} error={error} hideLabel={hideLabel} required={rest.required}>
-      <input ref={ref} id={id} className={cx('ui-input', className)} aria-invalid={error ? true : undefined} aria-describedby={describedBy(id, hint, error)} {...rest} />
+      <input ref={ref} id={id} className={cx('ui-input', className)} data-empty={empty || undefined} aria-invalid={error ? true : undefined} aria-describedby={describedBy(id, hint, error)} {...rest} />
     </Frame>
   )
 })

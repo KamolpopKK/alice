@@ -188,6 +188,9 @@
   color: var(--ui-text);
   font: inherit;
 }
+.ui-input:hover:not(:disabled) {
+  border-color: var(--ui-text-muted);
+}
 .ui-input::placeholder {
   color: var(--ui-text-muted);
 }
@@ -203,8 +206,73 @@
   resize: vertical;
   line-height: var(--ui-leading);
 }
-.ui-select {
-  appearance: auto;
+/* ---------- native select and date controls: Alice look, platform behaviour ----------
+ * ใช้ element ของระบบต่อ (คีย์บอร์ด, screen reader, มือถือ) แต่ไม่เอาหน้าตาของ OS:
+ * ความสูง ขอบ มุม สี เท่ากับช่องอื่น และใช้ไอคอนของ Alice แทนลูกศรคู่/ช่องวันที่ของ WebKit
+ * กฎของ select ใช้กับทุก select (รวมที่ยังไม่ได้ผ่าน component) จึงตั้งเฉพาะ background-image
+ * ไม่ใช้ shorthand `background` ในกฎที่ override สี เพื่อไม่ให้ไอคอนหาย */
+.ui-input:not(textarea) {
+  height: var(--ui-control-md);
+}
+select:not([multiple]):not([size]) {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: var(--ui-icon-chevron);
+  background-repeat: no-repeat;
+  background-position: right var(--ui-space-2) center;
+  background-size: 16px 16px;
+  padding-right: calc(var(--ui-space-2) + 16px + var(--ui-space-2));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+select:disabled {
+  cursor: not-allowed;
+}
+input[type='date'],
+input[type='datetime-local'],
+input[type='month'] {
+  position: relative;
+  background-image: var(--ui-icon-calendar);
+  background-repeat: no-repeat;
+  background-position: right var(--ui-space-3) center;
+  background-size: 16px 16px;
+  padding-right: calc(var(--ui-space-3) + 16px + var(--ui-space-2));
+  line-height: normal;
+  text-align: start;
+}
+/* Chromium: ไอคอนเดิมโปร่งใสแต่คลุมพื้นที่ไอคอนของเรา คลิกแล้วยังเปิดปฏิทินของระบบ */
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='datetime-local']::-webkit-calendar-picker-indicator,
+input[type='month']::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: calc(var(--ui-space-3) * 2 + 16px);
+  height: auto;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+/* WebKit (Alice Desktop) ระบายสีช่องวัน/เดือน/ปีเองและเว้นที่บน-ล่าง: ให้ใช้สีและบรรทัดเดียวกับข้อความ */
+input::-webkit-datetime-edit,
+input::-webkit-datetime-edit-fields-wrapper,
+input::-webkit-datetime-edit-text,
+input::-webkit-datetime-edit-day-field,
+input::-webkit-datetime-edit-month-field,
+input::-webkit-datetime-edit-year-field,
+input::-webkit-datetime-edit-hour-field,
+input::-webkit-datetime-edit-minute-field,
+input::-webkit-datetime-edit-ampm-field {
+  color: inherit;
+  padding-block: 0;
+}
+input::-webkit-date-and-time-value {
+  text-align: start;
+}
+/* ช่องวันที่ที่ว่าง: WebKit แสดงวันนี้เป็นตัวอย่างด้วยสีของมันเอง (ดูเหมือนตั้งวันไว้แล้ว) ทำให้จางทั้งช่อง */
+input[data-empty]::-webkit-datetime-edit {
+  -webkit-text-fill-color: var(--ui-text-muted);
 }
 .ui-field-message {
   display: flex;
@@ -866,6 +934,11 @@
   background: var(--ui-surface-sunken);
   color: var(--ui-text);
   cursor: pointer;
+}
+select.ui-inline-select:not([multiple]):not([size]) {
+  background-position: right var(--ui-space-1) center;
+  background-size: 12px 12px;
+  padding-right: calc(var(--ui-space-1) + 12px + var(--ui-space-1));
 }
 .ui-inline-select:hover {
   border-color: var(--ui-border-strong);
