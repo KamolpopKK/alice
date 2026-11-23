@@ -1,3 +1,4 @@
+import type { TopicDocumentPage, listTopicDocumentsInput, putTopicDocumentInput } from '../shared/contracts'
 import type { KnowledgeTopic, KnowledgeTopicResult, TopicMutationInput, createKnowledgeTopicInput, updateKnowledgeTopicInput, listKnowledgeTopicsInput } from '../shared/contracts'
 import * as z from 'zod'
 import type { SavedView, createSavedViewInput } from '../shared/saved-views'
@@ -178,6 +179,9 @@ export class AliceClient {
   }
 
   readonly knowledge = {
+    documents: (topicId: string, input: Partial<z.infer<typeof listTopicDocumentsInput>> = {}) => this.get<TopicDocumentPage>(`/knowledge/topics/${enc(topicId)}/documents`, input),
+    putDocument: (topicId: string, documentId: string, input: z.input<typeof putTopicDocumentInput>) => this.call<KnowledgeTopicResult>('PUT', `/knowledge/topics/${enc(topicId)}/documents/${enc(documentId)}`, { body: input, idempotent: input.mutationId }),
+    removeDocument: (topicId: string, documentId: string, input: TopicMutationInput) => this.call<KnowledgeTopicResult>('DELETE', `/knowledge/topics/${enc(topicId)}/documents/${enc(documentId)}`, { body: input, idempotent: input.mutationId }),
     topics: (projectId: string, input: Partial<z.infer<typeof listKnowledgeTopicsInput>> = {}) => this.get<Page<KnowledgeTopic>>(`/projects/${enc(projectId)}/knowledge/topics`, input),
     topic: (id: string) => this.get<{ topic: KnowledgeTopic }>(`/knowledge/topics/${enc(id)}`),
     createTopic: (projectId: string, input: z.input<typeof createKnowledgeTopicInput>) => this.call<KnowledgeTopicResult>('POST', `/projects/${enc(projectId)}/knowledge/topics`, { body: input, idempotent: input.mutationId }),

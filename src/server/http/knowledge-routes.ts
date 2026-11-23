@@ -1,3 +1,5 @@
+import { listTopicDocumentsInput, putTopicDocumentInput } from '../../shared/contracts'
+import { listTopicDocuments, putTopicDocument, removeTopicDocument } from '../domain/knowledge'
 import type { FastifyInstance } from 'fastify'
 import * as z from 'zod'
 import { idSchema, createKnowledgeTopicInput, updateKnowledgeTopicInput, topicMutationInput, listKnowledgeTopicsInput } from '../../shared/contracts'
@@ -9,6 +11,21 @@ import { parse } from './validate'
 export function registerKnowledgeRoutes(app: FastifyInstance, ctx: AppContext) {
   const project = z.object({ projectId: idSchema })
   const topic = z.object({ topicId: idSchema })
+  const member = topic.extend({ documentId: idSchema })
+  app.get('/knowledge/topics/:topicId/documents', async (req) => {
+    requireAuth(req)
+    return listTopicDocuments(ctx, parse(topic, req.params).topicId, parse(listTopicDocumentsInput, req.query))
+  })
+  app.put('/knowledge/topics/:topicId/documents/:documentId', async (req) => {
+    const actor = requireAuth(req)
+    const p = parse(member, req.params)
+    return putTopicDocument(ctx, actor, p.topicId, p.documentId, parse(putTopicDocumentInput, req.body))
+  })
+  app.delete('/knowledge/topics/:topicId/documents/:documentId', async (req) => {
+    const actor = requireAuth(req)
+    const p = parse(member, req.params)
+    return removeTopicDocument(ctx, actor, p.topicId, p.documentId, parse(topicMutationInput, req.body))
+  })
   app.get('/projects/:projectId/knowledge/topics', async (req) => {
     requireAuth(req)
     return listKnowledgeTopics(ctx, parse(project, req.params).projectId, parse(listKnowledgeTopicsInput, req.query))

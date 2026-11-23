@@ -1,3 +1,4 @@
+import { TopicReadingList } from './TopicReadingList'
 import { useRef, useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { KnowledgeTopic } from '../../shared/contracts'
@@ -75,7 +76,7 @@ export function ProjectKnowledge({ projectId, archived: projectArchived }: {
     {topics.isLoading ? <Skeleton lines={3} /> : topics.error ? <Banner tone="danger" title="Topics could not be loaded" action={<Button onClick={() => void topics.refetch()}>Try again</Button>}>{errorText(topics.error)}</Banner> : <>
       {!topics.data?.pages.some((p) => p.items.length) && <EmptyState title={archived ? 'No archived topics' : 'No knowledge topics yet'}>Create a topic, then choose existing documents as a reading list.</EmptyState>}
       {topics.data?.pages.flatMap((p) => p.items).map((t) => <section key={t.id} className="resource-panel" aria-label={`Topic ${t.name}`}>
-        <h3>{t.name}</h3><p>{t.description || 'No description.'}</p><p>Revision {t.revision}{t.archivedAt ? ' · Archived' : ''}</p>
+        <TopicReadingList topic={t} readOnly={projectArchived || !!t.archivedAt} /><h3>{t.name}</h3><p>{t.description || 'No description.'}</p><p>Revision {t.revision}{t.archivedAt ? ' · Archived' : ''}</p>
         {!projectArchived && <div className="row">{!t.archivedAt && <Button disabled={change.isPending} onClick={() => {
           setEditing(t)
           setName(t.name)

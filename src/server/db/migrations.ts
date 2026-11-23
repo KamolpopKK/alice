@@ -675,6 +675,24 @@ export const MIGRATIONS: Migration[] = [
       CREATE UNIQUE INDEX knowledge_topics_active_name ON knowledge_topics(project_id, name_key) WHERE archived_at IS NULL;
     `,
   },
+  {
+    version: 19,
+    name: 'knowledge_topic_documents',
+    sql: `
+      CREATE TABLE knowledge_topic_documents (
+        topic_id TEXT NOT NULL REFERENCES knowledge_topics(id) ON DELETE CASCADE,
+        document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+        order_key TEXT NOT NULL,
+        created_by TEXT NOT NULL REFERENCES actors(id),
+        updated_by TEXT NOT NULL REFERENCES actors(id),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (topic_id, document_id)
+      ) STRICT;
+      CREATE INDEX knowledge_topic_documents_order ON knowledge_topic_documents(topic_id, order_key, document_id);
+      CREATE INDEX knowledge_topic_documents_reverse ON knowledge_topic_documents(document_id, topic_id);
+    `,
+  },
 ]
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version

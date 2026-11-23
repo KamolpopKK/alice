@@ -732,3 +732,12 @@ export const createKnowledgeTopicInput = z.object({ name: documentTitleSchema, d
 export const updateKnowledgeTopicInput = topicMutationInput.extend({ name: documentTitleSchema.optional(), description: z.string().trim().max(2000).optional() }).strict()
 export const listKnowledgeTopicsInput = z.object({ archived: archiveFilterSchema, cursor: cursorSchema, limit: limitSchema })
 export type KnowledgeTopicResult = { topic: KnowledgeTopic; changed: boolean; activityId: string | null }
+
+export const listTopicDocumentsInput = z.object({ cursor: cursorSchema, limit: limitSchema })
+export const putTopicDocumentInput = topicMutationInput.extend({ beforeDocumentId: idSchema.optional() }).strict()
+export interface TopicDocument {
+  document: DocumentSummary
+  orderKey: string
+  projectContext: { items: ProjectRef[]; total: number }
+}
+export type TopicDocumentPage = Page<TopicDocument> & { topic: KnowledgeTopic }

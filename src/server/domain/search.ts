@@ -192,7 +192,7 @@ export function matchFromRow(row: SearchRow, compiled: CompiledQuery): DocumentS
   return { field: field.result, ...(value ? { value } : {}), excerpt: snippets[Math.min(row.field_rank, snippets.length - 1)] ?? '' }
 }
 
-function projectContext(db: DB, documentId: string): { items: ProjectRef[]; total: number } {
+export function projectContext(db: DB, documentId: string): { items: ProjectRef[]; total: number } {
   const rows = db
     .prepare(
       `SELECT p.id, p.name, p.system_key, p.archived_at, count(*) OVER () AS total

@@ -1,3 +1,7 @@
+import type { listTopicDocumentsInput, putTopicDocumentInput, TopicDocumentPage } from '../../shared/contracts'
+import { requireDocRow, toSummary } from './documents'
+import { projectContext } from './search'
+import { keyBetween, evenKeys, MAX_KEY_LENGTH } from './order-keys'
 import { createHash } from 'node:crypto'
 import type * as z from 'zod'
 import type { KnowledgeTopic, TopicMutationInput, createKnowledgeTopicInput, listKnowledgeTopicsInput, updateKnowledgeTopicInput } from '../../shared/contracts'
@@ -124,6 +128,77 @@ export function archiveKnowledgeTopic(ctx: AppContext, actor: Actor, id: string,
     m.db.prepare('UPDATE knowledge_topics SET archived_at = ?, revision = revision + 1, updated_by = ?, updated_at = ? WHERE id = ?')
       .run(archived ? m.now : null, actor.id, m.now, id)
     const activityId = m.record({ verb: archived ? 'knowledge.topic.archived' : 'knowledge.topic.restored', resource: { type: 'project', id: topic.projectId }, data: { topicId: id } })
+    return { topic: getKnowledgeTopic(ctx, id), changed: true, activityId }
+  })
+}
+
+export function listTopicDocuments(ctx: AppContext, id: string, input: z.infer<typeof listTopicDocumentsInput>): TopicDocumentPage {
+  const topic = getKnowledgeTopic(ctx, id)
+  const params: unknown[] = [id]
+  let after = ''
+  if (input.cursor) {
+    const c = decodeCursor(input.cursor)
+    if (!c || c.length !== 4 || c[0] !== id || typeof c[1] !== 'number' || typeof c[2] !== 'string' || typeof c[3] !== 'string') throw new AliceError('VALIDATION_ERROR', 'Invalid reading list cursor')
+    requireTopicRevision(topic, c[1])
+    after = ' AND (order_key, document_id) > (?, ?)'
+    params.push(c[2], c[3])
+  }
+  const limit = input.limit ?? 50
+  const rows = ctx.db.prepare(`SELECT document_id, order_key FROM knowledge_topic_documents WHERE topic_id = ?${after} ORDER BY order_key, document_id LIMIT ?`).all(...params, limit + 1) as {
+    document_id: string
+    order_key: string
+  }[]
+  const page = rows.slice(0, limit)
+  const last = page.at(-1)
+  return {
+    topic,
+    items: page.map((r) => ({ document: toSummary(requireDocRow(ctx.db, ctx.workspaceId, r.document_id), ctx.db), orderKey: r.order_key, projectContext: projectContext(ctx.db, r.document_id) })),
+    nextCursor: rows.length > limit && last ? encodeCursor([id, topic.revision, last.order_key, last.document_id]) : null,
+  }
+}
+
+export function putTopicDocument(ctx: AppContext, actor: Actor, id: string, documentId: string, input: z.infer<typeof putTopicDocumentInput>) {
+  return changeTopicDocument(ctx, actor, id, documentId, input, false)
+}
+export function removeTopicDocument(ctx: AppContext, actor: Actor, id: string, documentId: string, input: TopicMutationInput) {
+  return changeTopicDocument(ctx, actor, id, documentId, input, true)
+}
+function changeTopicDocument(ctx: AppContext, actor: Actor, id: string, documentId: string, input: z.infer<typeof putTopicDocumentInput>, remove: boolean) {
+  return knowledgeMutation(ctx, actor, input.mutationId, ['topic.document', id, documentId, remove, input], (m) => {
+    const topic = getKnowledgeTopic(ctx, id)
+    activeProject(ctx, topic.projectId)
+    requireTopicRevision(topic, input.expectedRevision)
+    if (topic.archivedAt) throw new AliceError('INVALID_STATE', 'Restore the topic before editing its reading list')
+    const doc = requireDocRow(m.db, ctx.workspaceId, documentId)
+    const current = m.db.prepare('SELECT order_key FROM knowledge_topic_documents WHERE topic_id = ? AND document_id = ?').get(id, documentId) as { order_key: string } | undefined
+    if (remove) {
+      if (!current) return { topic, changed: false, activityId: null }
+      m.db.prepare('DELETE FROM knowledge_topic_documents WHERE topic_id = ? AND document_id = ?').run(id, documentId)
+    } else {
+      if (doc.archived_at && !current) throw new AliceError('INVALID_STATE', 'Restore the document before adding it')
+      const before = input.beforeDocumentId
+      if (before === documentId) throw new AliceError('VALIDATION_ERROR', 'A document cannot be placed before itself')
+      const next = before ? m.db.prepare('SELECT order_key FROM knowledge_topic_documents WHERE topic_id = ? AND document_id = ?').get(id, before) as { order_key: string } | undefined : undefined
+      if (before && !next) throw new AliceError('VALIDATION_ERROR', 'beforeDocumentId must belong to this topic')
+      const previous = m.db.prepare(`SELECT order_key FROM knowledge_topic_documents WHERE topic_id = ? AND document_id <> ?${next ? ' AND order_key < ?' : ''} ORDER BY order_key DESC, document_id DESC LIMIT 1`).get(...(next ? [id, documentId, next.order_key] : [id, documentId])) as { order_key: string } | undefined
+      if (current && (!previous || previous.order_key < current.order_key) && (!next || current.order_key < next.order_key)) return { topic, changed: false, activityId: null }
+      let key = keyBetween(previous?.order_key ?? null, next?.order_key ?? null)
+      if (key.length > MAX_KEY_LENGTH) {
+        const rows = m.db.prepare('SELECT document_id FROM knowledge_topic_documents WHERE topic_id = ? AND document_id <> ? ORDER BY order_key, document_id').all(id, documentId) as { document_id: string }[]
+        const position = before ? rows.findIndex((r) => r.document_id === before) : rows.length
+        rows.splice(position, 0, { document_id: documentId })
+        const keys = evenKeys(rows.length)
+        const update = m.db.prepare('UPDATE knowledge_topic_documents SET order_key = ? WHERE topic_id = ? AND document_id = ?')
+        rows.forEach((r, i) => {
+          if (r.document_id === documentId) key = keys[i]
+          else update.run(keys[i], id, r.document_id)
+        })
+      }
+      m.db.prepare(`INSERT INTO knowledge_topic_documents (topic_id, document_id, order_key, created_by, updated_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(topic_id, document_id) DO UPDATE SET order_key = excluded.order_key, updated_by = excluded.updated_by, updated_at = excluded.updated_at`).run(id, documentId, key, actor.id, actor.id, m.now, m.now)
+    }
+    m.db.prepare('UPDATE knowledge_topics SET revision = revision + 1, updated_by = ?, updated_at = ? WHERE id = ?').run(actor.id, m.now, id)
+    const activityId = m.record({ verb: remove ? 'knowledge.document.removed' : 'knowledge.document.put', resource: { type: 'project', id: topic.projectId }, data: { topicId: id, documentId } })
     return { topic: getKnowledgeTopic(ctx, id), changed: true, activityId }
   })
 }
