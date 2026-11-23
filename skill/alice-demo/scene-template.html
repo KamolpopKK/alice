@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="th">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Demo presentation scene</title>
+<style>
+  * { box-sizing: border-box }
+  body { margin: 0; width: 100vw; height: 100vh; display: grid; place-items: center; background: #111a31; color: #f5f7ff; font-family: sans-serif }
+  main { width: 84vw; max-height: 84vh; padding: 2vw; border-left: 0.6vw solid #6edbc7 }
+  h1 { font-size: clamp(28px, 4.5vw, 96px); line-height: 1.5; margin: 0 0 1vw; overflow-wrap: anywhere }
+  p { font-size: clamp(18px, 2.3vw, 52px); line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 }
+  small { display: block; font-size: 1.4vw; color: #acb9da; margin-top: 2vw }
+</style>
+<main><h1></h1><p></p><small></small></main>
+<script>
+  const scene = window.demoScene || { title: 'Presentation', onScreenText: 'Describe the agreed story here.' }
+  document.querySelector('h1').textContent = scene.title
+  document.querySelector('p').textContent = scene.onScreenText || ''
+  document.querySelector('small').textContent = scene.disclosure || ''
+  window.renderAt = (t) => {
+    const progress = Math.min(1, Math.max(0, t / 0.7))
+    const main = document.querySelector('main')
+    main.style.opacity = String(progress)
+    main.style.transform = `translateY(${(1 - progress) * 16}px)`
+  }
+</script>
+</html>
