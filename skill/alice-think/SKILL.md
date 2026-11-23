@@ -1,7 +1,7 @@
 ---
 name: alice-think
 description: Clarify new ideas, requests, bugs or feedback before design or planning. Hand small, clear work straight to a task; otherwise agree the needs and scope, save an approved brief with only relevant requirements and flows, and recommend technical design or planning as the next step. Use when the work has no Alice task yet — not for technical design, breaking an agreed brief into tasks (use alice-plan), or working on an existing task (use alice).
-version: 0.2.7
+version: 0.2.8
 ---
 
 # Thinking work through in Alice
@@ -161,6 +161,11 @@ round holds every open question whose prerequisites are already settled, and not
 that depends on an answer still open waits for a later round. Wait for the answers, record them, then
 work out the next round afresh from what is now settled.
 
+Ask all currently answerable questions together in one chat message. Do not default to one question
+per turn or split independent questions across turns because a tool shows one at a time or limits
+the number of questions. A single-question round is appropriate only when just one decision is open
+or the remaining questions depend on its answer.
+
 **Prefer choices for decisions.** Apply this to discovery rounds, small-task confirmations and final
 artifact approval when a question is needed. When the alternatives are clear, offer 2–3 meaningful,
 distinct options. Put the recommended option first and explain the practical trade-off for each.
@@ -168,16 +173,11 @@ Do not turn a choice into an open-ended "what do you want?", invent filler optio
 you can look up. Use a focused free-text question when the answer needs the person's own description
 or information you cannot sensibly enumerate. Always allow a custom answer.
 
-Use an available structured question/choice tool when it supports options and is permitted in the
-current mode (for example `request_user_input_async`, `request_user_input` or `AskUserQuestion` when
-exposed). Follow that tool's schema and limits. Keep the question number and `❓` in the question;
-mark the first option `➡️` and "Recommended" in the person's language, with the reason/trade-off in
-the supported description or prompt. Submit only questions whose prerequisites are settled. Do not
-change mode or require an unavailable tool just to show choices. A preselected option is not an answer
-or approval: wait for the person's actual response before advancing dependent work or saving.
-
-When no suitable choice tool is available, list A/B/C options in chat so the person can answer a
-round by question number and option (for example "1 A, 2 B"), or write their own answer:
+**Chat is the primary question interface.** Always show the complete round in chat, with a separate
+formatted block for each question: number, literal `❓`, A/B/C options with practical trade-offs, and
+a literal `➡️` recommendation with its reason. Use Markdown formatting, not a code block. Keep
+question numbers continuous across rounds. The person can answer the whole round by number and
+option (for example "1 A, 2 B"), accept the recommendations, or write their own answers:
 
 ```
 ❓ **Q1 - <short title>**: <the decision>
@@ -189,9 +189,15 @@ C. <another meaningful alternative, only when needed> — <impact or trade-off>
 ➡️ A — <why it fits the known context>
 ```
 
+An available, compatible choice tool may supplement this chat round with short answer labels mapped
+to the same question numbers and options. It must not replace or hide the chat questions, options or
+recommendations. Use it only when permitted in the current mode and the whole round fits its limits;
+otherwise stay in chat. Do not split a round, change mode or require a tool just to show buttons.
+Accept answers in chat even when a tool was offered. A preselected option is not an answer or approval:
+wait for the person's actual response before advancing dependent work or saving.
+
 - Start every question with the literal `❓` icon and its question number, including a free-text
   question or a round with only one question. Mark recommendations with the literal `➡️` icon.
-  In a structured tool, use its question/option fields instead of duplicating the whole round in chat.
 - Make a choice question unambiguous so that "yes" accepts your recommendation. Artifact creation
   or saving still requires explicit approval of the presented content; defaults or silence never count.
 - Mark a question **trade-off** when your recommendation gives up something the person may care about,

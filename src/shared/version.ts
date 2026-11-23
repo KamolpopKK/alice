@@ -1,5 +1,5 @@
 // เวอร์ชันของแอป, MCP contract และ skill ต้องเดินไปด้วยกัน
-export const APP_VERSION = '0.2.7'
+export const APP_VERSION = '0.2.8'
 export const MCP_CONTRACT_VERSION = '1'
 export const MCP_ENDPOINT_PATH = `/mcp/v${MCP_CONTRACT_VERSION}`
 
