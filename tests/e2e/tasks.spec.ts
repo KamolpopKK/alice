@@ -85,3 +85,25 @@ test('decompose work and add blockers from task detail', async ({ app, owner, pa
   await page.goto(`${app.url}/list`)
   await expect(page.getByText('Blocked by 1')).toBeVisible()
 })
+
+test('task detail fields share one control size, Alice icons and a muted empty due date', async ({ app, owner, page }) => {
+  const task = (await owner.post('/api/tasks', { title: 'Align form controls' })).body.task as { id: string }
+  await signIn(page, app)
+  await page.goto(`${app.url}/tasks/${task.id}`)
+  const fields = ['Status', 'Assignee', 'Priority', 'Project', 'Due date'].map((name) => page.getByLabel(name, { exact: true }))
+  await expect(fields[0]).toBeVisible()
+  const looks = await Promise.all(
+    fields.map((f) =>
+      f.evaluate((el) => {
+        const s = getComputedStyle(el)
+        return { height: el.getBoundingClientRect().height, radius: s.borderTopLeftRadius, appearance: s.appearance, icon: s.backgroundImage.startsWith('url(') }
+      }),
+    ),
+  )
+  for (const look of looks) expect({ height: look.height, radius: look.radius, icon: look.icon }).toEqual({ height: looks[0].height, radius: looks[0].radius, icon: true })
+  expect(looks.slice(0, 4).every((l) => l.appearance === 'none')).toBe(true)
+  // ยังไม่มีวันกำหนด: แสดงจาง ไม่ให้ดูเหมือนตั้งเป็นวันนี้
+  await expect(fields[4]).toHaveAttribute('data-empty', 'true')
+  await fields[4].fill('2026-12-01')
+  await expect(fields[4]).not.toHaveAttribute('data-empty')
+})
