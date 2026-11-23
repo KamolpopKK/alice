@@ -38,8 +38,27 @@ test('the Board loads and a card can be dragged with a frozen prototype', async 
   expect(errors).toEqual([])
 })
 
-// Mermaid ยังไม่อยู่ในชุดนี้: dayjs ที่มากับ Mermaid ตั้ง valueOf บน prototype ของตัวเอง จึงวาดไม่ได้ใน Desktop
-// (เป็นมาตั้งแต่ 0.2.4 และแยกเป็นงานต่อ) — หน้าเอกสารยังเปิดได้และแสดงข้อความแทนรูป
+// gantt ใช้ dayjs กับ plugin (duration, customParseFormat, ...) ซึ่งตั้ง valueOf/toString/toJSON บน prototype ของตัวเอง
+test('Mermaid diagrams render with a frozen prototype', async ({ app, owner, page }) => {
+  const errors = collectErrors(page)
+  const fence = (source: string) => `\`\`\`mermaid\n${source}\n\`\`\``
+  const body = [
+    fence('flowchart LR\n  A[Draft] --> B[Done]'),
+    fence('sequenceDiagram\n  Browser->>API: Request'),
+    fence('gantt\n  dateFormat YYYY-MM-DD\n  section Work\n  Build :a1, 2026-01-01, 3d\n  Ship :after a1, 2d'),
+  ].join('\n\n')
+  const doc = (await owner.post(`${V1}/documents`, { title: `Frozen diagrams ${stamp()}`, body })).body.document
+  await signIn(page, app)
+  await page.goto(`${app.url}/documents/${doc.id}`)
+  const images = page.locator('.document-body .mermaid-diagram img')
+  await expect(images).toHaveCount(3)
+  for (const image of await images.all()) {
+    await expect.poll(() => image.evaluate((node: HTMLImageElement) => node.naturalWidth)).toBeGreaterThan(0)
+  }
+  await expect(page.getByText(/Unable to render Mermaid diagram/)).toHaveCount(0)
+  expect(errors).toEqual([])
+})
+
 test('documents open, edit and switch modes with a frozen prototype', async ({ app, owner, page }) => {
   const errors = collectErrors(page)
   const body = '# Frozen\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n- [ ] todo\n\n```ts\nconst x = 1\n```\n'
