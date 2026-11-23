@@ -1,7 +1,7 @@
 ---
 name: alice-plan
 description: Break agreed requirements, an Alice document or an oversized Alice task into a checked, linked and ordered work breakdown written directly to Alice. Resolve implementation planning details and recommend alice-spec when main technical design decisions are missing. Use when asked to plan, break down, decompose or scope work in Alice — not for working on an existing task (use the alice skill) or creating technical designs.
-version: 0.2.5
+version: 0.2.6
 ---
 
 # Planning work in Alice

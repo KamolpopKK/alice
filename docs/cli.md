@@ -198,7 +198,8 @@ alice install-skill --client codex --skill alice-spec
 alice mcp-config --client claude-code         # defaults to the active profile's server URL
 ```
 
-`--skill` accepts `alice`, `alice-think`, `alice-spec` or `alice-plan`; omit it to install all four.
+`--skill` accepts `alice`, `alice-think`, `alice-spec`, `alice-plan`, `alice-understand` or
+`alice-demo`; omit it to install all six.
 Each installation includes the skill's supporting files, including templates where present and the
 shared project-files/output-format guides. Use `--scope project` for `.claude/skills/` or
 `.codex/skills/` in the repository instead of your home folder.
