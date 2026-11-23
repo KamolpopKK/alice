@@ -15,6 +15,8 @@ test('Settings shows the categories each role may use, and phones get list then 
   await expect(page.getByText('Workspace owner')).toBeVisible()
   await nav.getByRole('link', { name: 'Advanced' }).click()
   await expect(page.getByText(/v1 \(oldest supported v1\)/)).toBeVisible()
+  // เว็บอัปเดตตาม server: ปุ่มตรวจอัปเดตมีเฉพาะใน Alice Desktop
+  await expect(page.getByRole('button', { name: 'Check for updates' })).toHaveCount(0)
 
   const username = `set${stamp()}`
   await inviteHuman(owner, username, 'Settings Member')

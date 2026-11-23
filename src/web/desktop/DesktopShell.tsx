@@ -8,6 +8,7 @@ import { AgentsSection, LocalRecovery, LocalWorkspacesSection, Onboarding, onboa
 import { LocalWorkspaceContext } from '../workspace-mode'
 import { ShellWorkspaceContext, type ShellWorkspace } from '../shell/workspace'
 import { TauriTransport } from './transport'
+import { UpdateCheck } from './UpdateCheck'
 import { Button, useToast } from '../ui'
 import { saveInFlight } from '../documents/drafts'
 import { confirmLeave, guarded, hasUnsavedDrafts, subscribeUnsaved } from '../documents/leave'
@@ -463,42 +464,5 @@ function ProfilesScreen({ view, onDone, canClose, onChanged }: { view: ProfilesV
         </div>
       </form>
     </main>
-  )
-}
-
-/** Signed updates: the native updater verifies the signature; installs only newer, compatible releases. */
-function UpdateCheck() {
-  const [status, setStatus] = useState<string | null>(null)
-  const [installable, setInstallable] = useState<string | null>(null)
-  const check = async () => {
-    setStatus('Checking…')
-    try {
-      const r = await native.updateCheck()
-      if (!r.configured) return setStatus('Updates are not configured in this build')
-      if (r.available && r.version) {
-        setInstallable(r.version)
-        return setStatus(`Version ${r.version} is available`)
-      }
-      setStatus(r.decision === 'incompatible' ? (r.message ?? 'The new version does not support your server yet') : 'Alice Desktop is up to date')
-    } catch (err) {
-      setStatus(messageOf(err))
-    }
-  }
-  return (
-    <span role="status">
-      {status ?? (
-        <Button variant="ghost" size="sm" onClick={() => void check()}>
-          Check for updates
-        </Button>
-      )}
-      {installable && (
-        <>
-          {' '}
-          <Button variant="ghost" size="sm" onClick={() => void guarded('install the update', () => native.updateInstall().catch((e) => setStatus(messageOf(e))))}>
-            Install and restart
-          </Button>
-        </>
-      )}
-    </span>
   )
 }

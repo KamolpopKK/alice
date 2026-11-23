@@ -1258,3 +1258,14 @@ main[data-offline] button[type='submit'] {
   margin: 20px 0 8px;
   font-size: 1rem;
 }
+/* ผลการตรวจอัปเดต + ปุ่ม: อยู่บรรทัดเดียวกัน ขึ้นบรรทัดใหม่เมื่อแคบ */
+.update-check {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+/* ยังไม่มีผล: ไม่ให้ช่องว่างของ gap ดันปุ่ม (ไม่ซ่อน live region เพื่อให้ยังประกาศผลได้) */
+.update-check > [role='status']:empty {
+  margin-inline-end: -8px;
+}

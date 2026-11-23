@@ -199,6 +199,25 @@ test.describe('Alice Desktop with Local workspaces', () => {
     expect(native.editorDirty).toBe(false)
   })
 
+  test('Settings → Advanced checks for updates and installs a newer release', async ({ app, page }) => {
+    const home = localHome()
+    const a = createWorkspace(home, { name: 'Settings updates', alias: 'supd' })
+    const native = await FakeNativeCore.attach(page, { localHome: home })
+    await native.handle('profile_use', { name: a.id })
+    await page.goto(`${app.url}/settings/advanced`)
+    const updates = page.getByRole('definition').filter({ has: page.getByRole('button', { name: 'Check for updates' }) })
+
+    // ยังไม่มีรุ่นใหม่: บอกว่าเป็นรุ่นล่าสุด และตรวจซ้ำได้
+    await updates.getByRole('button', { name: 'Check for updates' }).click()
+    await expect(page.getByRole('status').filter({ hasText: 'Alice Desktop is up to date' })).toBeVisible()
+
+    native.update = { version: '9.9.9' }
+    await page.getByRole('button', { name: 'Check again' }).click()
+    await expect(page.getByRole('status').filter({ hasText: 'Version 9.9.9 is available' })).toBeVisible()
+    await page.getByRole('button', { name: 'Install and restart' }).click()
+    await expect.poll(() => native.updateInstalls).toBe(1)
+  })
+
   test('a workspace change from outside keeps the draft in its own workspace and never shows it in the other', async ({ app, page }) => {
     const home = localHome()
     const a = createWorkspace(home, { name: 'Ext', alias: 'ext-a' })
