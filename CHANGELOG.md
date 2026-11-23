@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.5 — 2026-11-23
 
 ### Added
 
@@ -25,6 +25,11 @@
   their titles in questions, progress, summaries, tables and handoffs, adding the project or parent when
   titles repeat. Ids appear only when you ask or an exact command needs them, next to the title, and
   stay in tool calls, saved references and requirement ids.
+
+### Fixed
+
+- **Mermaid diagrams render in Alice Desktop.** Documents, tasks and comments showed "Unable to render
+  Mermaid diagram" in Desktop since 0.2.4, while browsers were unaffected.
 
 ## 0.2.4 — 2026-11-22
 

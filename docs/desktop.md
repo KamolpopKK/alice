@@ -168,9 +168,13 @@ ALICE_DESKTOP_SMOKE=exit ALICE_DESKTOP_OPEN_URL='alice://open/task/tsk_abcd1234?
 ```
 
 The WebView runs with `freezePrototype`: `Object.prototype` is frozen before any page script, so a web
-dependency that assigns `valueOf`, `toString` or `toJSON` on its own prototypes throws at load in Alice Desktop
-while working in an ordinary browser. `tests/e2e/frozen-prototype.spec.ts` runs the main screens that way;
-add a screen there when it brings in a new library.
+dependency that assigns `constructor`, `valueOf`, `toString`, `toJSON` or `toLocaleString` on its own objects
+(`proto.toString = fn`) throws in Alice Desktop while working in an ordinary browser. The web build and the
+dev server rewrite those assignments in dependencies so they define the property instead
+(`scripts/frozen-prototype.ts`); this is how Mermaid's dayjs, d3 and elkjs work in Desktop. Code that sets
+such a property through a computed or call-result target (`a[0].toString =`, `f().toString =`) is not
+rewritten. `tests/e2e/frozen-prototype.spec.ts` runs the main screens, Board drag and Mermaid diagrams that
+way; add a screen there when it brings in a new library.
 
 Automated tests use a plaintext credential store, compiled only with the `test-credential-store` cargo
 feature. The Rust integration tests use an in-memory store. Release builds always use the OS keyring.

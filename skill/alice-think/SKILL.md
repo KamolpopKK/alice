@@ -1,7 +1,7 @@
 ---
 name: alice-think
 description: Clarify new ideas, requests, bugs or feedback before design or planning. Hand small, clear work straight to a task; otherwise agree the needs and scope, save an approved brief with only relevant requirements and flows, and recommend technical design or planning as the next step. Use when the work has no Alice task yet — not for technical design, breaking an agreed brief into tasks (use alice-plan), or working on an existing task (use alice).
-version: 0.2.4
+version: 0.2.5
 ---
 
 # Thinking work through in Alice
