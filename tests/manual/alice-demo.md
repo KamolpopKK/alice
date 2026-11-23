@@ -97,3 +97,7 @@ git diff --check
 Run localhost/browser tests with the host permissions they require. Online provider calls belong to
 the manual harness, not the offline automated suite. If any required check is unavailable or fails,
 record it and do not mark qualification complete. See alice-demo-results.md for actual evidence.
+
+The automated media suites require FFmpeg/ffprobe and installed Playwright Chromium before `npm test`.
+CI installs both ahead of the unit/system run. Vitest resolves the browser cache before isolating HOME;
+`PLAYWRIGHT_BROWSERS_PATH` can select an explicit installed cache without exposing the real home to writes.

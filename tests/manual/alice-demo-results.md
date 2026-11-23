@@ -76,3 +76,11 @@ Qualification covers this macOS environment. Linux/Windows, every native applica
 third-party page and future provider behavior remain unverified. External TTS availability can change;
 the workflow must report failures and agree alternatives. No video was published, no paid service was
 activated, and no production board data was used by the media harness.
+
+## PR readiness after main integration
+
+Integrated main at `2abdeb6` and aligned the new skill metadata with Alice 0.2.5. Main's temporary-HOME
+isolation initially hid the installed Playwright cache. Vitest now resolves that cache before HOME is
+isolated; CI installs FFmpeg and Chromium before the unit/system media suites. The full rerun passed
+71 test files: 498 tests passed, 1 skipped. Typecheck, build and diff checks passed. These integration
+changes did not regenerate the qualified videos or expand the platform qualification claim above.

@@ -22,9 +22,13 @@ jobs:
       - name: Release preflight (dry run)
         run: node scripts/release-preflight.mjs --dry-run
       - run: npm run typecheck
+      - name: Demo media prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          npx playwright install --with-deps chromium
       - run: npm test
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
       - name: Browser suites (the cross-client story runs in desktop-core, which has the Tauri libraries)
         run: npm run test:e2e
         env:
