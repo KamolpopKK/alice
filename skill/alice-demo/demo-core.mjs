@@ -7,6 +7,14 @@ import { pathToFileURL } from 'node:url'
 
 export const hash = (value) => createHash('sha256').update(value).digest('hex')
 export const readJson = (file) => JSON.parse(fs.readFileSync(file, 'utf8'))
+export async function withinDeadline(operation, timeoutMs = 30_000) {
+  let timer
+  try {
+    return await Promise.race([operation, new Promise((_, reject) => {
+      timer = setTimeout(() => reject(Object.assign(new Error('Scene operation timed out'), { code: 'SCENE_TIMEOUT' })), timeoutMs)
+    })])
+  } finally { clearTimeout(timer) }
+}
 export function fail(code, message) {
   throw Object.assign(new Error(message), { code })
 }
@@ -93,6 +101,7 @@ export function validateManifest(manifest, root) {
       fail('INVALID_MANIFEST', `Silent subtitle cues need explicit scene-relative times: ${s.id}`)
     }
   }
+  if ((m.narration || m.subtitles) && !m.scenes.some((s) => s.cues?.length)) fail('INVALID_MANIFEST', 'Selected narration/subtitles require script cues')
   return m
 }
 

@@ -7,8 +7,18 @@ export async function listVoices({ python = 'python3', run = runTool } = {}) {
   return JSON.parse((await run(python, ['-c', script], { timeoutMs: 30_000 })).stdout)
 }
 
+export async function measureSpeech(file, duration, { ffmpeg = process.env.DEMO_FFMPEG ?? 'ffmpeg' } = {}) {
+  const { stderr } = await runTool(ffmpeg, ['-hide_banner', '-i', file, '-af', 'silencedetect=noise=-45dB:d=0.03', '-f', 'null', '-'])
+  const events = [...stderr.matchAll(/silence_(start|end): ([0-9.]+)/g)].map((m) => ({ kind: m[1], time: Number(m[2]) }))
+  const start = events[0]?.kind === 'start' && events[0].time < 0.03 ? events.find((e) => e.kind === 'end')?.time ?? duration : 0
+  const last = events.at(-1), previous = events.at(-2)
+  const end = last?.kind === 'end' && last.time >= duration - 0.05 && previous?.kind === 'start' ? previous.time : duration
+  if (end <= start) fail('SILENT_AUDIO', 'Narration has no measurable speech; inspect it before continuing')
+  return { speechStart: start, speechEnd: end }
+}
+
 async function cueAudio(root, scene, cue, m, options) {
-  const { python = 'python3', run = runTool, inspect = probe } = options
+  const { python = 'python3', run = runTool, inspect = probe, measure = measureSpeech } = options
   const settings = m.narration
   let text = cue.text
   for (const [word, replacement] of Object.entries(m.pronunciations ?? {})) {
@@ -24,7 +34,10 @@ async function cueAudio(root, scene, cue, m, options) {
     const cached = readJson(jobPath(root, recordFile))
     if (cached.key === key && cached.hash === hash(fs.readFileSync(target))) {
       await inspect(target)
-      return { ...cached, cached: true }
+      const bounds = await measure(target, cached.duration)
+      const updated = { ...cached, ...bounds, subtitle: cue.subtitle ?? cue.text }
+      writeJson(root, recordFile, updated)
+      return { ...updated, cached: true }
     }
   }
   const tmp = jobPath(root, `${stem}.partial.mp3`)
@@ -46,7 +59,8 @@ async function cueAudio(root, scene, cue, m, options) {
   const media = await inspect(tmp)
   if (!media.streams.some((s) => s.codec_type === 'audio')) fail('INVALID_AUDIO', 'Narration has no audio stream')
   fs.renameSync(tmp, target)
-  const record = { key, file, hash: hash(fs.readFileSync(target)), duration: media.duration,
+  const bounds = await measure(target, media.duration)
+  const record = { key, file, hash: hash(fs.readFileSync(target)), duration: media.duration, ...bounds,
     provider: settings.provider, settings, text, subtitle: cue.subtitle ?? cue.text }
   writeJson(root, recordFile, record)
   return { ...record, cached: false }
@@ -71,7 +85,7 @@ export async function generateNarration(root, manifest, { sampleApproved = false
     const cues = []
     for (const cue of scene.cues ?? []) {
       const audio = await cueAudio(root, scene, cue, m, options)
-      cues.push({ ...audio, id: cue.id, start: offset, end: offset + audio.duration })
+      cues.push({ ...audio, id: cue.id, start: offset + audio.speechStart, end: offset + audio.speechEnd })
       offset += audio.duration
     }
     if (offset > scene.duration + 0.001) fail('AUDIO_OVERRUN', `Speech exceeds the agreed duration: ${scene.title}; agree timing or script changes`)

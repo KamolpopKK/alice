@@ -2,7 +2,12 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
-import { jobPath, validateManifest, readJson, writeJson, hash, fail, loadPlaywright, isMain, cliError } from './demo-core.mjs'
+import { jobPath, validateManifest, readJson, writeJson, hash, fail, loadPlaywright, withinDeadline, isMain, cliError } from './demo-core.mjs'
+
+export function htmlInputHash(root, manifest, scene) {
+  const files = [scene.html, ...(manifest.font ? [manifest.font] : []), ...(manifest.assets ?? [])]
+  return hash(JSON.stringify({ scene, video: manifest.video, files: files.map((file) => [file, hash(fs.readFileSync(jobPath(root, file)))]) }))
+}
 
 export async function renderHtmlScene(root, manifest, sceneId, { chromium } = {}) {
   const m = validateManifest(manifest, root)
@@ -37,11 +42,11 @@ export async function renderHtmlScene(root, manifest, sceneId, { chromium } = {}
     if (!ready || errors.length) fail('SCENE_NOT_READY', 'HTML requires renderAt(t) and successfully loaded fonts/assets')
     const count = Math.ceil(scene.duration * m.video.fps)
     for (let frame = 0; frame < count; frame++) {
-      await page.evaluate(async (t) => { await window.renderAt(t) }, frame / m.video.fps)
+      await withinDeadline(page.evaluate(async (t) => { await window.renderAt(t) }, frame / m.video.fps))
       if (errors.length) fail('SCENE_RENDER_FAILED', 'Scene script or asset failed during rendering')
       await page.screenshot({ path: path.join(folder, `${String(frame).padStart(6, '0')}.png`), animations: 'disabled' })
     }
-    const record = { scene: scene.id, directory: relative, count, fps: m.video.fps, duration: scene.duration,
+    const record = { scene: scene.id, directory: relative, count, fps: m.video.fps, duration: scene.duration, inputHash: htmlInputHash(root, m, scene),
       source: scene.html, sourceHash: hash(fs.readFileSync(source)), provenance: scene.disclosure ?? 'HTML presentation; label simulated content in the storyboard' }
     writeJson(root, `media/frames/${scene.id}.json`, record)
     return record

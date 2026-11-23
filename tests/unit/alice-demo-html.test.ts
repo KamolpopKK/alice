@@ -5,7 +5,7 @@ import { testDir } from '../helpers/tmp'
 // @ts-expect-error standalone distributable
 import { snapshotSource, hash } from '../../skill/alice-demo/demo-core.mjs'
 // @ts-expect-error standalone distributable
-import { renderHtmlScene } from '../../skill/alice-demo/demo-html.mjs'
+import { renderHtmlScene, htmlInputHash } from '../../skill/alice-demo/demo-html.mjs'
 
 const manifest = () => ({ version: 1, source: snapshotSource({ id: 'doc_demo', title: 'Story', body: 'HTML', revision: 1 }), video: { width: 640, height: 360, fps: 10 }, narration: null, subtitles: false, scenes: [{ id: 'html', title: 'อธิบายโฟลว์', onScreenText: 'ข้อความภาษาไทยและ API 123', type: 'html', html: 'scene.html', start: 0, duration: 0.4, disclosure: 'Concept' }] })
 const setup = () => {
@@ -24,6 +24,7 @@ describe('explicit HTML frame rendering', () => {
       expect(hash(fs.readFileSync(path.join(root, a.directory, frame)))).toBe(hash(fs.readFileSync(path.join(root, b.directory, frame))))
     }
     expect(a.provenance).toBe('Concept')
+    expect(a.inputHash).not.toBe(htmlInputHash(root, m, { ...m.scenes[0], onScreenText: 'Changed storyboard text' }))
   })
 
   it('rejects missing assets and a missing explicit timeline', async () => {

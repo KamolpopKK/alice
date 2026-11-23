@@ -1,8 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { fileURLToPath } from 'node:url'
 import { assertSourceRevision, validateManifest, snapshotSource, readJson, writeJson, jobPath, hash, probe, runTool, preflight, fail, isMain, cliError } from './demo-core.mjs'
+import { htmlInputHash } from './demo-html.mjs'
 
 const timestamp = (seconds) => {
   const n = Math.round(seconds * 1000)
@@ -116,7 +116,7 @@ export async function renderVideo(root, manifest, { readSource, tools = {}, run 
     const args = ['-v', 'error', '-nostdin']
     if (scene.type === 'html') {
       const frames = readJson(jobPath(root, `media/frames/${scene.id}.json`))
-      if (frames.sourceHash !== hash(fs.readFileSync(jobPath(root, scene.html))) || frames.count !== Math.ceil(scene.duration * m.video.fps) || frames.fps !== m.video.fps) fail('STALE_FRAMES', 'HTML source or timing changed; render the scene again')
+      if (frames.inputHash !== htmlInputHash(root, m, scene) || frames.count !== Math.ceil(scene.duration * m.video.fps) || frames.fps !== m.video.fps) fail('STALE_FRAMES', 'HTML content, assets or timing changed; render the scene again')
       args.push('-framerate', String(m.video.fps), '-i', jobPath(root, `${frames.directory}/%06d.png`))
     } else {
       const capture = readJson(jobPath(root, `media/capture/${scene.id}.json`))

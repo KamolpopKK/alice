@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { jobPath, validateManifest, readJson, writeJson, hash, probe, fail, loadPlaywright, isMain, cliError } from './demo-core.mjs'
+import { jobPath, validateManifest, readJson, writeJson, hash, probe, fail, loadPlaywright, withinDeadline, isMain, cliError } from './demo-core.mjs'
 
 export async function importCapture(root, manifest, sceneId, { inspect = probe } = {}) {
   const m = validateManifest(manifest, root)
@@ -40,7 +40,7 @@ export async function captureScene(root, manifest, sceneId, { actionsReviewed = 
     if (scene.actions) {
       const module = await import(pathToFileURL(jobPath(root, scene.actions)).href)
       if (typeof module.perform !== 'function') fail('INVALID_ACTIONS', 'Reviewed capture source must export perform(page, scene)')
-      await module.perform(page, scene)
+      await withinDeadline(module.perform(page, scene), 30_000)
     }
     const elapsed = (performance.now() - actionStart) / 1000
     if (elapsed > scene.duration) fail('CAPTURE_OVERRUN', 'Capture actions exceed the agreed scene duration')

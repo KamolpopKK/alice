@@ -100,6 +100,12 @@ Inspect output metadata and actually watch/listen to the MP4; ffprobe alone cann
 pronunciation or subtitle alignment. Reports mark visual/listening verification as required. Preserve
 the report with the human/agent observations instead of claiming an independent evaluator ran it.
 
+Audio cue timing excludes measured leading/trailing silence (FFmpeg silencedetect at -45 dB,
+minimum 0.03 seconds), without cutting or accelerating the audio file. Inspect the result: quiet speech
+can require manual timing corrections agreed with the user. Matching audio is reused, but speech bounds
+and subtitle text are refreshed. HTML media hashes include scene text/settings, fonts and listed assets;
+changing them requires re-rendering frames, not only a matching HTML filename.
+
 Every assembly uses a unique `runs/` folder, keeps prior outputs, validates media hashes and writes
 temporary output before finalizing. Speech overrun, missing fonts/codecs/assets, changed source or
 provider failure stops the stage. Keep successful media, fix the reported problem within authorization,
