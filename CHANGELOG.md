@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 0.2.8 — 2026-11-24
+
+### Fixed
+
+- **Chat-first question rounds in `alice-think`.** The complete round stays visible in chat, with
+  numbered questions, A/B/C choices, trade-offs and recommendations. Compatible choice tools are
+  optional supplements; their limits must never split independent questions across turns.
+- **Ask independent questions together.** One-question rounds are reserved for a single open decision
+  or when later questions depend on its answer. Chat replies always remain valid.
+
+### Changed
+
+- **Refresh all six bundled skills to 0.2.8.** Update Desktop/CLI and restart the agent session.
+  No schema, Client API or MCP contract change is required.
+
 ## 0.2.7 — 2026-11-23
 
 ### Changed

@@ -1,3 +1,14 @@
+# Alice 0.2.8 — Chat-first discovery rounds
+
+- `alice-think` always presents the full question round in chat with numbered `❓` questions,
+  A/B/C choices, trade-offs and `➡️` recommendations. Choice tools may supplement the chat
+  with short answer labels, but never replace it.
+- Independent questions are asked together. Tool limits must not split a round into one question
+  per turn; one-question rounds are reserved for genuinely dependent decisions or one open question.
+- Chat answers always work. Defaults and silence never count as approval.
+- All six bundled skills advance to 0.2.8 for Local integration refresh. Update Desktop/CLI and
+  restart the agent session. No schema, Client API or MCP contract change is required.
+
 # Alice 0.2.7 — Clear choices and Desktop updates
 
 - `alice-think` offers 2–3 meaningful choices with a recommendation and trade-offs, using a

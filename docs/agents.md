@@ -191,8 +191,12 @@ Give your agent a new idea, request, bug report or piece of feedback that has no
    create it now and already supplied complete task content.
 3. Anything else gets questioned in rounds. A round holds every question that can be asked now; one that
    depends on an earlier answer waits for the next round. Decisions with clear alternatives offer 2–3
-   meaningful choices, with the recommended choice first and practical trade-offs. The agent uses an
-   available choice tool in the current mode, or A/B/C choices in chat when no suitable tool is available.
+   meaningful choices, with the recommended choice first and practical trade-offs. The agent shows the
+   complete round in one chat message with numbered `❓` questions, A/B/C choices, trade-offs and
+   `➡️` recommendations. A compatible choice tool may supplement the round with short answer labels,
+   but never replace the chat content or split independent questions across turns to fit tool limits.
+   Chat answers always work. A single-question round is used only when one decision remains or other
+   questions depend on its answer.
    Free text is for answers needing your own description, and a custom answer is always allowed.
    Questions carry `❓` and a number; recommendations carry `➡️`. A clear "yes" accepts the recommendation,
    but a preselected option or silence is never an answer or permission to save. These rules also apply
