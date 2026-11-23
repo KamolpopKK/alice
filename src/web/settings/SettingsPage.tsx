@@ -7,11 +7,14 @@ import { CodeBlock } from '../components/CodeBlock'
 import { ClientSessions } from '../components/ClientSessions'
 import { useServerInfo } from '../hooks'
 import { useMediaQuery } from '../pads/hooks'
+import { isDesktop } from '../platform'
 import { useShellWorkspace } from '../shell/workspace'
 import { Badge, Banner, Button, Icon, LinkButton, SectionHeader, SegmentedControl, Skeleton, useTheme, type ThemePreference } from '../ui'
 import { useLocalWorkspace } from '../workspace-mode'
 
 const AdminSection = lazy(() => import('./admin').then((m) => ({ default: m.AdminSection })))
+// เฉพาะ Alice Desktop: โหลดแยก เว็บไม่ต้องโหลดโค้ดฝั่ง native
+const UpdateCheck = lazy(() => import('../desktop/UpdateCheck').then((m) => ({ default: m.UpdateCheck })))
 
 type SectionId = 'general' | 'appearance' | 'agents' | 'devices' | 'workspaces' | 'backup' | 'advanced' | 'admin'
 type Section = { id: SectionId; label: string; icon: LucideIcon; description: string }
@@ -249,6 +252,13 @@ function Advanced() {
   return (
     <dl className="settings-facts">
       <Row label="This app">{APP_VERSION}</Row>
+      {isDesktop && (
+        <Row label="Updates">
+          <Suspense fallback={<Skeleton lines={1} />}>
+            <UpdateCheck />
+          </Suspense>
+        </Row>
+      )}
       <Row label="Server">{info.data.serverVersion}</Row>
       <Row label="Client API">
         v{info.data.clientApi.current} (oldest supported v{info.data.clientApi.minimum})

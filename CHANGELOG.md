@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- **Check for updates in Settings.** Alice Desktop's Settings → Advanced now has Check for updates and
+  Install and restart; before, the button was only at the bottom of the Switch workspace screen.
+
 ### Fixed
 
 - **Form controls look the same everywhere.** Selects and date fields now match text fields in

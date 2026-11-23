@@ -155,6 +155,17 @@ is emitted as `alice://capture` and handed to the UI once through `capture_take`
 For packaging smoke tests, `ALICE_DESKTOP_CAPTURE=new-pad` (or `open-last`) queues one capture intent at
 start-up without synthesizing OS key presses.
 
+## Updates
+
+**Settings → Advanced → Updates** has **Check for updates**. The same button sits at the bottom of the
+Switch workspace screen. Only Alice Desktop shows it; the web app is updated with its server.
+
+- The result is shown next to the button: up to date, a newer version, a newer version your server does
+  not support yet, or updates not configured in this build. **Check again** repeats the check.
+- **Install and restart** appears only for a newer release that the server supports. Updates are signed
+  and checked by the native updater; see [desktop-release.md](desktop-release.md) for the rules.
+- If a document has unsaved changes, installing asks first, because the app restarts.
+
 ## Development
 
 ```bash
