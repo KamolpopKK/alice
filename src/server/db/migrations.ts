@@ -693,6 +693,23 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX knowledge_topic_documents_reverse ON knowledge_topic_documents(document_id, topic_id);
     `,
   },
+  {
+    version: 20,
+    name: 'document_inline_link_projection',
+    sql: `
+      CREATE TABLE document_inline_links (
+        source_document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+        target_document_id TEXT NOT NULL,
+        PRIMARY KEY (source_document_id, target_document_id)
+      ) STRICT;
+      CREATE INDEX document_inline_links_backlinks ON document_inline_links(target_document_id, source_document_id);
+      CREATE TABLE document_link_index_state (
+        source_document_id TEXT PRIMARY KEY REFERENCES documents(id) ON DELETE CASCADE,
+        content_revision INTEGER NOT NULL CHECK(content_revision >= 1),
+        parser_version INTEGER NOT NULL CHECK(parser_version >= 1)
+      ) STRICT;
+    `,
+  },
 ]
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version

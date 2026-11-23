@@ -1,3 +1,4 @@
+import { indexDocumentLinks } from './document-link-index'
 import type * as z from 'zod'
 import {
   DOCUMENT_CONTENT_MESSAGE,
@@ -198,6 +199,7 @@ export function createDocument(ctx: AppContext, actor: Actor, input: z.infer<typ
     replaceMetadata(m, id, 'document_keywords', input.searchKeywords ?? [])
     writeRevision(m, id, 1, { title: input.title, body: input.body, sourceUrl }, null)
     indexDocument(m, id)
+    indexDocumentLinks(m.db, { id, body: input.body, revision: 1 })
     m.record({ verb: 'document.created', resource: { type: 'document', id }, data: { title: input.title, revision: 1, status } })
     return id
   })
@@ -260,6 +262,7 @@ export function updateDocument(ctx: AppContext, actor: Actor, id: string, patch:
     if (patch.tags !== undefined) replaceMetadata(m, id, 'document_tags', patch.tags)
     if (patch.searchKeywords !== undefined) replaceMetadata(m, id, 'document_keywords', patch.searchKeywords)
     indexDocument(m, id)
+    if (contentChanged) indexDocumentLinks(m.db, { id, body: next.body, revision }, next.body !== row.body)
     // body อาจยาวมาก: เก็บแค่ว่ามีการแก้ ไม่เก็บเนื้อหาซ้ำใน activity
     const summary = Object.fromEntries(
       Object.entries({ ...contentChanges, ...metadataChanges }).map(([k, v]) => [k, k === 'body' ? { fromLength: String(v.from).length, toLength: String(v.to).length } : v]),
@@ -327,6 +330,7 @@ export function restoreDocumentRevision(ctx: AppContext, actor: Actor, id: strin
       )
       .run(rev.title, rev.body, rev.source_url, revision, actor.id, m.now, id)
     indexDocument(m, id)
+    indexDocumentLinks(m.db, { id, body: rev.body, revision }, rev.body !== row.body)
     m.record({ verb: 'document.revision_restored', resource: { type: 'document', id }, data: { restoredFrom: number, revision, title: rev.title } })
   })
   return { document: getDocument(ctx, id), activityId }
