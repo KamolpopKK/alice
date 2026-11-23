@@ -653,6 +653,28 @@ export const MIGRATIONS: Migration[] = [
       LEFT JOIN comments c ON sd.kind = 'comment' AND c.id = sd.resource_id;
     `,
   },
+  {
+    version: 18,
+    name: 'knowledge_topics',
+    sql: `
+      CREATE TABLE knowledge_topics (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL REFERENCES workspaces(id),
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        name TEXT NOT NULL CHECK(length(trim(name)) BETWEEN 1 AND 200),
+        name_key TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '' CHECK(length(description) <= 2000),
+        revision INTEGER NOT NULL DEFAULT 1 CHECK(revision >= 1),
+        archived_at TEXT,
+        created_by TEXT NOT NULL REFERENCES actors(id),
+        updated_by TEXT NOT NULL REFERENCES actors(id),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      ) STRICT;
+      CREATE INDEX knowledge_topics_listing ON knowledge_topics(workspace_id, project_id, archived_at, name_key, id);
+      CREATE UNIQUE INDEX knowledge_topics_active_name ON knowledge_topics(project_id, name_key) WHERE archived_at IS NULL;
+    `,
+  },
 ]
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version

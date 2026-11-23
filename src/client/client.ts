@@ -1,3 +1,4 @@
+import type { KnowledgeTopic, KnowledgeTopicResult, TopicMutationInput, createKnowledgeTopicInput, updateKnowledgeTopicInput, listKnowledgeTopicsInput } from '../shared/contracts'
 import * as z from 'zod'
 import type { SavedView, createSavedViewInput } from '../shared/saved-views'
 import type {
@@ -174,6 +175,14 @@ export class AliceClient {
 
   subscribe(after: number | null, handlers: EventHandlers): () => void {
     return this.transport.subscribe(after, handlers)
+  }
+
+  readonly knowledge = {
+    topics: (projectId: string, input: Partial<z.infer<typeof listKnowledgeTopicsInput>> = {}) => this.get<Page<KnowledgeTopic>>(`/projects/${enc(projectId)}/knowledge/topics`, input),
+    topic: (id: string) => this.get<{ topic: KnowledgeTopic }>(`/knowledge/topics/${enc(id)}`),
+    createTopic: (projectId: string, input: z.input<typeof createKnowledgeTopicInput>) => this.call<KnowledgeTopicResult>('POST', `/projects/${enc(projectId)}/knowledge/topics`, { body: input, idempotent: input.mutationId }),
+    updateTopic: (id: string, input: z.input<typeof updateKnowledgeTopicInput>) => this.call<KnowledgeTopicResult>('PATCH', `/knowledge/topics/${enc(id)}`, { body: input, idempotent: input.mutationId }),
+    archiveTopic: (id: string, archived: boolean, input: TopicMutationInput) => this.call<KnowledgeTopicResult>('POST', `/knowledge/topics/${enc(id)}/${archived ? 'archive' : 'restore'}`, { body: input, idempotent: input.mutationId }),
   }
 
   readonly auth = {

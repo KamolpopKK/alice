@@ -4,7 +4,7 @@ import type { ClientEvent } from '../shared/contracts'
 const LIST_KEYS: Record<string, string[][]> = {
   // task ที่อยู่ใน Pad แสดงข้อมูลจริงของ task จึงต้อง refetch block ด้วย
   task: [['tasks'], ['board'], ['pad-blocks'], ['pad-search'], ['pad-task-search']],
-  project: [['projects'], ['board']],
+  project: [['projects'], ['board'], ['knowledge-topics']],
   document: [['documents']],
   comment: [['tasks']],
   actor: [['actors'], ['agents'], ['invites']],

@@ -711,3 +711,24 @@ export interface ClientCredentials {
   session: ClientSessionInfo
   actor: PublicActor
 }
+
+// ---------- Project knowledge ----------
+export interface KnowledgeTopic {
+  id: string
+  projectId: string
+  name: string
+  description: string
+  revision: number
+  archivedAt: string | null
+  createdAt: string
+  updatedAt: string
+  createdBy: ActorRef | null
+  updatedBy: ActorRef | null
+}
+export const knowledgeMutationIdSchema = z.string().regex(/^[A-Za-z0-9_.:-]{8,128}$/, 'Invalid mutationId')
+export const topicMutationInput = z.object({ mutationId: knowledgeMutationIdSchema, expectedRevision: z.number().int().min(1) }).strict()
+export type TopicMutationInput = z.infer<typeof topicMutationInput>
+export const createKnowledgeTopicInput = z.object({ name: documentTitleSchema, description: z.string().trim().max(2000).default(''), mutationId: knowledgeMutationIdSchema }).strict()
+export const updateKnowledgeTopicInput = topicMutationInput.extend({ name: documentTitleSchema.optional(), description: z.string().trim().max(2000).optional() }).strict()
+export const listKnowledgeTopicsInput = z.object({ archived: archiveFilterSchema, cursor: cursorSchema, limit: limitSchema })
+export type KnowledgeTopicResult = { topic: KnowledgeTopic; changed: boolean; activityId: string | null }

@@ -1,0 +1,25 @@
+import type { FastifyInstance } from 'fastify'
+import * as z from 'zod'
+import { idSchema, createKnowledgeTopicInput, updateKnowledgeTopicInput, topicMutationInput, listKnowledgeTopicsInput } from '../../shared/contracts'
+import type { AppContext } from '../context'
+import { archiveKnowledgeTopic, createKnowledgeTopic, getKnowledgeTopic, listKnowledgeTopics, updateKnowledgeTopic } from '../domain/knowledge'
+import { requireAuth } from './auth'
+import { parse } from './validate'
+
+export function registerKnowledgeRoutes(app: FastifyInstance, ctx: AppContext) {
+  const project = z.object({ projectId: idSchema })
+  const topic = z.object({ topicId: idSchema })
+  app.get('/projects/:projectId/knowledge/topics', async (req) => {
+    requireAuth(req)
+    return listKnowledgeTopics(ctx, parse(project, req.params).projectId, parse(listKnowledgeTopicsInput, req.query))
+  })
+  app.post('/projects/:projectId/knowledge/topics', async (req, reply) => reply.status(201).send(createKnowledgeTopic(ctx, requireAuth(req), parse(project, req.params).projectId, parse(createKnowledgeTopicInput, req.body))))
+  app.get('/knowledge/topics/:topicId', async (req) => {
+    requireAuth(req)
+    return { topic: getKnowledgeTopic(ctx, parse(topic, req.params).topicId) }
+  })
+  app.patch('/knowledge/topics/:topicId', async (req) => updateKnowledgeTopic(ctx, requireAuth(req), parse(topic, req.params).topicId, parse(updateKnowledgeTopicInput, req.body)))
+  for (const action of ['archive', 'restore'] as const) {
+    app.post(`/knowledge/topics/:topicId/${action}`, async (req) => archiveKnowledgeTopic(ctx, requireAuth(req), parse(topic, req.params).topicId, action === 'archive', parse(topicMutationInput, req.body)))
+  }
+}
