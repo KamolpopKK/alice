@@ -20,8 +20,12 @@ test('human and agent operate on one authoritative board @mobile', async ({ app,
   const docs = page.getByRole('region', { name: 'Documents' })
   await docs.getByRole('button', { name: 'New document' }).click()
   await page.getByLabel('Document title').fill('Reset flow spec')
-  await page.getByLabel('Body (Markdown)').fill('Email a one-time link valid for 30 minutes.')
+  await page.getByLabel('Body', { exact: true }).fill('Email a one-time link valid for 30 minutes.')
+  await expect(page.getByText('Will be linked to the task “Add password reset” when you create it.')).toBeVisible()
   await page.getByRole('button', { name: 'Create document' }).click()
+  // Create เปิดเอกสารที่สร้าง; Back กลับไปที่ task ซึ่งเห็นลิงก์แล้ว
+  await expect(page.getByRole('heading', { level: 1, name: 'Reset flow spec' })).toBeVisible()
+  await page.goBack()
   await expect(docs.getByRole('link', { name: 'Reset flow spec' })).toBeVisible()
 
   // agent: claim → context → comment → edit doc → complete (หน้าเว็บเปิดค้างไว้ตลอด)

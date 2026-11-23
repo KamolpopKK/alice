@@ -74,6 +74,13 @@ These compositions are shared so that every area behaves the same way.
 - **Resource pages** (Projects, Documents, Search, Agents, Activity). A heading row with the primary
   action, an optional toolbar, then `ResourceList` or a `Table`. Loading, empty and error states use
   `Skeleton`, `EmptyState` and a `Banner` with Try again.
+- **Board.** Clicking anywhere on a card opens its task; its controls keep their own action. Cards
+  move between columns by mouse or trackpad (after 8 px of movement) or a 250 ms long press on touch,
+  through `@dnd-kit` sensors; the status control stays the keyboard way. A drag never opens the card.
+- **Document authoring** (`src/web/documents/`, `pages/DocumentAuthoringPage.tsx`). Full pages for Create
+  and Edit with the rich text / Markdown editor, the Markdown bridge, in-memory drafts and the shared
+  leave dialog (`documents/leave.tsx`). The app uses a React Router data router so `useBlocker` can
+  guard unsaved drafts. Behaviour: [document-authoring.md](document-authoring.md).
 - **Project Detail.** Tabs for Overview, Tasks, Documents and Activity; the tab is in the URL (`?tab=`).
 - **Settings** (`src/web/settings/`). Categories show as a list beside the detail, or as list then
   detail with Back on narrow screens. A category appears only where it applies: Devices & Sessions on

@@ -1,0 +1,82 @@
+import { useAuth } from '../auth'
+import { useShellWorkspace } from '../shell/workspace'
+import type { DocumentKnowledgeStatus } from '../../shared/contracts'
+
+/** What a person has typed into a document's Create or Edit page and not saved yet. */
+export interface DocumentDraft {
+  title: string
+  body: string
+  sourceUrl: string
+  tags: string[]
+  searchKeywords: string[]
+  status: DocumentKnowledgeStatus
+  ownerId: string | null
+  /** Revision the edit started from (Edit only). */
+  baseRevision?: number
+  /** When the server copy the edit started from was last changed (Edit only); detects newer revisions. */
+  baseUpdatedAt?: string
+  /** The saved values the edit started from, to send only what the person changed (Edit only). */
+  base?: DocumentFields
+  /** One Create attempt: the exact request and its Idempotency-Key, kept until the outcome is known. */
+  saveAttempt?: { key: string; payload: CreatePayload }
+  /** A link to a task or project that still has to be made after Create (Edit only). */
+  pendingLink?: { target: { taskId: string } | { projectId: string }; key: string }
+}
+
+export type DocumentFields = Pick<DocumentDraft, 'title' | 'body' | 'sourceUrl' | 'tags' | 'searchKeywords' | 'status' | 'ownerId'>
+
+export interface CreatePayload {
+  title: string
+  body: string
+  sourceUrl: string | null
+  tags: string[]
+  searchKeywords: string[]
+  status: Exclude<DocumentKnowledgeStatus, 'current'>
+  ownerId: string | null
+}
+
+// เก็บใน RAM เท่านั้น (ไม่ลง localStorage หรือ server) และอยู่นอก React tree จึงไม่หายเมื่อ shell/Desktop
+// ถูก mount ใหม่ คีย์รวม workspace/server และผู้ใช้ เพื่อไม่ให้ draft ไปโผล่ในบัญชีหรือ workspace อื่น
+const drafts = new Map<string, DocumentDraft>()
+
+/** Identifies the workspace (Local alias or Remote server) and the signed-in actor. */
+export function useDraftScope(): string | null {
+  const ws = useShellWorkspace()
+  const { actor } = useAuth()
+  if (!actor) return null
+  return [ws.kind, ws.detail ?? ws.name, actor.id].join('|')
+}
+
+/** `new:` plus the link target for Create, `doc:<id>` for Edit. */
+export function draftKey(scope: string, target: string): string {
+  return `${scope}::${target}`
+}
+
+export function readDraft(key: string): DocumentDraft | undefined {
+  return drafts.get(key)
+}
+
+export function writeDraft(key: string, draft: DocumentDraft): void {
+  drafts.set(key, draft)
+}
+
+export function clearDraft(key: string): void {
+  drafts.delete(key)
+}
+
+// มี save กำลังทำงานอยู่กี่รายการ: Desktop ใช้กันการสลับ workspace ระหว่างบันทึก
+let saving = 0
+
+/** Marks a save as in flight until it settles. */
+export async function trackSave<T>(work: () => Promise<T>): Promise<T> {
+  saving++
+  try {
+    return await work()
+  } finally {
+    saving--
+  }
+}
+
+export function saveInFlight(): boolean {
+  return saving > 0
+}

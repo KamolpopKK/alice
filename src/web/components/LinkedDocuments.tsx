@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { DocumentSummary, Page } from '../../shared/contracts'
 import { client } from '../api'
-import { NewDocumentForm } from '../pages/DocumentsPage'
 import { ErrorMessage } from './ui'
 import { Button, TextField } from '../ui'
 
@@ -14,7 +13,9 @@ export function LinkedDocuments({ target, title = 'Documents' }: { target: Targe
   const key = 'taskId' in target ? target.taskId : target.projectId
   const linked = useQuery({ queryKey: ['documents', 'linked', key], queryFn: () => client.documents.list({ ...target, limit: 100 }) })
   const [search, setSearch] = useState('')
-  const [adding, setAdding] = useState<'none' | 'existing' | 'new'>('none')
+  const [adding, setAdding] = useState<'none' | 'existing'>('none')
+  const navigate = useNavigate()
+  const location = useLocation()
   const candidates = useQuery({
     queryKey: ['documents', 'candidates', search],
     enabled: adding === 'existing',
@@ -49,7 +50,14 @@ export function LinkedDocuments({ target, title = 'Documents' }: { target: Targe
         <Button size="sm" onClick={() => setAdding(adding === 'existing' ? 'none' : 'existing')} aria-expanded={adding === 'existing'}>
           Link existing
         </Button>
-        <Button size="sm" onClick={() => setAdding(adding === 'new' ? 'none' : 'new')} aria-expanded={adding === 'new'}>
+        <Button
+          size="sm"
+          onClick={() => {
+            // หน้า Create เต็มหน้า แล้ว Cancel กลับมาที่นี่; ลิงก์กับ task/project นี้เมื่อกด Create
+            const params = new URLSearchParams({ ...target, returnTo: location.pathname + location.search })
+            navigate(`/documents/new?${params}`)
+          }}
+        >
           New document
         </Button>
       </div>
@@ -70,7 +78,6 @@ export function LinkedDocuments({ target, title = 'Documents' }: { target: Targe
           </ul>
         </div>
       )}
-      {adding === 'new' && <NewDocumentForm link={target} onCancel={() => setAdding('none')} />}
       <ErrorMessage error={link.error ?? unlink.error} />
     </section>
   )

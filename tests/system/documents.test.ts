@@ -24,6 +24,21 @@ afterAll(async () => {
 })
 
 describe('documents', () => {
+  it('a repeated create or link with the same save-attempt key makes one document and one link', async () => {
+    const task = (await owner.post('/client/v1/tasks', { title: 'Retry target' })).body.task
+    const before = (await owner.get('/client/v1/documents?archived=all&limit=200')).body.items.length
+    const payload = { title: 'Retried save', body: 'Once only' }
+    const first = await owner.request('POST', '/client/v1/documents', payload, { 'idempotency-key': 'save-attempt-0001' })
+    const again = await owner.request('POST', '/client/v1/documents', payload, { 'idempotency-key': 'save-attempt-0001' })
+    expect(first.status).toBe(201)
+    expect(again.headers.get('idempotent-replayed')).toBe('true')
+    expect(again.body.document.id).toBe(first.body.document.id)
+    expect((await owner.get('/client/v1/documents?archived=all&limit=200')).body.items.length).toBe(before + 1)
+    const id = first.body.document.id
+    for (let i = 0; i < 2; i++) expect((await owner.request('POST', `/client/v1/documents/${id}/links`, { taskId: task.id }, { 'idempotency-key': 'link-attempt-0001' })).status).toBeLessThan(300)
+    expect((await owner.get(`/client/v1/documents/${id}`)).body.document.links.tasks.map((t: { id: string }) => t.id)).toEqual([task.id])
+  })
+
   it('requires a body or source URL and is readable from web and MCP', async () => {
     const empty = await owner.post('/api/documents', { title: 'Empty' })
     expect(empty.status).toBe(400)

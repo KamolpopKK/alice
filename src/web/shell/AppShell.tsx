@@ -1,4 +1,5 @@
 import { ChevronsLeft, ChevronsRight, Compass, FilePlus2, FolderPlus, LogOut, Menu as MenuIcon, NotebookPen, Plus, Search, SquarePlus } from 'lucide-react'
+import { guarded } from '../documents/leave'
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth, useMe } from '../auth'
@@ -253,7 +254,7 @@ function AccountMenu({ compact }: { compact?: boolean }) {
   const local = useLocalWorkspace()
   const items: MenuItem[] = [{ kind: 'label', label: me.displayName }]
   items.push({ kind: 'label', label: 'Help' }, { label: 'Take the tour', icon: Compass, onSelect: openTour })
-  if (!local) items.push({ kind: 'separator' }, { label: 'Sign out', icon: LogOut, onSelect: () => void signOut() })
+  if (!local) items.push({ kind: 'separator' }, { label: 'Sign out', icon: LogOut, onSelect: () => void guarded('sign out', signOut) })
   return (
     <Menu
       trigger={
@@ -277,7 +278,7 @@ export function NewMenu({ compact }: { compact?: boolean }) {
     { label: 'Task', icon: SquarePlus, onSelect: () => navigate('/tasks/new'), navigates: true },
     ...(taskPads ? [{ label: 'Pad', icon: NotebookPen, onSelect: () => newPad.start(), navigates: true } as MenuItem] : []),
     { label: 'Project', icon: FolderPlus, onSelect: () => navigate('/projects', { state: { create: true } }), navigates: true },
-    { label: 'Document', icon: FilePlus2, onSelect: () => navigate('/documents?new=1'), navigates: true },
+    { label: 'Document', icon: FilePlus2, onSelect: () => navigate('/documents/new'), navigates: true },
   ]
   const trigger: ReactElement = compact ? (
     <IconButton icon={Plus} label="New" variant="secondary" />

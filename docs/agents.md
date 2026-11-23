@@ -1,5 +1,9 @@
 # Connecting AI agents to Alice
 
+Want your agent to set itself up? The README's
+[Quick start with AI agents](../README.md#quick-start-with-ai-agents) has copyable prompts for a full
+Mac setup, the app, the `alice` command or the skills alone.
+
 Each agent gets its own identity so every change it makes is attributed to it. For Local workspaces,
 use [Local agent integrations](#local-workspaces-codex-and-claude-without-mcp); no MCP setup or token
 is needed. The following connection steps are for Remote servers.
@@ -41,6 +45,10 @@ name:
 | `alice-spec` | Design the technical solution for agreed needs: architecture, data model, contracts, migration and operations where relevant. |
 | `alice-plan` | Break agreed requirements and a sufficient technical approach into reviewed tasks, dependencies and verification steps. |
 | `alice-understand` | Understand an existing system, connect business flows to code/services, and maintain reusable knowledge with a separate Mermaid System graph. |
+
+Every skill talks to you about tasks and documents by their titles, adding the project or parent task
+when two share a title. It shows an id only when you ask for it or an exact command needs it, and then
+next to the title; tool calls, saved references and requirement ids such as `REQ-001` keep using ids.
 
 Choose the skill for the work at hand; this is not a mandatory sequence. Think and spec
 finish by recommending the next skill, with the reason and input document ids/paths. They do not
@@ -276,15 +284,16 @@ Ask your agent to "plan" or "break down" agreed requirements, an Alice document 
    contains Testing design, planning maps its scenarios/cases into leaf tasks, existing suites and
    verification commands without redesigning them. Work covered by established patterns may still
    skip a separate spec and use source acceptance conditions;
-4. shows the whole breakdown in chat (reference document, parent and leaf tasks, blockers, full task
-   text) and waits for your approval;
-5. creates it as `backlog`, labelled `plan:<slug>`, linked to the reference document;
-6. first asks whether to change eligible leaves to **ready (พร้อมทำ)**, explaining that people or agents
-   can then pick them up. A no keeps the plan in backlog and ends the flow. Parents and unfinished
-   dependencies remain unchanged;
-7. after approval and a successful status change, asks whether to work continuously, finish one task
-   and ask before the next, or not start. You can instead type the name/id of a specific task. Starting
-   requires that separate choice; it is not implied by making tasks ready.
+4. drafts the plan and checks it itself (coverage of every requirement, task size, dependencies with no
+   cycles, no duplicates, no placeholders) instead of showing you a draft to approve;
+5. writes it to the board right away, labelled `plan:<slug>` and linked to the reference document, and
+   makes every unassigned leaf whose dependencies are done **ready (พร้อมทำ)**. Parents and tasks still
+   waiting for others stay in backlog;
+6. reports in a few lines, by task title: what was created, what is ready, what waits for what, and
+   whether every requirement is covered. Review the full tasks on the board;
+7. asks whether to work continuously, finish one task and ask before the next, or not start. You can
+   instead type the name of a specific task. Starting requires that separate choice; writing the plan
+   or making tasks ready never starts work.
 
 Each leaf follows the template in [skill/alice-plan/TEMPLATE.md](../skill/alice-plan/TEMPLATE.md): Outcome,
 Context, Scope, References (repository, commit, path → symbol, permalinks), Steps, Acceptance criteria,

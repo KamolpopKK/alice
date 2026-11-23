@@ -1,4 +1,18 @@
-import { createContext, useContext, useMemo, useState, type DragEvent, type MouseEvent } from 'react'
+import {
+  DndContext,
+  DragOverlay,
+  MouseSensor,
+  TouchSensor,
+  pointerWithin,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type Announcements,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
+import { createContext, useContext, useMemo, useRef, useState, type MouseEvent, type SyntheticEvent, type TouchEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { STATUS_LABELS, TASK_STATUSES, type Task, type TaskStatus } from '../../shared/contracts'
 import { IllustratedState } from '../brand'
@@ -144,39 +158,82 @@ export function MyWorkView({ filters }: { filters: Record<string, string> }) {
 
 const COLUMN_PAGE = 25
 
-const DRAG_TYPE = 'application/x-alice-task'
+// ส่วนที่มีหน้าที่ของตัวเองในการ์ด: คลิกแล้วทำแค่หน้าที่นั้น ไม่เปิด task ซ้ำ
+const CARD_CONTROLS = 'a, button, input, select, textarea, label, summary, [role="button"], [role="checkbox"], [contenteditable="true"]'
+
+/**
+ * A plain click anywhere on a Board card opens its task, through the title link so the Task Panel
+ * (or the full page) behaves exactly as a title click. Controls and links keep their own action, a
+ * text selection is left alone, and modified clicks do nothing: the title link still handles those.
+ */
+function openCardOnClick(e: MouseEvent<HTMLElement>) {
+  if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+  const card = e.currentTarget
+  const target = e.target as Element
+  if (target.closest(CARD_CONTROLS) && card.contains(target.closest(CARD_CONTROLS))) return
+  const selection = window.getSelection()
+  if (selection && !selection.isCollapsed && card.contains(selection.anchorNode)) return
+  card.querySelector<HTMLAnchorElement>('a[data-task-link]')?.click()
+}
+
 type DragPayload = { id: string; title: string; status: TaskStatus }
-type BoardDnd = { move: (task: DragPayload, to: TaskStatus) => void }
+type BoardDnd = { move: (task: DragPayload, to: TaskStatus) => void; moving: ReadonlySet<string> }
 const BoardDndContext = createContext<BoardDnd | null>(null)
+
+/** Controls and other links inside a card do not start a drag; the card's own title link does. */
+function startsDrag(event: SyntheticEvent): boolean {
+  const control = (event.target as Element | null)?.closest?.(CARD_CONTROLS)
+  if (!control || !(event.currentTarget as Element).contains(control)) return true
+  return control.matches('a[data-task-link]')
+}
+
+// เมาส์/trackpad เริ่มลากเมื่อขยับเกิน 8px; นิ้วต้องกดค้าง 250ms (ปัดก่อนนั้น = เลื่อนหน้าจอตามปกติ)
+// ใช้ @dnd-kit/core (ไม่ใช้ signals): Alice Desktop freeze Object.prototype ซึ่ง @dnd-kit/react 0.x ทำงานไม่ได้
+class BoardMouseSensor extends MouseSensor {
+  static override activators = [{ eventName: 'onMouseDown' as const, handler: (event: MouseEvent) => event.nativeEvent.button === 0 && startsDrag(event) }]
+}
+class BoardTouchSensor extends TouchSensor {
+  static override activators = [{ eventName: 'onTouchStart' as const, handler: (event: TouchEvent) => event.nativeEvent.touches.length <= 1 && startsDrag(event) }]
+}
+
+// ไม่ประกาศผ่าน live region ของ dnd-kit และไม่ใส่ role="button" ให้การ์ด (ครอบ controls ข้างใน): Board ประกาศผลเอง
+// ผ่าน role="status" และผู้ใช้คีย์บอร์ดเปลี่ยนสถานะด้วยตัวเลือกบนการ์ด
+const silent: Announcements = { onDragStart: () => undefined, onDragMove: () => undefined, onDragOver: () => undefined, onDragEnd: () => undefined, onDragCancel: () => undefined }
+
+/** Swallows the click that the browser sends after a drag ends, so a drag never also opens the card. */
+function suppressNextClick() {
+  const stop = (e: Event) => {
+    e.stopPropagation()
+    e.preventDefault()
+  }
+  window.addEventListener('click', stop, { capture: true, once: true })
+  window.setTimeout(() => window.removeEventListener('click', stop, { capture: true }), 100)
+}
+
+const isStatus = (value: unknown): value is TaskStatus => typeof value === 'string' && (TASK_STATUSES as readonly string[]).includes(value)
+
+function BoardCard({ task }: { task: Task }) {
+  const dnd = useContext(BoardDndContext)
+  const { setNodeRef, listeners, isDragging } = useDraggable({
+    id: task.id,
+    data: { id: task.id, title: task.title, status: task.status } satisfies DragPayload,
+    disabled: task.archivedAt !== null || Boolean(dnd?.moving.has(task.id)),
+  })
+  return (
+    <li ref={setNodeRef} {...listeners} className={`tasks-card-drag${task.archivedAt ? '' : ' is-draggable'}${isDragging ? ' is-drag-source' : ''}`} onClick={openCardOnClick}>
+      <TaskEntry task={task} layout="card" />
+    </li>
+  )
+}
 
 function BoardColumn({ status, filters }: { status: TaskStatus; filters: Record<string, string> }) {
   const query = useTaskPages(`board-${status}`, { ...filters, status }, COLUMN_PAGE)
   const tasks = query.data?.pages.flatMap((p) => p.items) ?? []
   const headingId = `board-col-${status}`
-  const dnd = useContext(BoardDndContext)
-  const [over, setOver] = useState(false)
   // ลากการ์ดมาวางในคอลัมน์ = เปลี่ยนสถานะ; ทางคีย์บอร์ดยังเป็นตัวเลือกสถานะบนการ์ด
-  const dropProps = {
-    onDragOver: (e: DragEvent) => {
-      if (!e.dataTransfer.types.includes(DRAG_TYPE)) return
-      e.preventDefault()
-      e.dataTransfer.dropEffect = 'move'
-      if (!over) setOver(true)
-    },
-    onDragLeave: (e: DragEvent) => {
-      if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) setOver(false)
-    },
-    onDrop: (e: DragEvent) => {
-      setOver(false)
-      const raw = e.dataTransfer.getData(DRAG_TYPE)
-      if (!raw) return
-      e.preventDefault()
-      const task = JSON.parse(raw) as DragPayload
-      if (task.status !== status) dnd?.move(task, status)
-    },
-  }
+  const { setNodeRef, isOver } = useDroppable({ id: status })
   return (
-    <section className={`tasks-column tasks-column--${STATUS_TONE[status]}${over ? ' is-drop-target' : ''}`} aria-labelledby={headingId} {...dropProps}>
+    <section ref={setNodeRef} className={`tasks-column tasks-column--${STATUS_TONE[status]}${isOver ? ' is-drop-target' : ''}`} aria-labelledby={headingId}>
       <header className="tasks-column-head">
         <h2 id={headingId}>{STATUS_LABELS[status]}</h2>
         <span className="ui-text-muted">{query.isLoading ? '' : query.hasNextPage ? `${tasks.length}+` : tasks.length}</span>
@@ -188,17 +245,7 @@ function BoardColumn({ status, filters }: { status: TaskStatus; filters: Record<
       ) : (
         <ul className="tasks-cards" aria-label={`${STATUS_LABELS[status]} tasks`}>
           {tasks.map((t) => (
-            <li
-              key={t.id}
-              draggable={!t.archivedAt}
-              className="tasks-card-drag"
-              onDragStart={(e) => {
-                e.dataTransfer.setData(DRAG_TYPE, JSON.stringify({ id: t.id, title: t.title, status: t.status } satisfies DragPayload))
-                e.dataTransfer.effectAllowed = 'move'
-              }}
-            >
-              <TaskEntry task={t} layout="card" />
-            </li>
+            <BoardCard key={t.id} task={t} />
           ))}
           {tasks.length === 0 && <li className="tasks-column-empty ui-text-muted">No tasks</li>}
         </ul>
@@ -209,40 +256,84 @@ function BoardColumn({ status, filters }: { status: TaskStatus; filters: Record<
 }
 
 /**
- * Board: one column per status. Drag a card to another column to change its status; the status
- * control on each card does the same by keyboard. The result is announced either way.
+ * Board: one column per status. Drag a card to another column to change its status (mouse, trackpad or a
+ * long press on touch); the status control on each card does the same by keyboard. The result is
+ * announced either way, and a failed move says so instead of claiming success.
  */
 export function BoardView({ filters }: { filters: Record<string, string> }) {
   const change = useStatusChange()
   const [message, setMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
+  const [moving, setMoving] = useState<ReadonlySet<string>>(new Set())
+  const [dragging, setDragging] = useState<DragPayload | null>(null)
+  const sensors = useSensors(
+    useSensor(BoardMouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(BoardTouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+  )
+  const movingRef = useRef(moving)
+  movingRef.current = moving
   const dnd = useMemo<BoardDnd>(
     () => ({
+      moving,
       move: (task, to) => {
+        // การ์ดเดียวกันส่งการย้ายซ้อนกันไม่ได้ระหว่างรอผล
+        if (movingRef.current.has(task.id)) return
+        setMoving((m) => new Set(m).add(task.id))
         setMessage({ tone: 'ok', text: `Moving ${task.title} to ${STATUS_LABELS[to]}…` })
         change.mutate(
           { id: task.id, status: to },
           {
             onSuccess: () => setMessage({ tone: 'ok', text: `Moved ${task.title} to ${STATUS_LABELS[to]}.` }),
             onError: (error) => setMessage({ tone: 'error', text: `${task.title} was not moved: ${errorText(error)}` }),
+            onSettled: () =>
+              setMoving((m) => {
+                const next = new Set(m)
+                next.delete(task.id)
+                return next
+              }),
           },
         )
       },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [moving],
   )
   return (
     <BoardDndContext.Provider value={dnd}>
-      <p className="tasks-board-status" role="status">
-        {message?.tone === 'ok' ? message.text : ''}
-      </p>
-      {message?.tone === 'error' && <FieldMessage tone="error">{message.text}</FieldMessage>}
-      {/* เลื่อนแนวนอนด้วยคีย์บอร์ดได้แม้คอลัมน์ว่าง (axe: scrollable-region-focusable) */}
-      <div className="tasks-board" tabIndex={0} role="region" aria-label="Board columns">
-        {TASK_STATUSES.map((s) => (
-          <BoardColumn key={s} status={s} filters={filters} />
-        ))}
-      </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={pointerWithin}
+        accessibility={{ announcements: silent, screenReaderInstructions: { draggable: '' } }}
+        onDragStart={(event: DragStartEvent) => {
+          suppressNextClick()
+          setDragging((event.active.data.current as DragPayload | undefined) ?? null)
+        }}
+        onDragCancel={() => {
+          suppressNextClick()
+          setDragging(null)
+        }}
+        onDragEnd={(event: DragEndEvent) => {
+          suppressNextClick()
+          setDragging(null)
+          const task = event.active.data.current as DragPayload | undefined
+          const to = event.over?.id
+          if (!task || !isStatus(to) || to === task.status) return
+          dnd.move(task, to)
+        }}
+      >
+        <p className="tasks-board-status" role="status">
+          {message?.tone === 'ok' ? message.text : ''}
+        </p>
+        {message?.tone === 'error' && <FieldMessage tone="error">{message.text}</FieldMessage>}
+        {/* เลื่อนแนวนอนด้วยคีย์บอร์ดได้แม้คอลัมน์ว่าง (axe: scrollable-region-focusable) */}
+        <div className="tasks-board" tabIndex={0} role="region" aria-label="Board columns">
+          {TASK_STATUSES.map((s) => (
+            <BoardColumn key={s} status={s} filters={filters} />
+          ))}
+        </div>
+        <DragOverlay className="tasks-drag-overlay" dropAnimation={null}>
+          {dragging && <div className="ui-task ui-task--card">{dragging.title}</div>}
+        </DragOverlay>
+      </DndContext>
     </BoardDndContext.Provider>
   )
 }

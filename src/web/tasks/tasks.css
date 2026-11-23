@@ -405,11 +405,30 @@
 }
 
 /* ---------- board drag and drop ---------- */
-.tasks-card-drag[draggable='true'] {
+/* the whole card opens its task (see openCardOnClick) */
+.tasks-card-drag {
+  cursor: pointer;
+}
+.tasks-card-drag.is-draggable {
   cursor: grab;
 }
-.tasks-card-drag[draggable='true']:active {
+.tasks-card-drag.is-drag-source {
+  opacity: 0.4;
+}
+.tasks-drag-overlay {
   cursor: grabbing;
+  max-width: 280px;
+}
+.tasks-drag-overlay .ui-task {
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+  font-weight: 600;
+}
+/* กดค้างบนจอสัมผัสเพื่อลาก: ไม่ให้เมนูกดค้างหรือการเลือกข้อความของ browser แย่ง gesture */
+@media (pointer: coarse) {
+  .tasks-card-drag.is-draggable {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
 }
 .tasks-column.is-drop-target {
   outline: 2px dashed var(--ui-focus);

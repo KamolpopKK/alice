@@ -38,6 +38,18 @@ this skill; keep the selected template headings and fields.
   to the `alice` skill for that.
 - Archive instead of deleting; there is no permanent delete for agents.
 
+## Naming tasks and documents
+
+When you talk with the person (questions, approvals, progress, summaries, tables, dependency
+explanations and handoffs), call tasks and documents by their titles, in quotes, never by a bare id or a
+temporary code they would have to look up. When you only have an id, fetch the title; never invent one.
+- When two items share a title, add readable context: the project, the parent task or the document type.
+- Show an id only when the person asks for it or an exact command or technical diagnosis needs it, and
+  keep the title next to it. A link's visible text is the title.
+- Ids stay wherever tools and saved content need them: command and tool arguments, document references,
+  relationships, `docs` and `blocked_by` fields, and source requirement ids such as `REQ-001`, which are
+  part of the content rather than names.
+
 ## Choose where you work first
 
 You can reach Alice in three ways, and they may point at different boards:
@@ -122,7 +134,7 @@ Then take the first route that fits:
 
 | Route | When | What you do |
 |---|---|---|
-| **Already there** | A task, plan or brief covers it, or the code already does it | Point the person to it (id and title, or the code path). Add to it only if they ask. If it was turned down before, say why. |
+| **Already there** | A task, plan or brief covers it, or the code already does it | Point the person to it by title (or the code path). Add to it only if they ask. If it was turned down before, say why. |
 | **Small and clear** | One reviewable change (one commit or pull request, at most about a day), the outcome fits in a line or two, and no decision is left for the person | Go to step 2 for a compact confirmation. |
 | **Needs thinking** | Anything else: an idea, a feature, feedback or a bug whose cause or wanted outcome is unclear, work that touches several parts or needs a decision | Go to step 3. |
 
@@ -135,7 +147,7 @@ Draft one complete task with an outcome, what is known (files, error or reproduc
 conditions and verification. In chat, show the task, its project, and a compact artifact map: create the
 task now; name any existing documents that later implementation must update; say why a separate brief,
 spec or plan is not needed; and recommend the next step. Ask the person to confirm creation. Only then
-create it with `create_task { title, description, projectId, status: "ready" }` and report its id/title.
+create it with `create_task { title, description, projectId, status: "ready" }` and report it by title.
 
 Skip this confirmation only when the person explicitly told you to create the task now and already
 provided complete task content. If the person wants it done now after creation, recommend switching to
@@ -267,7 +279,7 @@ or scope, that specific agreement must be revisited with the person.
    and title; every edit keeps a revision.
 3. Link any earlier spikes with `link_document { id: <brief id>, taskId: <spike id> }` and include their
    findings under Decisions. Do not create them again.
-4. Report the created or updated artifact id/title (or that no artifact was needed), what it contains
+4. Report the created or updated artifact by title (or that no artifact was needed), what it contains
    and the recommended next step:
    - **One task is ready:** recommend the `alice` skill if the person wants it claimed and worked now.
    - **Technical design needed:** recommend `alice-spec` with the brief id/path and related references.
@@ -291,7 +303,7 @@ not require a saved brief:
   document), and a time limit.
 - If a saved brief exists, use `link_document { id: <brief id>, taskId: <spike id> }`. Otherwise link it
   when the approved brief is saved; never create a document just to support a spike.
-- Report the task id and title. Keep its question and whether it blocks handover in the chat summary.
+- Report the task by title. Keep its question and whether it blocks handover in the chat summary.
   If it blocks handover, wait for the findings before finishing the brief.
 
 When the spike is done, think the answer through with the person and record the resulting decision in

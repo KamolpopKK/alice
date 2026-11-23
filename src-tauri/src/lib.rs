@@ -6,6 +6,7 @@ pub mod commands;
 pub mod core;
 pub mod credentials;
 pub mod deeplink;
+pub mod drafts;
 pub mod error;
 pub mod events;
 pub mod local;
@@ -48,6 +49,17 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| focus_main(app)))
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
+        // ปิดหน้าต่างหลักขณะมีเอกสารที่ยังไม่บันทึก: พักไว้แล้วถาม UI ก่อน
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() != "main" {
+                    return;
+                }
+                if hold(window.app_handle(), drafts::LeaveAction::Close) {
+                    api.prevent_close();
+                }
+            }
+        })
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, shortcut, event| {
@@ -90,6 +102,7 @@ pub fn run() {
             }
             let core = Arc::new(core);
             app.manage(Arc::clone(&core));
+            app.manage(Arc::new(drafts::LeaveGuard::new()));
             // shortcut ผูกกับเครื่องนี้ (config dir) ไม่ใช่กับ server หรือ profile
             let registry = shortcuts::Shortcuts::new(core.config_dir.clone(), shortcuts::platform(), Box::new(PluginShortcuts(app.handle().clone())));
             app.manage(Arc::new(registry));
@@ -156,9 +169,33 @@ pub fn run() {
             commands::integrations_status,
             commands::integration_set,
             commands::integration_unassign,
+            commands::editor_dirty_set,
+            commands::editor_leave_reply,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running Alice Desktop");
+        .build(tauri::generate_context!())
+        .expect("error while building Alice Desktop")
+        .run(|app, event| {
+            // Quit (เมนู/⌘Q) ขณะมีเอกสารที่ยังไม่บันทึก: พักไว้แล้วถาม UI ก่อน
+            if let tauri::RunEvent::ExitRequested { api, .. } = event {
+                if hold(app, drafts::LeaveAction::Exit) {
+                    api.prevent_exit();
+                }
+            }
+        });
+}
+
+/// True when the close/quit must wait for the person; asks the UI once per held action.
+fn hold(app: &tauri::AppHandle, action: drafts::LeaveAction) -> bool {
+    let Some(guard) = app.try_state::<Arc<drafts::LeaveGuard>>() else { return false };
+    match guard.request(action) {
+        drafts::Decision::Proceed => false,
+        drafts::Decision::Wait => true,
+        drafts::Decision::Ask(request) => {
+            focus_main(app);
+            let _ = app.emit_to("main", drafts::LEAVE_EVENT, request);
+            true
+        }
+    }
 }
 
 fn focus_main(app: &tauri::AppHandle) {

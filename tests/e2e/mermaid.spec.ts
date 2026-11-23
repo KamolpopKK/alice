@@ -35,7 +35,8 @@ test('Mermaid renders four diagram types, isolates errors and follows the theme 
   expect((await owner.get(`/api/documents/${doc.id}`)).body.document.body).toBe(body)
 
   await page.getByRole('button', { name: 'Edit', exact: true }).click()
-  const editor = page.getByLabel('Body (Markdown)')
+  await page.getByRole('radio', { name: 'Markdown' }).click()
+  const editor = page.getByLabel('Body', { exact: true })
   await editor.fill(fence('flowchart LR\n  X[Latest] --> Y[Preview]'))
   await page.locator('.preview > summary').click()
   const preview = page.locator('.preview .mermaid-diagram img')

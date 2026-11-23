@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ActivityEvent, DocumentDetail, DocumentKnowledgeStatus, DocumentRevision, Page } from '../../shared/contracts'
 import { FullPageError, isRecoverable } from '../brand'
 import { ApiError, client } from '../api'
 import { ActivityList } from '../components/Activity'
-import { Markdown, MarkdownEditor } from '../components/Markdown'
+import { Markdown } from '../components/Markdown'
 import { DocumentKnowledgeFields, KNOWLEDGE_STATUS_LABELS } from '../components/DocumentKnowledgeFields'
 import { DocumentRelations } from '../components/DocumentRelations'
 import { ActorBadge, formatDate } from '../components/ui'
@@ -34,7 +34,8 @@ const KNOWLEDGE_TONE: Record<DocumentKnowledgeStatus, 'warning' | 'info' | 'succ
 export function DocumentDetailPage() {
   const { id = '' } = useParams()
   const doc = useDocument(id)
-  const [mode, setMode] = useState<'view' | 'edit' | 'history'>('view')
+  const [mode, setMode] = useState<'view' | 'history'>('view')
+  const navigate = useNavigate()
   const qc = useQueryClient()
   const archive = useMutation({
     mutationFn: (archived: boolean) => (archived ? client.documents.archive(id) : client.documents.restore(id)),
@@ -79,7 +80,7 @@ export function DocumentDetailPage() {
             View
           </Button>
           {!archived && (
-            <Button size="sm" icon={Pencil} variant={mode === 'edit' ? 'primary' : 'secondary'} aria-pressed={mode === 'edit'} onClick={() => setMode('edit')}>
+            <Button size="sm" icon={Pencil} onClick={() => navigate(`/documents/${d.id}/edit`)}>
               Edit
             </Button>
           )}
@@ -113,7 +114,6 @@ export function DocumentDetailPage() {
       )}
       <div className="document-layout">
         <div className="document-main">
-          {mode === 'edit' && <EditDocument doc={d} onDone={() => setMode('view')} />}
           {mode === 'history' && <History doc={d} onRestored={() => setMode('view')} />}
           {mode === 'view' && (d.body ? <Markdown source={d.body} className="document-body" /> : <p className="ui-text-muted">This document only references its source.</p>)}
         </div>
@@ -208,70 +208,6 @@ function KnowledgeLifecycle({ doc }: { doc: DocumentDetail }) {
         )}
       </div>
     </section>
-  )
-}
-
-function EditDocument({ doc, onDone }: { doc: DocumentDetail; onDone: () => void }) {
-  const qc = useQueryClient()
-  const [title, setTitle] = useState(doc.title)
-  const [body, setBody] = useState(doc.body)
-  const [sourceUrl, setSourceUrl] = useState(doc.sourceUrl ?? '')
-  const [tags, setTags] = useState(doc.tags)
-  const [searchKeywords, setSearchKeywords] = useState(doc.searchKeywords)
-  const [status, setStatus] = useState<DocumentKnowledgeStatus>(doc.status)
-  const [ownerId, setOwnerId] = useState<string | null>(doc.owner?.id ?? null)
-  const contentChanged = title !== doc.title || body !== doc.body || (sourceUrl.trim() || null) !== doc.sourceUrl
-  const save = useMutation({
-    mutationFn: () =>
-      client.documents.update(doc.id, {
-        title,
-        body,
-        sourceUrl: sourceUrl.trim() || null,
-        tags,
-        searchKeywords,
-        ownerId,
-        ...(status === doc.status ? {} : { status }),
-      }),
-    onSuccess: () => {
-      invalidateDoc(qc, doc.id)
-      onDone()
-    },
-  })
-  return (
-    <form
-      className="resource-panel resource-form"
-      aria-label="Edit document"
-      onSubmit={(e: FormEvent) => {
-        e.preventDefault()
-        save.mutate()
-      }}
-    >
-      <TextField label="Document title" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} />
-      <MarkdownEditor id="doc-body" label="Body (Markdown)" value={body} onChange={setBody} rows={18} />
-      <TextField label="Source URL (optional)" type="url" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} />
-      <DocumentKnowledgeFields
-        tags={tags}
-        onTagsChange={setTags}
-        searchKeywords={searchKeywords}
-        onSearchKeywordsChange={setSearchKeywords}
-        status={status}
-        onStatusChange={setStatus}
-        ownerId={ownerId}
-        onOwnerChange={setOwnerId}
-      />
-      <p className="ui-text-muted">
-        {contentChanged
-          ? 'Saving content creates revision ' + (doc.revision + 1) + ' and clears its review. Earlier revisions stay available in History.'
-          : 'Metadata-only changes keep the current content revision and review.'}
-      </p>
-      {save.error && <FieldMessage tone="error">{errorText(save.error)}</FieldMessage>}
-      <div className="resource-actions">
-        <Button variant="primary" type="submit" loading={save.isPending}>
-          Save changes
-        </Button>
-        <Button onClick={onDone}>Cancel</Button>
-      </div>
-    </form>
   )
 }
 

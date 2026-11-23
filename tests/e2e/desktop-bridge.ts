@@ -30,6 +30,12 @@ export class FakeNativeCore {
   private pendingDevice: { profile: string; deviceCode: string; userCode: string } | null = null
   opened: string[] = []
   calls: string[] = []
+  /** Last unsaved-drafts flag the UI reported (the Rust core keeps only this, never content). */
+  editorDirty = false
+  leaveReplies: Array<{ requestId: string; discard: boolean }> = []
+  /** A newer signed release the updater would offer (null: up to date), and how many installs ran. */
+  update: { version: string } | null = null
+  updateInstalls = 0
 
   constructor(private readonly page: Page) {}
 
@@ -416,6 +422,18 @@ export class FakeNativeCore {
       case 'events_unsubscribe':
         this.stream?.abort()
         this.stream = null
+        return null
+      case 'editor_dirty_set':
+        this.editorDirty = Boolean(args.dirty)
+        return null
+      case 'update_check':
+        return { configured: true, available: this.update !== null, currentVersion: '0.0.0-test', version: this.update?.version ?? null, notes: null, decision: this.update ? 'install' : 'not_newer' }
+      case 'update_install':
+        if (!this.update) throw { code: 'INVALID_STATE', message: 'No update is pending' }
+        this.updateInstalls++
+        return null
+      case 'editor_leave_reply':
+        this.leaveReplies.push({ requestId: args.input.requestId, discard: args.input.discard })
         return null
       default:
         throw { code: 'INVALID_REQUEST', message: `Command ${cmd} not allowed` }

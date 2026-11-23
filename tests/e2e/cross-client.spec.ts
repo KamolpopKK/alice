@@ -61,7 +61,7 @@ test('Web, CLI, Desktop and an MCP agent tell the same story on one board', asyn
   await expect(page.getByRole('heading', { name: 'Launch' })).toBeVisible()
   await page.goto(`${app.url}/documents?new=1`)
   await page.getByLabel('Document title').fill('Launch plan')
-  await page.getByLabel('Body (Markdown)').fill('Plan v1: email on Monday.')
+  await page.getByLabel('Body', { exact: true }).fill('Plan v1: email on Monday.')
   await page.getByRole('button', { name: 'Create document' }).click()
   await expect(page.getByText('Revision 1')).toBeVisible()
   const docId = new URL(page.url()).pathname.split('/').pop()!

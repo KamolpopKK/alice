@@ -34,6 +34,8 @@ fn main() {
         "integrations_status",
         "integration_set",
         "integration_unassign",
+        "editor_dirty_set",
+        "editor_leave_reply",
     ])))
     .expect("failed to run tauri-build");
 }

@@ -8,7 +8,9 @@ import { AgentsSection, LocalRecovery, LocalWorkspacesSection, Onboarding, onboa
 import { LocalWorkspaceContext } from '../workspace-mode'
 import { ShellWorkspaceContext, type ShellWorkspace } from '../shell/workspace'
 import { TauriTransport } from './transport'
-import { Button } from '../ui'
+import { Button, useToast } from '../ui'
+import { saveInFlight } from '../documents/drafts'
+import { confirmLeave, guarded, hasUnsavedDrafts, subscribeUnsaved } from '../documents/leave'
 
 type Phase =
   | { kind: 'loading' }
@@ -45,8 +47,35 @@ function useExternalLinks() {
  * Desktop-only chrome: server profiles, browser sign-in, compatibility and the active-profile banner.
  * Everything else is the same React app as the Web dashboard.
  */
+/**
+ * Lets Alice Desktop's core hold a close or quit while a document has unsaved changes: mirrors only the
+ * unsaved flag, and answers the core's question with the shared leave dialog.
+ */
+function useNativeLeaveGuard() {
+  useEffect(() => {
+    let last: boolean | null = null
+    const sync = () => {
+      const dirty = hasUnsavedDrafts()
+      if (dirty === last) return
+      last = dirty
+      void native.editorDirtySet(dirty).catch(() => {})
+    }
+    sync()
+    const stop = subscribeUnsaved(sync)
+    const unlisten = native.onEditorLeaveRequested(({ requestId, action }) => {
+      void confirmLeave(action === 'exit' ? 'quit Alice' : 'close the window').then((discard) => native.editorLeaveReply(requestId, discard).catch(() => {}))
+    })
+    return () => {
+      stop()
+      void unlisten.then((u) => u())
+    }
+  }, [])
+}
+
 export function DesktopShell({ children }: { children: ReactNode }) {
+  useNativeLeaveGuard()
   const qc = useQueryClient()
+  const toast = useToast()
   const [view, setView] = useState<ProfilesView | null>(null)
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' })
   const [managing, setManaging] = useState(false)
@@ -225,7 +254,11 @@ export function DesktopShell({ children }: { children: ReactNode }) {
         <SignInScreen profile={phase.profile} />
       ) : (
         <LocalWorkspaceContext.Provider value={phase.kind === 'ready' && !!phase.profile.local}>
-          <ShellWorkspaceContext.Provider value={profile ? shellWorkspace(profile, () => setManaging(true)) : null}>{children}</ShellWorkspaceContext.Provider>
+          <ShellWorkspaceContext.Provider value={profile ? shellWorkspace(profile, () => {
+            // ระหว่างบันทึกเอกสาร ห้ามสลับ workspace: คำขอที่ค้างอยู่ต้องจบใน workspace เดิม
+            if (saveInFlight()) return toast.show('Wait for the document to finish saving before switching.', { tone: 'info' })
+            void guarded('switch workspace', () => setManaging(true))
+          }) : null}>{children}</ShellWorkspaceContext.Provider>
         </LocalWorkspaceContext.Provider>
       )}
     </div>
@@ -461,7 +494,7 @@ function UpdateCheck() {
       {installable && (
         <>
           {' '}
-          <Button variant="ghost" size="sm" onClick={() => void native.updateInstall().catch((e) => setStatus(messageOf(e)))}>
+          <Button variant="ghost" size="sm" onClick={() => void guarded('install the update', () => native.updateInstall().catch((e) => setStatus(messageOf(e))))}>
             Install and restart
           </Button>
         </>

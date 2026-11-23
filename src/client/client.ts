@@ -89,8 +89,16 @@ export type TaskFilter = Partial<{ [K in keyof ListTasksInput]: ListTasksInput[K
 interface CallOptions {
   query?: Record<string, QueryValue>
   body?: unknown
-  /** Attach an Idempotency-Key so a network retry cannot duplicate the mutation. */
-  idempotent?: boolean
+  /**
+   * Attach an Idempotency-Key so a network retry cannot duplicate the mutation. A string is used as the
+   * key itself: callers pass the same key again to retry one save attempt across calls.
+   */
+  idempotent?: boolean | string
+}
+
+/** Lets a caller own the Idempotency-Key of one save attempt (8-128 letters, digits, "_", ".", ":" or "-"). */
+export interface MutationOptions {
+  idempotencyKey?: string
 }
 
 export interface AliceClientOptions {
@@ -100,7 +108,7 @@ export interface AliceClientOptions {
   retries?: number
 }
 
-function newIdempotencyKey(): string {
+export function newIdempotencyKey(): string {
   const c = globalThis.crypto
   if (c?.randomUUID) return c.randomUUID()
   const bytes = new Uint8Array(16)
@@ -138,9 +146,9 @@ export class AliceClient {
 
   async call<T>(method: HttpMethod, path: string, opts: CallOptions = {}): Promise<T> {
     const headers = { ...this.headers }
-    if (opts.idempotent) headers[IDEMPOTENCY_HEADER] = newIdempotencyKey()
+    if (opts.idempotent) headers[IDEMPOTENCY_HEADER] = typeof opts.idempotent === 'string' ? opts.idempotent : newIdempotencyKey()
     // ทำซ้ำได้เฉพาะ GET หรือ mutation ที่มี idempotency key เท่านั้น
-    const retryable = method === 'GET' || opts.idempotent === true
+    const retryable = method === 'GET' || Boolean(opts.idempotent)
     for (let attempt = 0; ; attempt++) {
       try {
         const res = await this.transport.request({ method, path, query: opts.query, body: opts.body, headers })
@@ -256,7 +264,8 @@ export class AliceClient {
   readonly documents = {
     list: (input: Partial<In<typeof listDocumentsInput>> = {}) => this.get<Page<DocumentSummary>>('/documents', toQuery(input)),
     get: (id: string) => this.get<{ document: DocumentDetail }>(`/documents/${enc(id)}`).then((r) => r.document),
-    create: (input: In<typeof createDocumentInput>) => this.call<DocumentResult>('POST', '/documents', { body: input, idempotent: true }),
+    create: (input: In<typeof createDocumentInput>, options: MutationOptions = {}) =>
+      this.call<DocumentResult>('POST', '/documents', { body: input, idempotent: options.idempotencyKey ?? true }),
     update: (id: string, patch: In<typeof updateDocumentInput>) => this.call<DocumentResult>('PATCH', `/documents/${enc(id)}`, { body: patch }),
     review: (id: string, input: In<typeof reviewDocumentInput>) =>
       this.call<DocumentResult>('POST', `/documents/${enc(id)}/review`, { body: input, idempotent: true }),
@@ -272,7 +281,8 @@ export class AliceClient {
     restore: (id: string) => this.call<DocumentResult>('POST', `/documents/${enc(id)}/restore`, { body: {}, idempotent: true }),
     revisions: (id: string, page: { cursor?: string | null; limit?: number } = {}) => this.get<Page<DocumentRevision>>(`/documents/${enc(id)}/revisions`, page),
     restoreRevision: (id: string, number: number) => this.call<DocumentResult>('POST', `/documents/${enc(id)}/revisions/${number}/restore`, { body: {} }),
-    link: (id: string, target: { taskId?: string; projectId?: string }) => this.call<LinkResult>('POST', `/documents/${enc(id)}/links`, { body: target, idempotent: true }),
+    link: (id: string, target: { taskId?: string; projectId?: string }, options: MutationOptions = {}) =>
+      this.call<LinkResult>('POST', `/documents/${enc(id)}/links`, { body: target, idempotent: options.idempotencyKey ?? true }),
     unlink: (id: string, target: { taskId?: string; projectId?: string }) => this.call<LinkResult>('DELETE', `/documents/${enc(id)}/links`, { body: target }),
     activity: (id: string, page: { cursor?: string | null; limit?: number } = {}) => this.get<Page<ActivityEvent>>(`/documents/${enc(id)}/activity`, page),
   }

@@ -81,6 +81,11 @@ Review mutations require `{ expectedRevision, markCurrent? }`; delete-review req
 atomically marks the target `superseded`. Removing that relation does not restore the target's old status.
 Task/Project links under `/links` remain separate, untyped relationships.
 
+Document updates (`PATCH /documents/:id`) are last-write-wins; there is no revision precondition. The web
+editor reads the latest copy before saving and asks the person whether to save over a newer version or load
+it, and it sends only the fields that were changed. That narrows lost updates but cannot rule them out: a
+write can still land between that check and the save.
+
 ## Errors
 
 Every error is `{ "error": { "code", "message", "details?" } }` with a stable code from `src/shared/errors.ts`.
@@ -98,7 +103,9 @@ Retryable mutations accept `Idempotency-Key: <8–128 chars of [A-Za-z0-9_.:-]>`
 - A failed request (non-2xx) is forgotten, so a retry with the same key runs again.
 
 `AliceClient` adds a key to creates, archive/restore, comments, completion, links and blockers. It retries
-those, and reads, on network failure. It never retries a mutation that has no key.
+those, and reads, on network failure. It never retries a mutation that has no key. `documents.create` and
+`documents.link` also accept `{ idempotencyKey }`, so a caller can keep one key for one save attempt and
+retry it later (the web editor does this when a save's outcome is unknown).
 
 ## Live invalidation events
 
