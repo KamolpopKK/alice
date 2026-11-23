@@ -194,8 +194,9 @@ describe('portable export', () => {
 
     const docs = fs.readdirSync(path.join(out, 'documents'))
     expect(docs.filter((f) => f.startsWith('runbook--'))).toHaveLength(2)
-    const runbook = docs.map((f) => fs.readFileSync(path.join(out, 'documents', f), 'utf8')).find((c) => c.includes('v2'))!
-    expect(runbook).toMatch(/^---\nid: "doc_/)
+    // อ่านไฟล์ของเอกสารที่ตรวจข้างบนตาม path ใน workspace.json: ห้ามเลือกจากเนื้อหา เพราะ id สุ่มอาจมีคำที่ค้นหาปนอยู่
+    const runbook = fs.readFileSync(path.join(out, exportedRunbook.markdown), 'utf8')
+    expect(runbook).toMatch(new RegExp(`^---\\nid: "${exportedRunbook.id}"`))
     expect(runbook).toContain('status: "current"')
     expect(runbook).toContain('searchKeywords: ["restore drill","service recovery"]')
     expect(runbook).toContain('relations: [{')
