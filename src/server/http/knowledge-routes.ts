@@ -1,3 +1,5 @@
+import { listDocumentBacklinksInput } from '../../shared/contracts'
+import { listDocumentBacklinks, listDocumentTopics } from '../domain/document-links'
 import { listTopicDocumentsInput, putTopicDocumentInput } from '../../shared/contracts'
 import { listTopicDocuments, putTopicDocument, removeTopicDocument } from '../domain/knowledge'
 import type { FastifyInstance } from 'fastify'
@@ -9,6 +11,12 @@ import { requireAuth } from './auth'
 import { parse } from './validate'
 
 export function registerKnowledgeRoutes(app: FastifyInstance, ctx: AppContext) {
+  for (const [path, read] of [['backlinks', listDocumentBacklinks], ['topics', listDocumentTopics]] as const) {
+    app.get(`/documents/:id/${path}`, async (req) => {
+      requireAuth(req)
+      return read(ctx, parse(z.object({ id: idSchema }), req.params).id, parse(listDocumentBacklinksInput, req.query))
+    })
+  }
   const project = z.object({ projectId: idSchema })
   const topic = z.object({ topicId: idSchema })
   const member = topic.extend({ documentId: idSchema })

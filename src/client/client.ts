@@ -1,3 +1,4 @@
+import type { DocumentBacklink, DocumentTopicMembership, listDocumentBacklinksInput } from '../shared/contracts'
 import type { TopicDocumentPage, listTopicDocumentsInput, putTopicDocumentInput } from '../shared/contracts'
 import type { KnowledgeTopic, KnowledgeTopicResult, TopicMutationInput, createKnowledgeTopicInput, updateKnowledgeTopicInput, listKnowledgeTopicsInput } from '../shared/contracts'
 import * as z from 'zod'
@@ -275,6 +276,8 @@ export class AliceClient {
   }
 
   readonly documents = {
+    backlinks: (id: string, input: Partial<z.infer<typeof listDocumentBacklinksInput>> = {}) => this.get<Page<DocumentBacklink>>(`/documents/${enc(id)}/backlinks`, input),
+    topics: (id: string, input: Partial<z.infer<typeof listDocumentBacklinksInput>> = {}) => this.get<Page<DocumentTopicMembership>>(`/documents/${enc(id)}/topics`, input),
     list: (input: Partial<In<typeof listDocumentsInput>> = {}) => this.get<Page<DocumentSummary>>('/documents', toQuery(input)),
     get: (id: string) => this.get<{ document: DocumentDetail }>(`/documents/${enc(id)}`).then((r) => r.document),
     create: (input: In<typeof createDocumentInput>, options: MutationOptions = {}) =>

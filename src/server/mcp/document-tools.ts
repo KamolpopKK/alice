@@ -1,3 +1,5 @@
+import { listDocumentBacklinksInput } from '../../shared/contracts'
+import { listDocumentBacklinks, listDocumentTopics } from '../domain/document-links'
 import * as z from 'zod'
 import {
   clearDocumentReviewInput,
@@ -52,6 +54,8 @@ export function windowBody(body: string, offset: number, maxChars: number) {
 }
 
 export const DOCUMENT_TOOLS = [
+  defineTool({ name: 'list_document_backlinks', title: 'List document backlinks', description: 'Read incoming inline/manual references with distinct provenance; excludes related, supersedes and curation.', input: listDocumentBacklinksInput.extend({ id: idSchema }).strict(), readOnly: true, handler: (ctx, _a, { id, ...input }) => listDocumentBacklinks(ctx, id, input) }),
+  defineTool({ name: 'list_document_topics', title: 'List document topics', description: 'Read curated topic memberships, separately from body references and review.', input: listDocumentBacklinksInput.extend({ id: idSchema }).strict(), readOnly: true, handler: (ctx, _a, { id, ...input }) => listDocumentTopics(ctx, id, input) }),
   defineTool({
     name: 'search_documents',
     title: 'Search documents',

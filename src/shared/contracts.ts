@@ -741,3 +741,11 @@ export interface TopicDocument {
   projectContext: { items: ProjectRef[]; total: number }
 }
 export type TopicDocumentPage = Page<TopicDocument> & { topic: KnowledgeTopic }
+
+export const listDocumentBacklinksInput = z.object({ archived: archiveFilterSchema, cursor: cursorSchema, limit: limitSchema })
+export interface DocumentBacklink {
+  document: DocumentSummary
+  provenance: ('inline' | 'references')[]
+  projectContext: { items: ProjectRef[]; total: number }
+}
+export interface DocumentTopicMembership { topic: KnowledgeTopic; project: ProjectRef }
