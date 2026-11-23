@@ -1,3 +1,5 @@
+import { documentContentInput, documentOutlineInput, documentPreviewInput } from '../../shared/contracts'
+import { getDocumentContent, getDocumentOutline, getDocumentPreview } from '../domain/document-content'
 import { listDocumentBacklinksInput } from '../../shared/contracts'
 import { listDocumentBacklinks, listDocumentTopics } from '../domain/document-links'
 import { listTopicDocumentsInput, putTopicDocumentInput } from '../../shared/contracts'
@@ -17,6 +19,18 @@ export function registerKnowledgeRoutes(app: FastifyInstance, ctx: AppContext) {
       return read(ctx, parse(z.object({ id: idSchema }), req.params).id, parse(listDocumentBacklinksInput, req.query))
     })
   }
+  app.get('/documents/:id/content', async (req) => {
+    requireAuth(req)
+    return getDocumentContent(ctx, parse(z.object({ id: idSchema }), req.params).id, parse(documentContentInput, req.query))
+  })
+  app.get('/documents/:id/outline', async (req) => {
+    requireAuth(req)
+    return getDocumentOutline(ctx, parse(z.object({ id: idSchema }), req.params).id, parse(documentOutlineInput, req.query))
+  })
+  app.get('/documents/:id/preview', async (req) => {
+    requireAuth(req)
+    return getDocumentPreview(ctx, parse(z.object({ id: idSchema }), req.params).id, parse(documentPreviewInput, req.query))
+  })
   const project = z.object({ projectId: idSchema })
   const topic = z.object({ topicId: idSchema })
   const member = topic.extend({ documentId: idSchema })

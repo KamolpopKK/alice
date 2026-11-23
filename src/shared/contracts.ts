@@ -749,3 +749,11 @@ export interface DocumentBacklink {
   projectContext: { items: ProjectRef[]; total: number }
 }
 export interface DocumentTopicMembership { topic: KnowledgeTopic; project: ProjectRef }
+
+export const documentContentInput = z.object({ expectedRevision: z.coerce.number().int().min(1).optional(), offset: z.coerce.number().int().min(0).default(0), maxChars: z.coerce.number().int().min(100).max(100_000).default(20_000) }).strict()
+export const documentOutlineInput = z.object({ expectedRevision: z.coerce.number().int().min(1).optional(), cursor: cursorSchema, limit: limitSchema }).strict()
+export const documentPreviewInput = z.object({ expectedRevision: z.coerce.number().int().min(1).optional() }).strict()
+export interface DocumentBodyWindow { offset: number; returnedChars: number; totalChars: number; truncated: boolean; nextOffset: number | null }
+export type DocumentContent = { document: DocumentSummary & { body: string; bodyWindow: DocumentBodyWindow } }
+export type DocumentOutline = Page<import('./document-links').DocumentHeading> & { document: DocumentSummary }
+export interface DocumentPreview { state: 'available' | 'archived' | 'unavailable'; document: DocumentSummary | null; body: string | null; bodyWindow: DocumentBodyWindow | null }

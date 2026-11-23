@@ -1,3 +1,4 @@
+import type { DocumentContent, DocumentOutline, DocumentPreview, documentContentInput, documentOutlineInput, documentPreviewInput } from '../shared/contracts'
 import type { DocumentBacklink, DocumentTopicMembership, listDocumentBacklinksInput } from '../shared/contracts'
 import type { TopicDocumentPage, listTopicDocumentsInput, putTopicDocumentInput } from '../shared/contracts'
 import type { KnowledgeTopic, KnowledgeTopicResult, TopicMutationInput, createKnowledgeTopicInput, updateKnowledgeTopicInput, listKnowledgeTopicsInput } from '../shared/contracts'
@@ -276,6 +277,9 @@ export class AliceClient {
   }
 
   readonly documents = {
+    content: (id: string, input: Partial<z.infer<typeof documentContentInput>> = {}) => this.get<DocumentContent>(`/documents/${enc(id)}/content`, input),
+    outline: (id: string, input: Partial<z.infer<typeof documentOutlineInput>> = {}) => this.get<DocumentOutline>(`/documents/${enc(id)}/outline`, input),
+    preview: (id: string, input: z.infer<typeof documentPreviewInput> = {}) => this.get<DocumentPreview>(`/documents/${enc(id)}/preview`, input),
     backlinks: (id: string, input: Partial<z.infer<typeof listDocumentBacklinksInput>> = {}) => this.get<Page<DocumentBacklink>>(`/documents/${enc(id)}/backlinks`, input),
     topics: (id: string, input: Partial<z.infer<typeof listDocumentBacklinksInput>> = {}) => this.get<Page<DocumentTopicMembership>>(`/documents/${enc(id)}/topics`, input),
     list: (input: Partial<In<typeof listDocumentsInput>> = {}) => this.get<Page<DocumentSummary>>('/documents', toQuery(input)),
