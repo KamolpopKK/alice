@@ -1,7 +1,7 @@
 ---
 name: alice-spec
 description: Design the technical solution for agreed requirements in an Alice brief, document, task or chat. Produce an approved technical design covering only the architecture, data, contracts, integrations or migration the work needs, then recommend the next skill without invoking it. Use for technical design before task planning, not for deciding product scope (use alice-think), breaking work into tasks (use alice-plan), or implementation (use alice).
-version: 0.2.6
+version: 0.2.7
 ---
 
 # Technical design in Alice
