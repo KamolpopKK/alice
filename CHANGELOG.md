@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.2.7 — 2026-11-23
+
+### Changed
+
+- **Clear choices in `alice-think`.** Decisions offer 2–3 meaningful options with a recommendation
+  and trade-offs. Agents use an available choice tool, or A/B/C in chat, while keeping free text
+  for answers that need your own description. Preselected options and silence never count as approval.
+- **Bundled skills refreshed to 0.2.7.** Update Desktop/CLI to refresh enabled Local integrations,
+  then restart the agent session. No schema, Client API or MCP contract change is required.
+
 ### Added
 
 - **Check for updates in Settings.** Alice Desktop's Settings → Advanced now has Check for updates and

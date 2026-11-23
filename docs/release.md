@@ -1,3 +1,14 @@
+# Alice 0.2.7 — Clear choices and Desktop updates
+
+- `alice-think` offers 2–3 meaningful choices with a recommendation and trade-offs, using a
+  supported choice tool or A/B/C in chat. Custom answers remain available; free text is used when
+  your own description is needed. Preselected options and silence do not authorize saving.
+- Desktop Settings → Advanced now offers Check for updates and Install and restart.
+- Selects and date fields share the standard Alice form appearance; option lists and calendars
+  remain native. Empty due dates are muted in Desktop.
+- All six bundled skills advance to 0.2.7 for Local integration refresh. Update Desktop/CLI and
+  restart the agent session. No schema, Client API or MCP contract change is required.
+
 # Alice 0.2.6 — Video presentations with alice-demo
 
 - `alice-demo` turns an agreed feature, workflow or concept into capture, HTML or mixed videos.

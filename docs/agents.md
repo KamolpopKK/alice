@@ -190,9 +190,13 @@ Give your agent a new idea, request, bug report or piece of feedback that has no
    recommended next step. It becomes `ready` only after you confirm, unless you explicitly asked to
    create it now and already supplied complete task content.
 3. Anything else gets questioned in rounds. A round holds every question that can be asked now; one that
-   depends on an earlier answer waits for the next round. Each question is numbered with a recommended
-   answer: every question starts with `❓` and its recommendation starts with `➡️`, even when a round has
-   only one question. Each is worded so that "yes" accepts it, so you can answer a round by number. The
+   depends on an earlier answer waits for the next round. Decisions with clear alternatives offer 2–3
+   meaningful choices, with the recommended choice first and practical trade-offs. The agent uses an
+   available choice tool in the current mode, or A/B/C choices in chat when no suitable tool is available.
+   Free text is for answers needing your own description, and a custom answer is always allowed.
+   Questions carry `❓` and a number; recommendations carry `➡️`. A clear "yes" accepts the recommendation,
+   but a preselected option or silence is never an answer or permission to save. These rules also apply
+   to small-task and final artifact confirmations without adding new approval gates. The
    agent looks up facts itself and chooses internal details that follow existing conventions. It asks
    you about choices
    that change user-visible behaviour, scope, costs or commitments. Questions that could change the
