@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.2.6 — 2026-11-23
+
+### Added
+
+- **Video presentations with `alice-demo`.** Agree the story and presentation style, review one
+  editable Storyboard Document, approve production, then create real web capture, HTML presentations
+  or mixed scenes. Narration and subtitles are separate choices; gTTS, edge-tts and user-selected
+  alternatives are supported. Deliver MP4 plus editable/reproducible sources in chat.
+- **Bundled production helpers and guides.** Playwright capture, explicit-time HTML rendering,
+  measured narration/subtitles and FFmpeg assembly include source-revision checks and offline
+  reproduction. Production tools are installed in the job environment, not Alice's runtime.
+
+### Changed
+
+- **Desktop and CLI distribute all six skills.** `alice-demo` is included in the existing Codex and
+  Claude Code installers. Updating Alice refreshes the enabled Local integrations; restart the agent
+  session to load the new skill. No schema, Client API or MCP contract change is required.
+
+### Fixed
+
+- **Media verification in CI.** Chromium and FFmpeg are prepared before the unit/system media tests,
+  and browser discovery preserves the installed cache while each test keeps an isolated HOME.
+
 ## 0.2.5 — 2026-11-23
 
 ### Added

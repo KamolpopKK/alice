@@ -1,3 +1,18 @@
+# Alice 0.2.6 — Video presentations with alice-demo
+
+- `alice-demo` turns an agreed feature, workflow or concept into capture, HTML or mixed videos.
+  Review and edit one Storyboard Document, explicitly approve production, then the agent freshly
+  reads its current content/revision before producing. Source changes stop new stages.
+- Choose narration and subtitles separately. gTTS, edge-tts and user-specified alternatives are
+  available; listen to a sample before full narration. External speech services receive the script.
+- MP4 and editable/reproducible sources are delivered in chat. Production results stay in the job
+  folder; no separate Delivery Document or automatic storyboard update is created.
+- All six skills ship through the existing Desktop/CLI setup. Chromium, FFmpeg and Python voice
+  packages remain job-level prerequisites. macOS production is qualified; Linux/Windows remain
+  unverified for the full video workflow. See [alice-demo](alice-demo.md).
+- No database schema, Client API or MCP contract change. Update Desktop/CLI and restart the agent
+  session to load the newly bundled skill.
+
 # Alice 0.2.5 — Full-page writing, Board gestures and Desktop draft protection
 
 - Documents are created and edited on their own pages with rich text and a Markdown view a click away.
