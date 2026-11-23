@@ -25,10 +25,10 @@ tokens or passwords, does not claim tasks, and reports setup as incomplete when 
 
 | Prompt | Installs | Needs |
 |---|---|---|
-| Full setup | Alice Desktop, the `alice` command and the five agent skills, working in a Local workspace | Mac with Apple Silicon |
+| Full setup | Alice Desktop, the `alice` command and the six agent skills, working in a Local workspace | Mac with Apple Silicon |
 | App only | Alice Desktop | Mac with Apple Silicon, or Windows/Linux to join a team server |
 | `alice` command only | The command, for a Local workspace or a team server | Alice Desktop on the Mac, or a team server and Node.js 22+ |
-| Skills only | The five agent skills; the board lives in the project's `.alice/` folder | Node.js 22+, any OS |
+| Skills only | The six agent skills; the board lives in the project's `.alice/` folder | Node.js 22+, any OS |
 
 <details>
 <summary><b>Full setup</b> (Mac with Apple Silicon)</summary>
@@ -78,8 +78,8 @@ Steps:
    bundled skills and Local identity. Request write permission if needed. Do not
    configure a Remote server, MCP or tokens.
 6. Run `alice version`. Inspect the selected client's ~/.codex/skills or ~/.claude/skills:
-   alice, alice-think, alice-spec, alice-plan and alice-understand must each have SKILL.md,
-   PROJECT-FILES.md, DOCUMENT-KNOWLEDGE.md and OUTPUT-FORMATS.md; think, spec, plan and understand also need TEMPLATE.md.
+   alice, alice-think, alice-spec, alice-plan, alice-understand and alice-demo must each have SKILL.md,
+   PROJECT-FILES.md, DOCUMENT-KNOWLEDGE.md and OUTPUT-FORMATS.md; think, spec, plan, understand and demo also need TEMPLATE.md; demo also needs its production helpers and scene template.
    If the installed release bundles an older set, explain which skills are missing
    and that an updated release is needed. Do not repeatedly reinstall the same bundle
    or fetch unverified replacements. Do not report complete setup with missing files.
@@ -187,8 +187,8 @@ Repository: https://github.com/KamolpopKK/alice
 Prerequisites: Node.js 22 or newer, and Codex or Claude Code (the agent reading this).
 Any operating system.
 
-This installs only the five skills: alice, alice-think, alice-spec, alice-plan and
-alice-understand. It does not install the app, the alice command or a Local runtime;
+This installs only the six skills: alice, alice-think, alice-spec, alice-plan,
+alice-understand and alice-demo. It does not install the app, the alice command or a Local runtime;
 without them the skills keep the board as Markdown in this project's .alice/ folder.
 Do not create .alice/ now, and do not claim tasks.
 
@@ -209,7 +209,7 @@ Steps:
 4. Ask whether to install for me (default) or only for this repository, then run
    node ~/.local/share/alice/alice-cli.js install-skill --client <client>
    adding --scope project for this repository only.
-5. Check that alice, alice-think, alice-spec, alice-plan and alice-understand each have
+5. Check that alice, alice-think, alice-spec, alice-plan, alice-understand and alice-demo each have
    SKILL.md, PROJECT-FILES.md, DOCUMENT-KNOWLEDGE.md and OUTPUT-FORMATS.md, and that think,
    spec, plan and understand also have TEMPLATE.md. Report any missing file as incomplete.
 6. Report where the skills are and their version, that
@@ -311,7 +311,7 @@ curl -fsSLo alice-cli.js https://github.com/KamolpopKK/alice/releases/latest/dow
 node alice-cli.js install-skill --client claude-code      # or: --client codex
 ```
 
-This installs the `alice`, `alice-plan`, `alice-think`, `alice-spec` and `alice-understand` skills for you. Add `--scope project` to put them in this
+This installs the `alice`, `alice-plan`, `alice-think`, `alice-spec`, `alice-understand` and `alice-demo` skills for you. Add `--scope project` to put them in this
 repository instead (`.claude/skills/` or `.codex/skills/`), so everyone who clones it gets them. Then ask
 your agent to think through needs (`alice-think`), design the technical solution (`alice-spec`), break
 agreed work into tasks (`alice-plan`), understand an existing system with reusable knowledge and a

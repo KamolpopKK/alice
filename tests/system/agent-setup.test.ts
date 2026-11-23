@@ -1,6 +1,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
+import { spawnSync } from 'node:child_process'
+import { build } from 'esbuild'
+// @ts-expect-error Build helper is ESM JavaScript shared with release packaging.
+import { cliBuildOptions } from '../../scripts/cli-build.mjs'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { parse as parseYaml } from 'yaml'
@@ -216,6 +220,29 @@ describe('alice-spec distribution', () => {
 })
 
 describe('documented installation in a clean environment', () => {
+  it('standalone CLI installs the complete flat demo package for both clients without production setup', async () => {
+    const bundle = tempDataDir('demo-bundle')
+    await build({ ...cliBuildOptions(bundle, ROOT), logLevel: 'silent' })
+    for (const client of ['codex', 'claude-code']) {
+      const home = tempDataDir('demo-installed')
+      const result = spawnSync(process.execPath, [path.join(bundle, 'alice.js'), 'install-skill', '--client', client, '--skill', 'alice-demo'], {
+        cwd: home,
+        env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: path.join(home, '.config') },
+        encoding: 'utf8', timeout: 30_000,
+      })
+      expect(result.status, result.stderr).toBe(0)
+      const installed = path.join(home, client === 'codex' ? '.codex' : '.claude', 'skills', 'alice-demo')
+      for (const file of fs.readdirSync(path.join(ROOT, 'skill/alice-demo'))) {
+        expect(fs.readFileSync(path.join(installed, file), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, 'skill/alice-demo', file), 'utf8'))
+      }
+      for (const file of fs.readdirSync(path.join(ROOT, 'skill/_shared'))) {
+        expect(fs.readFileSync(path.join(installed, file), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, 'skill/_shared', file), 'utf8'))
+      }
+      expect(fs.existsSync(path.join(home, '.venv'))).toBe(false)
+      expect(fs.existsSync(path.join(home, 'node_modules'))).toBe(false)
+    }
+  })
+
   it('installs the skill for Claude Code and Codex without touching the source', () => {
     const home = tempDataDir('home')
     for (const client of ['claude-code', 'codex']) {
@@ -233,7 +260,7 @@ describe('documented installation in a clean environment', () => {
     const home = tempDataDir('skills-home')
     const all = runCli(['install-skill', '--client', 'claude-code'], { HOME: home })
     expect(all.status).toBe(0)
-    for (const skill of ['alice', 'alice-plan', 'alice-think', 'alice-spec', 'alice-understand']) {
+    for (const skill of ['alice', 'alice-plan', 'alice-think', 'alice-spec', 'alice-understand', 'alice-demo']) {
       expect(all.stdout).toContain(`Installed the ${skill} skill to ${path.join(home, '.claude/skills', skill)}`)
       expect(fs.readFileSync(path.join(home, '.claude/skills', skill, 'SKILL.md'), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, 'skill', skill, 'SKILL.md'), 'utf8'))
       for (const file of fs.readdirSync(path.join(ROOT, 'skill', skill))) {
@@ -249,14 +276,14 @@ describe('documented installation in a clean environment', () => {
     for (const file of sharedFiles) {
       const guide = fs.readFileSync(path.join(ROOT, 'skill/_shared', file), 'utf8')
       expect(fs.readFileSync(path.join(only, '.codex/skills/alice-plan', file), 'utf8')).toBe(guide)
-      for (const skill of ['alice', 'alice-plan', 'alice-think', 'alice-spec', 'alice-understand']) {
+      for (const skill of ['alice', 'alice-plan', 'alice-think', 'alice-spec', 'alice-understand', 'alice-demo']) {
         expect(fs.readFileSync(path.join(home, '.claude/skills', skill, file), 'utf8')).toBe(guide)
       }
     }
 
     const unknown = runCli(['install-skill', '--client', 'codex', '--skill', 'alice-ops'], { HOME: only })
     expect(unknown.status).toBe(1)
-    expect(unknown.stderr).toContain('--skill must be one of: alice, alice-plan, alice-think, alice-spec, alice-understand')
+    expect(unknown.stderr).toContain('--skill must be one of: alice, alice-plan, alice-think, alice-spec, alice-understand, alice-demo')
   })
 
   it('Claude Code config connects over remote MCP using the token from the environment', async () => {
