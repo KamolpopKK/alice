@@ -218,3 +218,10 @@ in JSON, as well as listing them in text output.
 `alice serve`, `migrate`, `backup`, `restore`, `export` and `purge` still work and forward to `alice-server`
 unchanged. They print a deprecation notice on stderr. These aliases will be removed in Alice 0.4.0; use
 `alice-server <command>` instead. In the Docker image, both `alice` and `alice-server` are on `PATH`.
+
+## Demo video skill
+
+Install only the demo skill with `alice install-skill --client codex --skill alice-demo`
+(or `--client claude-code`), then invoke `$alice-demo` or `/alice-demo` in a new agent session.
+This installs instructions, templates and helpers, not Chromium, FFmpeg or Python packages.
+See [Demo video presentations](alice-demo.md) for the separate job environment and review flow.

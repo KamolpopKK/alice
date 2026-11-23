@@ -166,7 +166,9 @@ if (isMain(import.meta.url)) {
       console.log(JSON.stringify({ id: snapshot.id, revision: snapshot.revision, hash: snapshot.hash }))
     } else if (command === 'guard') {
       assertSourceRevision(readJson(jobPath(root, 'source.json')), readJson(freshFile ?? file)); console.log('Source matches')
-    } else if (command === 'preflight') console.log(JSON.stringify(await preflight(root, readJson(file)), null, 2))
+    } else if (command === 'preflight') console.log(JSON.stringify(await preflight(root, readJson(file), {
+      ffmpeg: process.env.DEMO_FFMPEG ?? 'ffmpeg', ffprobe: process.env.DEMO_FFPROBE ?? 'ffprobe', python: process.env.DEMO_PYTHON ?? 'python3',
+    }), null, 2))
     else console.log('demo-core.mjs snapshot JOB FRESH_DOCUMENT.json | guard JOB FRESH_DOCUMENT.json | preflight JOB MANIFEST.json\nAgent must fetch fresh full Document JSON before every source guard. No approval is inferred.')
   } catch (error) { cliError(error) }
 }

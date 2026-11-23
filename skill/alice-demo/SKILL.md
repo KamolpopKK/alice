@@ -123,7 +123,8 @@ unverified until tested. Keep production dependencies in the job environment, no
 Check browser, chosen audio tool, H.264/AAC, subtitle rendering, Thai font, assets and page access;
 a command existing does not prove the required capability works.
 
-Use bundled demo-core.mjs, demo-audio.mjs, demo-capture.mjs, demo-html.mjs and demo-render.mjs as described
+Read [PRODUCTION.md](PRODUCTION.md) before production. Use bundled demo-core.mjs, demo-audio.mjs,
+demo-capture.mjs, demo-html.mjs and demo-render.mjs as described
 by their --help and production guide. Confirm the installed build has them before claiming readiness.
 Helpers do not approve sources: the agent reads Alice fresh and supplies those reads at source guards.
 Translate storyboard meaning to a validated manifest; the user need not write JSON or match a parser.
