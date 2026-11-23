@@ -146,8 +146,8 @@ export async function preflight(root, m, tools = {}) {
   versions.chromium = browser.version()
   await browser.close()
   if (m.narration && m.narration.provider !== 'provided') {
-    const module = m.narration.provider === 'gtts' ? 'gtts' : 'edge_tts'
-    versions.audio = (await runTool(tools.python ?? 'python3', ['-m', module, '--version'])).stdout.trim()
+    const module = m.narration.provider === 'gtts' ? 'gTTS' : 'edge-tts'
+    versions.audio = (await runTool(tools.python ?? 'python3', ['-c', 'import importlib.metadata,sys; print(importlib.metadata.version(sys.argv[1]))', module])).stdout.trim()
   }
   return versions
 }
