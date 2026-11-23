@@ -1,3 +1,16 @@
+# Alice 0.2.5 — Full-page writing, Board gestures and Desktop draft protection
+
+- Documents are created and edited on their own pages with rich text and a Markdown view a click away.
+  Markdown stays the saved format and untouched blocks keep their exact text. Interrupted saves retry
+  without duplicates, newer revisions are flagged before overwriting, and leaving, switching workspace,
+  closing or quitting Alice Desktop, or installing an update with unsaved changes asks first.
+- Board cards open with a click anywhere and move by mouse, trackpad or touch long press.
+- Mermaid diagrams render in Alice Desktop again (they failed there in 0.2.4).
+- The README opens with a quick start of four copyable agent prompts. `alice-plan` writes plans
+  directly and every skill names tasks and documents by title.
+- No schema, Client API or MCP contract change. The version bump refreshes installed skills through
+  the normal Local integration update path.
+
 # Alice 0.2.4 — Mermaid diagrams and reusable project understanding
 
 - Mermaid diagrams render locally across task/document content, previews, revision history, project
