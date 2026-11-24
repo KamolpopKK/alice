@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.9 — 2026-11-24
+
 ### Added
 
 - Project Knowledge topics and ordered shared Document references, scoped lexical/context discovery,
@@ -13,6 +15,13 @@
   full content comparison), get evidence-based findings and proposals in chat, and apply only the items
   you approve. Installed with the other skills for Codex and Claude Code.
 
+### Changed
+
+- **Refresh all seven bundled skills to 0.2.9.** Every skill now ships the Project Knowledge guidance,
+  and `alice-curate` is the seventh skill. Update Desktop/CLI and restart the agent session.
+- **Upgrade.** Migrations 18–20 add knowledge topics and memberships, and derived links are prepared
+  in resumable batches before the server reports ready. Keep a verified pre-upgrade backup: older
+  binaries reject the newer schema, so a downgrade means restoring that backup.
 
 ## 0.2.8 — 2026-11-24
 
