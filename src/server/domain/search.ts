@@ -1,3 +1,4 @@
+import { knowledgeFilters, documentTopicContext } from './knowledge-scope'
 import type * as z from 'zod'
 import {
   HIGHLIGHT_END,
@@ -124,10 +125,13 @@ function snippetSql(compiled: CompiledQuery, index: number, column: string): str
   return compiled.match ? `snippet(search_index, ${index}, '${HIGHLIGHT_START}', '${HIGHLIGHT_END}', '…', 16)` : `substr(s.${column}, 1, 160)`
 }
 
-function documentFilters(input: z.infer<typeof searchInput>): { sql: string[]; params: unknown[] } {
+function documentFilters(ctx: AppContext, input: z.infer<typeof searchInput>): { sql: string[]; params: unknown[] } {
   const sql: string[] = []
   const params: unknown[] = []
-  const hasFilters = !!(input.tag?.length || input.status?.length || input.ownerId?.length || input.projectId?.length)
+  const knowledge = knowledgeFilters(ctx, input, 'doc')
+  sql.push(...knowledge.sql)
+  params.push(...knowledge.params)
+  const hasFilters = !!(input.knowledgeProjectId || input.topicId || input.curatedOnly || input.tag?.length || input.status?.length || input.ownerId?.length || input.projectId?.length)
   if (hasFilters) sql.push(`d.kind = 'document'`)
   if (input.tag?.length) {
     sql.push(`EXISTS (SELECT 1 FROM document_tags dt WHERE dt.document_id = doc.id AND dt.tag_key IN (${input.tag.map(() => '?').join(',')}))`)
@@ -208,10 +212,10 @@ export function projectContext(db: DB, documentId: string): { items: ProjectRef[
 
 export function search(ctx: AppContext, input: z.infer<typeof searchInput>): Page<SearchResult> {
   const limit = input.limit ?? 20
+  const filters = documentFilters(ctx, input)
   const compiled = compileQuery(input.q)
   const query = matchClauses(compiled)
   if (query.sql.length === 0) return { items: [], nextCursor: null }
-  const filters = documentFilters(input)
   if (input.kind?.length) {
     query.sql.push(`d.kind IN (${input.kind.map(() => '?').join(',')})`)
     query.params.push(...input.kind)
@@ -220,6 +224,8 @@ export function search(ctx: AppContext, input: z.infer<typeof searchInput>): Pag
   query.params.push(...filters.params)
   if (input.archived === 'active') query.sql.push('d.archived = 0')
   else if (input.archived === 'archived') query.sql.push('d.archived = 1')
+  query.sql.push("(d.kind <> 'document' OR doc.workspace_id = ?)")
+  query.params.push(ctx.workspaceId)
   const offset = Number(decodeCursor(input.cursor)?.[0] ?? 0) || 0
   const fieldRank = fieldRankSql(compiled)
   const bm25 = compiled.match ? 'bm25(search_index, 10.0, 6.0, 4.0, 1.0, 1.0)' : 'CAST(0 AS REAL)'
@@ -227,6 +233,7 @@ export function search(ctx: AppContext, input: z.infer<typeof searchInput>): Pag
     .prepare(
       `SELECT d.kind, d.resource_id, d.task_id, d.display_title, d.archived,
          ${fieldRank.sql} AS field_rank,
+         CASE WHEN EXISTS (SELECT 1 FROM knowledge_topic_documents km JOIN knowledge_topics kt ON kt.id = km.topic_id WHERE km.document_id = doc.id AND kt.workspace_id = ? AND kt.archived_at IS NULL${input.knowledgeProjectId ? ' AND kt.project_id = ?' : ''}) THEN 0 ELSE 1 END AS curation_rank,
          CASE WHEN d.kind <> 'document' THEN 0 WHEN doc.knowledge_status = 'current' THEN 0
               WHEN doc.knowledge_status IN ('draft', 'unreviewed') THEN 1 ELSE 2 END AS lifecycle_rank,
          ${snippetSql(compiled, 0, 'title')} AS title_snippet,
@@ -243,10 +250,10 @@ export function search(ctx: AppContext, input: z.infer<typeof searchInput>): Pag
        LEFT JOIN documents doc ON d.kind = 'document' AND doc.id = d.resource_id
        LEFT JOIN actors ow ON ow.id = doc.owner_id
        WHERE ${query.sql.join(' AND ')}
-       ORDER BY CASE field_rank WHEN 4 THEN 3 ELSE field_rank END, lifecycle_rank, ${bm25}, d.resource_id
+       ORDER BY CASE field_rank WHEN 4 THEN 3 ELSE field_rank END, lifecycle_rank, ${bm25}, curation_rank, d.resource_id
        LIMIT ? OFFSET ?`,
     )
-    .all(...fieldRank.params, ...query.params, limit + 1, offset) as SearchRow[]
+    .all(...fieldRank.params, ctx.workspaceId, ...(input.knowledgeProjectId ? [input.knowledgeProjectId] : []), ...query.params, limit + 1, offset) as SearchRow[]
   const page = rows.slice(0, limit)
   return {
     items: page.map((row): SearchResult => {
@@ -265,6 +272,7 @@ export function search(ctx: AppContext, input: z.infer<typeof searchInput>): Pag
           owner: row.owner_ref_id ? { id: row.owner_ref_id, kind: row.owner_ref_kind!, displayName: row.owner_ref_name! } : null,
           reviewedAt: row.reviewed_at,
           projectContext: projectContext(ctx.db, row.resource_id),
+          topicContext: documentTopicContext(ctx.db, ctx.workspaceId, row.resource_id),
         }
       }
       return {

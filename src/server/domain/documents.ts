@@ -1,3 +1,4 @@
+import { knowledgeFilters, documentTopicContext } from './knowledge-scope'
 import { indexDocumentLinks } from './document-link-index'
 import type * as z from 'zod'
 import {
@@ -22,7 +23,7 @@ import { newId } from '../ids'
 import { mutate, type Mutation } from './activity'
 import { requireActiveActor, type Actor } from './actors'
 import { findProjectRow } from './projects'
-import { indexResource, search } from './search'
+import { indexResource, projectContext, search } from './search'
 import { actorCols, actorRefFrom, decodeCursor, diff, encodeCursor } from './sql'
 import { requireTaskRow } from './tasks'
 
@@ -383,6 +384,7 @@ export function listDocuments(ctx: AppContext, input: z.infer<typeof listDocumen
       status: input.status,
       ownerId: input.ownerId,
       projectId: input.projectId,
+      knowledgeProjectId: input.knowledgeProjectId, topicId: input.topicId, curatedOnly: input.curatedOnly,
       archived: input.archived,
       cursor: input.cursor,
       limit,
@@ -390,13 +392,14 @@ export function listDocuments(ctx: AppContext, input: z.infer<typeof listDocumen
     return {
       items: results.items.map((result) => {
         const row = requireDocRow(ctx.db, ctx.workspaceId, result.id)
-        return { ...toSummary(row, ctx.db), match: result.kind === 'document' ? result.match : null }
+        return { ...toSummary(row, ctx.db), ...(result.kind === 'document' ? { projectContext: result.projectContext, topicContext: result.topicContext } : {}), match: result.kind === 'document' ? result.match : null }
       }),
       nextCursor: results.nextCursor,
     }
   }
-  const where = ['d.workspace_id = ?']
-  const params: unknown[] = [ctx.workspaceId]
+  const knowledge = knowledgeFilters(ctx, input, 'd')
+  const where = ['d.workspace_id = ?', ...knowledge.sql]
+  const params: unknown[] = [ctx.workspaceId, ...knowledge.params]
   if (input.archived === 'active') where.push('d.archived_at IS NULL')
   else if (input.archived === 'archived') where.push('d.archived_at IS NOT NULL')
   if (input.taskId) {
@@ -433,7 +436,7 @@ export function listDocuments(ctx: AppContext, input: z.infer<typeof listDocumen
   const rows = ctx.db.prepare(`${DOC_SELECT} WHERE ${where.join(' AND ')} ORDER BY d.updated_at DESC, d.id DESC LIMIT ?`).all(...params, limit + 1) as DocRow[]
   const page = rows.slice(0, limit)
   const last = page[page.length - 1]
-  return { items: page.map((row) => toSummary(row, ctx.db)), nextCursor: rows.length > limit ? encodeCursor([last.updated_at, last.id]) : null }
+  return { items: page.map((row) => ({ ...toSummary(row, ctx.db), projectContext: projectContext(ctx.db, row.id), topicContext: documentTopicContext(ctx.db, ctx.workspaceId, row.id) })), nextCursor: rows.length > limit ? encodeCursor([last.updated_at, last.id]) : null }
 }
 
 // ---------- Links ----------

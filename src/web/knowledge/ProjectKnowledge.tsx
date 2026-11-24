@@ -1,3 +1,4 @@
+import { KnowledgeSearch } from './KnowledgeSearch'
 import { TopicReadingList } from './TopicReadingList'
 import { useRef, useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -64,6 +65,7 @@ export function ProjectKnowledge({ projectId, archived: projectArchived }: {
       change.reset()
     }}>{archived ? 'Show active topics' : 'Show archived topics'}</Button></div>
     <p>Choose a topic to find the starting documents. Curated knowledge is not automatically reviewed.</p>
+    <KnowledgeSearch projectId={projectId} topics={topics.data?.pages.flatMap((p) => p.items) ?? []} />
     {!projectArchived && !archived && <form aria-label={editing ? 'Edit knowledge topic' : 'New knowledge topic'} onSubmit={submit} className="resource-form">
       <TextField disabled={change.isPending} label="Topic name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={200} />
       <TextArea disabled={change.isPending} label="Topic description" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />

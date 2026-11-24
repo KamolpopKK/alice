@@ -316,6 +316,9 @@ export const searchInput = z.object({
   /** Actor ids; the literal `none` matches documents without an owner. */
   ownerId: listOf(idSchema),
   projectId: listOf(idSchema),
+  knowledgeProjectId: idSchema.optional(),
+  topicId: idSchema.optional(),
+  curatedOnly: z.preprocess((v) => v === 'true' ? true : v === 'false' ? false : v, z.boolean().optional()),
   archived: archiveFilterSchema,
   cursor: cursorSchema,
   limit: limitSchema,
@@ -348,6 +351,7 @@ export interface DocumentSearchResult extends SearchResultBase {
   owner: ActorRef | null
   reviewedAt: string | null
   projectContext: { items: ProjectRef[]; total: number }
+  topicContext?: DocumentTopicContext
 }
 
 export type SearchResult = TaskOrCommentSearchResult | DocumentSearchResult
@@ -406,6 +410,9 @@ export const reviewDocumentInput = z
 export const clearDocumentReviewInput = z.object({ expectedRevision: z.number().int().min(1) }).strict()
 
 export const listDocumentsInput = z.object({
+  knowledgeProjectId: idSchema.optional(),
+  topicId: idSchema.optional(),
+  curatedOnly: z.preprocess((v) => v === 'true' ? true : v === 'false' ? false : v, z.boolean().optional()),
   q: z.string().trim().max(200).optional(),
   taskId: idSchema.optional(),
   projectId: listOf(idSchema),
@@ -432,6 +439,8 @@ export interface TaskRef {
 }
 
 export interface DocumentSummary {
+  topicContext?: DocumentTopicContext
+  projectContext?: { items: ProjectRef[]; total: number }
   id: string
   title: string
   sourceUrl: string | null
@@ -757,3 +766,9 @@ export interface DocumentBodyWindow { offset: number; returnedChars: number; tot
 export type DocumentContent = { document: DocumentSummary & { body: string; bodyWindow: DocumentBodyWindow } }
 export type DocumentOutline = Page<import('./document-links').DocumentHeading> & { document: DocumentSummary }
 export interface DocumentPreview { state: 'available' | 'archived' | 'unavailable'; document: DocumentSummary | null; body: string | null; bodyWindow: DocumentBodyWindow | null }
+
+export interface DocumentTopicContext {
+  items: Pick<KnowledgeTopic, 'id' | 'projectId' | 'name' | 'archivedAt'>[]
+  total: number
+  nextCursor: string | null
+}
