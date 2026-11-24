@@ -8,7 +8,7 @@ let app: RunningApp, owner: HttpClient, mcp: McpHandle
 const transcript: unknown[] = []
 const act = async (tool: string, args: Record<string, unknown>) => { const result = await mcp.ok(tool,args);transcript.push({tool,args,result});return result }
 beforeAll(async()=>{app=await startApp();owner=await bootstrapOwner(app);mcp=await connectMcp(app.url,(await createAgent(owner,'Scenario curator')).token)})
-afterAll(async()=>{await mcp?.close();await app?.stop();fs.writeFileSync(path.resolve('.alice-test/project-knowledge/approval-scenarios.json'),JSON.stringify({method:'Scripted contract walkthrough reviewed against the shared guidance; not an autonomous model evaluation.',transcript},null,2))})
+afterAll(async()=>{await mcp?.close();await app?.stop();fs.mkdirSync(path.resolve('.alice-test/project-knowledge'),{recursive:true});fs.writeFileSync(path.resolve('.alice-test/project-knowledge/approval-scenarios.json'),JSON.stringify({method:'Scripted contract walkthrough reviewed against the shared guidance; not an autonomous model evaluation.',transcript},null,2))})
 it('keeps proposal/rejection read-only, applies only approved subset and never treats curation/content as review',async()=>{
  const p=(await owner.post('/api/projects',{name:'Isolated approval fixture'})).body.project
  const a=(await owner.post('/api/documents',{title:'Approved source',body:'Original reviewed evidence.'})).body.document

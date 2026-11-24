@@ -9,7 +9,7 @@ import { workspacePaths } from '../../src/local/paths'
 let home: CliEnv | undefined
 let pid: number | undefined
 const observations: unknown[] = []
-afterAll(() => { if (pid) try { process.kill(pid,'SIGTERM') } catch { /* already stopped */ }; fs.writeFileSync(path.resolve('.alice-test/project-knowledge/docs-examples.json'),JSON.stringify(observations,null,2)) })
+afterAll(() => { if (pid) try { process.kill(pid,'SIGTERM') } catch { /* already stopped */ }; fs.mkdirSync(path.resolve('.alice-test/project-knowledge'), { recursive: true }); fs.writeFileSync(path.resolve('.alice-test/project-knowledge/docs-examples.json'),JSON.stringify(observations,null,2)) })
 it('runs the guide CLI commands and API read examples in an isolated Local workspace and checks repository links',async()=>{
  home=cliHome('knowledge-doc-examples')
  const run=async(args:string[])=>{const r=await alice(home!,args);expect(r.code,r.stderr).toBe(0);return JSON.parse(r.stdout).data}
