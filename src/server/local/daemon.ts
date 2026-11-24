@@ -17,6 +17,7 @@ import { buildApp, type RouteRegistrar } from '../http/app'
 import { bearerToken, registerAuth, setClientBearerResolver } from '../http/auth'
 import { registerClientApi } from '../http/client-api'
 import { registerPadRoutes } from '../http/pad-routes'
+import { registerKnowledgeRoutes } from '../http/knowledge-routes'
 import { HUMAN_ROUTES } from '../http/routes'
 import { capabilityAccount, localCredentialStore } from '../../local/capabilities'
 import { readRegistry } from '../../local/registry'
@@ -161,6 +162,7 @@ export async function startLocalDaemon(workspaceId: string, env: NodeJS.ProcessE
     }
     const localHumanRoutes: RouteRegistrar = async (app, c) => {
       await app.register(async (child) => registerPadRoutes(child, c), { prefix: CLIENT_API_PREFIX })
+      await app.register(async (child) => registerKnowledgeRoutes(child, c), { prefix: CLIENT_API_PREFIX })
       await app.register(
         async (child) => {
           for (const register of HUMAN_ROUTES) await register(child, c)

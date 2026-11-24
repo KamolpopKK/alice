@@ -85,3 +85,11 @@ export function listValues(values: string[] | undefined): string[] | undefined {
 }
 
 export const shortDate = (iso: string | null | undefined) => (iso ? iso.slice(0, 10) : '')
+
+/** Validates numeric CLI flags before sending them to the server. */
+export function numberFlag(value: string | undefined, flag: string, min: number, max: number, fallback?: number): number {
+  if (value === undefined && fallback !== undefined) return fallback
+  const n = value === undefined || value.trim() === '' ? NaN : Number(value)
+  if (!Number.isSafeInteger(n) || n < min || n > max) throw new CliError(`${flag} must be an integer between ${min} and ${max}`)
+  return n
+}

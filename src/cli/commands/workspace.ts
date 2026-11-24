@@ -41,6 +41,7 @@ export async function searchCommand(ctx: CliContext, args: string[]): Promise<nu
     kind: { type: 'string', multiple: true }, tag: { type: 'string', multiple: true }, status: { type: 'string', multiple: true },
     owner: { type: 'string', multiple: true }, project: { type: 'string', multiple: true }, archived: { type: 'string', default: 'active' },
     limit: { type: 'string' }, all: { type: 'boolean' },
+    'knowledge-project': { type: 'string' }, topic: { type: 'string' }, 'curated-only': { type: 'boolean' },
   }, 1)
   if (!positionals[0]) throw new CliError('A search query is required')
   const kinds = listValues(values.kind)
@@ -51,8 +52,9 @@ export async function searchCommand(ctx: CliContext, args: string[]): Promise<nu
   const c = ctx.client()
   const ownerId = values.owner ? await Promise.all(listValues(values.owner)!.map(async (owner) => (await resolveActor(c, owner)) ?? 'none')) : undefined
   const projectId = values.project ? await Promise.all(listValues(values.project)!.map((project) => resolveProject(c, project))) : undefined
+  const knowledgeProjectId = values['knowledge-project'] ? await resolveProject(c, values['knowledge-project']) : undefined
   const items = await collect(ctx.out, itemBudget(values.limit, values.all), (cursor, limit) =>
-    c.search({ q: positionals[0], kind: kinds as SearchKind[] | undefined, tag: listValues(values.tag), status: statuses as DocumentKnowledgeStatus[] | undefined, ownerId, projectId, archived: values.archived as 'active', cursor, limit }),
+    c.search({ knowledgeProjectId, topicId: values.topic, curatedOnly: values['curated-only'], q: positionals[0], kind: kinds as SearchKind[] | undefined, tag: listValues(values.tag), status: statuses as DocumentKnowledgeStatus[] | undefined, ownerId, projectId, archived: values.archived as 'active', cursor, limit }),
   )
   const plain = (s: string) => s.split(HIGHLIGHT_START).join('').split(HIGHLIGHT_END).join('')
   const display = items.map((result) => ({
