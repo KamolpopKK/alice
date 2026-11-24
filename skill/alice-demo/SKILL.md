@@ -11,6 +11,8 @@ Read [DOCUMENT-KNOWLEDGE.md](DOCUMENT-KNOWLEDGE.md) before discovery or document
 [TEMPLATE.md](TEMPLATE.md) before drafting. Requires an Alice server speaking MCP contract v1 for
 runtime Documents. Do not claim unrelated development tasks or invoke planning just to make a video.
 
+Cite source revisions in the storyboard; after user approval re-read the actual storyboard document and use its latest approved content. Follow the shared document-knowledge guide.
+
 ## Safety
 
 - Your token is a secret. Never print it, paste it into comments or documents, or commit it.

@@ -453,3 +453,17 @@ missing and the need for an updated release instead of repeatedly reinstalling t
 verification, start a new agent session if needed to load new skills. The completion message includes
 an invocation example: `$alice-plan` for Codex or `/alice-plan` for Claude Code, with plain-language
 invocation as another option.
+
+## Reusing project knowledge
+
+On servers advertising `project-knowledge`, start with topic entry points or
+`get_knowledge_context`, then read selected outlines/content at the returned revision. Empty curation
+falls back to ordinary lexical document search. Cite the Document title/id/revision and heading or
+range actually read, separating source evidence, repository evidence and inference.
+
+The shared `DOCUMENT-KNOWLEDGE.md` is shipped identically with every skill for Codex and Claude Code.
+It covers topic/member curation, revision-safe reads and scoped proposals before runtime knowledge
+maintenance. Existing explicit approval is reused; reading knowledge does not authorize reorganizing
+it. Content generation or curation never marks a source reviewed/current. Independent authorized work
+can continue while one source conflict remains unresolved. These rules do not gate normal tests or
+implementation. Older servers keep ordinary Documents/search flows.

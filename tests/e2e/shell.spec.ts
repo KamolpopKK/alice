@@ -136,7 +136,9 @@ test('the command palette finds pages, tasks and commands by keyboard and restor
   const input = page.getByRole('combobox', { name: 'Search tasks, pages and commands' })
   await expect(input).toBeFocused()
   await page.keyboard.type('proj')
-  await expect(page.getByRole('option', { name: 'Projects, Go to' })).toHaveAttribute('aria-selected', 'true')
+  // server ใช้ร่วมกันทั้ง worker: document จาก test อื่นที่มีคำว่า "proj" อาจขึ้นก่อน (Documents อยู่เหนือ Go to)
+  await expect(page.getByRole('option', { name: 'Projects, Go to' })).toBeVisible()
+  await expect(page.getByRole('option').first()).toHaveAttribute('aria-selected', 'true')
   await page.keyboard.press('Escape')
   await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Search' })).toBeFocused()
 

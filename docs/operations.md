@@ -231,7 +231,7 @@ backup. Desktop and CLI users sign in again once you upgrade back.
 docker compose exec alice alice-server export --out /data/exports/$(date +%F)
 ```
 
-Produces `workspace.json` using `alice-export` format v2 (all entities: actors, projects, tasks,
+Produces `workspace.json` using `alice-export` format v3 (all entities: actors, projects, tasks,
 relationships, comments, document lifecycle metadata, tags, keywords, reviews, typed relations,
 revisions, links and activity) and Markdown files under `documents/` and `tasks/` named
 `<slug>--<id>.md` with JSON front matter. Passwords, sessions and token hashes are never exported.
@@ -263,3 +263,13 @@ refused. The `Untitled` system project is never purged. The purge itself is reco
 
 Configure secrets (`ALICE_BOOTSTRAP_TOKEN`) through `.env` or your orchestrator, never in committed
 files. Logs redact authorization headers, cookies, CSRF tokens and invite tokens.
+
+## Project knowledge preparation and recovery
+
+Knowledge source tables are authoritative; inline-link tables are rebuildable projections. Remote
+prepares before listen/readyz; Local prepares before publishing its locator. Failed/interrupted
+preparation is visible and resumes on restart without changing source bodies/history/review. Verified
+SQLite backups count and preserve all four new tables. Portable export v3 includes authoritative
+knowledgeTopics/knowledgeTopicDocuments, not derived edge/state authority. It is not a new importer.
+Old binaries reject newer schemas. Downgrade requires restoring a verified pre-upgrade backup and
+reverts subsequent writes; preserve the upgraded copy. See [Project knowledge](project-knowledge.md).

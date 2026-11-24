@@ -1,3 +1,4 @@
+import { ProjectKnowledge } from '../knowledge/ProjectKnowledge'
 import { useState, type FormEvent } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -22,7 +23,7 @@ export function useProject(id: string) {
   return useQuery({ queryKey: ['project', id], queryFn: () => client.projects.get(id) })
 }
 
-const TABS = ['overview', 'tasks', 'documents', 'activity'] as const
+const TABS = ['overview', 'tasks', 'documents', 'knowledge', 'activity'] as const
 type Tab = (typeof TABS)[number]
 
 /** Project Detail: Overview, Tasks, Documents and Activity; the tab is in the URL (`?tab=`). */
@@ -30,7 +31,9 @@ export function ProjectDetailPage() {
   const { id = '' } = useParams()
   const project = useProject(id)
   const [params, setParams] = useSearchParams()
-  const tab: Tab = TABS.includes(params.get('tab') as Tab) ? (params.get('tab') as Tab) : 'overview'
+  const knowledge = useCapability('project-knowledge')
+  const requestedTab = params.get('tab') as Tab
+  const tab: Tab = TABS.includes(requestedTab) && (requestedTab !== 'knowledge' || knowledge) ? requestedTab : 'overview'
   const [editing, setEditing] = useState(false)
   const planning = useCapability('project-planning')
   const qc = useQueryClient()
@@ -110,6 +113,7 @@ export function ProjectDetailPage() {
           { value: 'overview', label: 'Overview', content: <Overview project={p} onAllTasks={() => setTab('tasks')} /> },
           { value: 'tasks', label: 'Tasks', content: <ProjectTasks project={p} /> },
           { value: 'documents', label: 'Documents', content: <LinkedDocuments target={{ projectId: p.id }} title="Project documents" /> },
+          ...(knowledge ? [{ value: 'knowledge', label: 'Knowledge', content: <ProjectKnowledge projectId={p.id} archived={Boolean(p.archivedAt)} /> }] : []),
           { value: 'activity', label: 'Activity', content: <ProjectActivity project={p} /> },
         ]}
       />

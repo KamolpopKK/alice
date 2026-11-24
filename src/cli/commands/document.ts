@@ -1,14 +1,20 @@
+import { showPage } from './knowledge'
 import { DOCUMENT_KNOWLEDGE_STATUSES, DOCUMENT_RELATION_TYPES, type DocumentDetail, type DocumentKnowledgeStatus, type DocumentRelationType } from '../../shared/contracts'
 import { CliContext, parseCommand } from '../context'
 import { CliError } from '../errors'
 import { confirm } from '../output'
-import { checkEnum, collect, itemBudget, listValues, readMarkdown, requireId, resolveActor, resolveProject, shortDate } from './shared'
+import { checkEnum, collect, itemBudget, listValues, numberFlag, readMarkdown, requireId, resolveActor, resolveProject, shortDate } from './shared'
 
 export const DOCUMENT_HELP = `Usage: alice document <command>      (alias: alice doc)
 
   list [QUERY] [--task ID] [--project ID|NAME] [--tag TAG] [--status STATUS] [--owner ACTOR|none] [--archived active|archived|all] [--limit N | --all]
   search QUERY                        same as list QUERY
   show ID [--body-only]
+  content ID [--revision N] [--offset N] [--max-chars 100..100000] [--body-only]
+  outline ID [--revision N] [--limit N] [--cursor CURSOR]
+  preview ID [--revision N]
+  backlinks|topics ID [--archived active|archived|all] [--limit N] [--cursor CURSOR]
+  Discovery: list/search also accept --knowledge-project ID|NAME --topic ID --curated-only
   create --title TITLE [--body TEXT | --body-file PATH|-] [--source-url URL] [--tag TAG] [--keyword WORDS] [--status STATUS] [--owner ACTOR|none] [--task ID] [--project ID|NAME]
   update ID [--title] [--body TEXT | --body-file PATH|-] [--source-url URL | --no-source-url] [--tag TAG | --clear-tags] [--keyword WORDS | --clear-keywords] [--status STATUS] [--owner ACTOR|none]
   review ID --revision N [--no-current]       unreview ID --revision N
@@ -56,19 +62,21 @@ export async function documentCommand(ctx: CliContext, args: string[]): Promise<
         rest,
         {
           task: { type: 'string' }, project: { type: 'string', multiple: true }, tag: { type: 'string', multiple: true }, status: { type: 'string', multiple: true },
+          'knowledge-project': { type: 'string' }, topic: { type: 'string' }, 'curated-only': { type: 'boolean' },
           owner: { type: 'string', multiple: true }, archived: { type: 'string', default: 'active' }, limit: { type: 'string' }, all: { type: 'boolean' },
         },
         1,
       )
       if (sub === 'search' && !positionals[0]) throw new CliError('A search query is required')
       const c = client()
+      const knowledgeProjectId = values['knowledge-project'] ? await resolveProject(c, values['knowledge-project']) : undefined
       const statuses = listValues(values.status)
       statuses?.forEach((status) => checkEnum(status, DOCUMENT_KNOWLEDGE_STATUSES, '--status'))
       checkEnum(values.archived, ['active', 'archived', 'all'], '--archived')
       const projectId = values.project ? await Promise.all(listValues(values.project)!.map((project) => resolveProject(c, project))) : undefined
       const ownerId = values.owner ? await Promise.all(listValues(values.owner)!.map(async (owner) => (await resolveActor(c, owner)) ?? 'none')) : undefined
       const items = await collect(out, itemBudget(values.limit, values.all), (cursor, limit) =>
-        c.documents.list({ q: positionals[0], taskId: values.task, projectId, tag: listValues(values.tag), status: statuses as DocumentKnowledgeStatus[] | undefined, ownerId, archived: values.archived as 'active', cursor, limit }),
+        c.documents.list({ knowledgeProjectId, topicId: values.topic, curatedOnly: values['curated-only'], q: positionals[0], taskId: values.task, projectId, tag: listValues(values.tag), status: statuses as DocumentKnowledgeStatus[] | undefined, ownerId, archived: values.archived as 'active', cursor, limit }),
       )
       out.list(items, [
         { header: 'ID', value: (d) => d.id },
@@ -80,6 +88,38 @@ export async function documentCommand(ctx: CliContext, args: string[]): Promise<
         { header: 'UPDATED', value: (d) => shortDate(d.updatedAt) },
         { header: 'EXCERPT', value: (d) => d.excerpt, max: 50 },
       ], 'No matching documents.')
+      return 0
+    }
+    case 'content':
+    case 'outline':
+    case 'preview': {
+      const { values, positionals } = parseCommand(rest, { revision: { type: 'string' }, offset: { type: 'string' }, 'max-chars': { type: 'string' }, 'body-only': { type: 'boolean' }, limit: { type: 'string' }, cursor: { type: 'string' } }, 1)
+      if (sub !== 'content' && (values.offset !== undefined || values['max-chars'] !== undefined || values['body-only'])) throw new CliError('--offset, --max-chars and --body-only apply only to content')
+      if (sub !== 'outline' && (values.limit !== undefined || values.cursor !== undefined)) throw new CliError('--limit and --cursor apply only to outline')
+      const id = requireId(positionals[0], 'Document')
+      const expectedRevision = values.revision === undefined ? undefined : numberFlag(values.revision, '--revision', 1, Number.MAX_SAFE_INTEGER)
+      if (sub === 'content') {
+        const result = await client().documents.content(id, { expectedRevision, offset: numberFlag(values.offset, '--offset', 0, Number.MAX_SAFE_INTEGER, 0), maxChars: numberFlag(values['max-chars'], '--max-chars', 100, 100000, 20000) })
+        if (values['body-only']) process.stdout.write(result.document.body)
+        else out.value(result, () => { out.details([['Document', result.document.title], ['Revision', result.document.revision], ['Status', result.document.status], ['Reviewed revision', result.document.reviewedRevision], ['Offset', result.document.bodyWindow.offset], ['Next offset', result.document.bodyWindow.nextOffset]]); out.line(result.document.body) })
+      } else if (sub === 'outline') {
+        const result = await client().documents.outline(id, { expectedRevision, cursor: values.cursor, limit: numberFlag(values.limit, '--limit', 1, 200, 50) })
+        showPage(ctx, result, [{ header: 'LEVEL', value: (r) => r.level }, { header: 'HEADING', value: (r) => r.text }, { header: 'OFFSET', value: (r) => r.offset }, { header: 'END', value: (r) => r.endOffset }], 'No Markdown headings.')
+        if (!out.machine) out.info(`Document revision: ${result.document.revision}; pass --revision ${result.document.revision} to content reads.`)
+      } else {
+        const result = await client().documents.preview(id, { expectedRevision })
+        out.value(result, () => { out.details([['Preview', result.state], ['Document', result.document?.title], ['Revision', result.document?.revision]]); if (result.body) out.line(result.body) })
+      }
+      return 0
+    }
+    case 'backlinks':
+    case 'topics': {
+      const { values, positionals } = parseCommand(rest, { archived: { type: 'string', default: 'active' }, limit: { type: 'string' }, cursor: { type: 'string' } }, 1)
+      checkEnum(values.archived, ['active', 'archived', 'all'], '--archived')
+      const id = requireId(positionals[0], 'Document')
+      const input = { archived: values.archived as 'active', limit: numberFlag(values.limit, '--limit', 1, 200, 50), cursor: values.cursor }
+      if (sub === 'backlinks') showPage(ctx, await client().documents.backlinks(id, input), [{ header: 'SOURCE', value: (r) => r.document.id }, { header: 'TITLE', value: (r) => r.document.title }, { header: 'REV', value: (r) => r.document.revision }, { header: 'STATUS', value: (r) => r.document.status }, { header: 'PROVENANCE', value: (r) => r.provenance.join(', ') }], 'No incoming references.')
+      else showPage(ctx, await client().documents.topics(id, input), [{ header: 'TOPIC', value: (r) => r.topic.id }, { header: 'NAME', value: (r) => r.topic.name }, { header: 'PROJECT', value: (r) => r.project.name }, { header: 'REV', value: (r) => r.topic.revision }], 'Not curated in a topic.')
       return 0
     }
     case 'show': {

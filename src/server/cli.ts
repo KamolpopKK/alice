@@ -76,7 +76,7 @@ export const commands: Record<string, CommandHandler> = {
       }
       return 0
     }
-    const ws = cloneRestore(root, path.resolve(values.from), values.reserved ?? [])
+    const ws = await cloneRestore(root, path.resolve(values.from), values.reserved ?? [])
     console.log(JSON.stringify({ mode: 'clone', workspace: ws }))
     return 0
   },

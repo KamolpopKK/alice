@@ -1,3 +1,4 @@
+import { prepareDocumentLinks } from '../domain/document-link-index'
 // Backup, restore และการตรวจสุขภาพของ Local workspace
 // - pre-migration: ก่อน migrate ทุกครั้ง ต้องสำเร็จและผ่านการตรวจก่อน มิฉะนั้นไม่เปิด workspace
 // - daily: ครั้งแรกของวันที่ข้อมูลเปลี่ยน; เก็บ 7 daily + 3 pre-migration; backup ที่กำลังใช้ (.in-use) ไม่ถูกลบ
@@ -173,6 +174,7 @@ export async function prepareDatabase(paths: WorkspacePaths, migrations: Migrati
     }
     try {
       migrate(db, migrations)
+      await prepareDocumentLinks(db)
     } catch (err) {
       writeRecovery(paths, { state: 'migration-failed', message: (err as Error).message, backup: backup?.name ?? null })
       throw err
@@ -231,7 +233,7 @@ function stageCopy(backupDir: string, manifest: BackupManifest, dataDir: string)
 }
 
 /** Default restore: a new workspace with a new id and alias. The source workspace is never touched. */
-export function cloneRestore(root: string, backupDir: string, reservedAliases: string[] = []): LocalWorkspace {
+export async function cloneRestore(root: string, backupDir: string, reservedAliases: string[] = []): Promise<LocalWorkspace> {
   const manifest = verifyBackup(backupDir)
   if (!manifest.workspaceId) throw new OpsError('This backup has no workspace identity')
   const registry = readRegistry(root)
@@ -245,6 +247,7 @@ export function cloneRestore(root: string, backupDir: string, reservedAliases: s
       migrate(db)
       rewriteWorkspaceId(db, manifest.workspaceId, ws.id)
       adoptIntegrations(db, registry.integrations)
+      await prepareDocumentLinks(db)
       db.pragma('journal_mode = DELETE')
     } finally {
       db.close()
@@ -287,6 +290,7 @@ export async function replaceRestore(root: string, workspaceId: string, backupDi
       migrate(db)
       if (manifest.workspaceId && manifest.workspaceId !== ws.id) rewriteWorkspaceId(db, manifest.workspaceId, ws.id)
       adoptIntegrations(db, registry.integrations)
+      await prepareDocumentLinks(db)
       db.pragma('journal_mode = DELETE')
     } finally {
       db.close()

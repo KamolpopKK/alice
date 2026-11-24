@@ -1,3 +1,4 @@
+import { prepareDocumentLinks, documentLinksReady } from '../domain/document-link-index'
 import fs from 'node:fs'
 import path from 'node:path'
 import Fastify, { LogController, type FastifyInstance, type FastifyRequest } from 'fastify'
@@ -48,6 +49,7 @@ export async function buildApp(ctx: AppContext, registrars: RouteRegistrar[] = [
     logController: new LogController({ disableRequestLogging: !ctx.config.logRequests }),
   })
   ctx.log = app.log
+  await prepareDocumentLinks(ctx.db, app.log)
 
   app.setErrorHandler(async (err, req, reply) => {
     if (err instanceof AliceError) {
@@ -118,6 +120,7 @@ export async function buildApp(ctx: AppContext, registrars: RouteRegistrar[] = [
       if (!isSchemaCurrent(ctx.db)) {
         return reply.status(503).send({ status: 'migrating', schemaVersion, version: APP_VERSION })
       }
+      if (!documentLinksReady(ctx.db)) return reply.status(503).send({ status: 'preparing-knowledge', schemaVersion, version: APP_VERSION })
       return { status: 'ready', schemaVersion, version: APP_VERSION }
     } catch {
       return reply.status(503).send({ status: 'unavailable', version: APP_VERSION })

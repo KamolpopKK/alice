@@ -1,3 +1,5 @@
+import { DocumentBacklinks } from '../components/DocumentBacklinks'
+import { useCapability } from '../hooks'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -34,6 +36,7 @@ const KNOWLEDGE_TONE: Record<DocumentKnowledgeStatus, 'warning' | 'info' | 'succ
 export function DocumentDetailPage() {
   const { id = '' } = useParams()
   const doc = useDocument(id)
+  const knowledge = useCapability('project-knowledge')
   const [mode, setMode] = useState<'view' | 'history'>('view')
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -120,6 +123,7 @@ export function DocumentDetailPage() {
         <aside className="document-side" aria-label="Links and activity">
           <KnowledgeLifecycle doc={d} />
           <DocumentRelations doc={d} />
+          {knowledge && <DocumentBacklinks documentId={d.id} />}
           <Links doc={d} />
           <DocumentActivity id={d.id} />
         </aside>

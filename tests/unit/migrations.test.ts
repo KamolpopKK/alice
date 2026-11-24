@@ -69,7 +69,7 @@ describe('migration runner', () => {
     db.prepare(`INSERT INTO task_documents (task_id, document_id, created_by, created_at) VALUES ('tsk_old', 'doc_old', 'usr_old', ?)`).run(now)
     db.prepare(`INSERT INTO project_documents (project_id, document_id, created_by, created_at) VALUES ('prj_old', 'doc_old', 'usr_old', ?)`).run(now)
 
-    expect(migrate(db, MIGRATIONS)).toEqual([16, 17])
+    expect(migrate(db, MIGRATIONS)).toEqual(MIGRATIONS.filter((m) => m.version > 15).map((m) => m.version))
     expect(db.prepare(`SELECT revision, knowledge_status, owner_id, reviewed_at, reviewed_by, reviewed_revision FROM documents WHERE id = 'doc_old'`).get()).toEqual({
       revision: 1,
       knowledge_status: 'unreviewed',
@@ -116,7 +116,7 @@ describe('migration runner', () => {
     )
     db.prepare(`INSERT INTO search_index (rowid, title, body) VALUES (?, 'Migration title', 'migration body https://source.example.test/provenance')`).run(rowid)
 
-    expect(migrate(db, MIGRATIONS)).toEqual([17])
+    expect(migrate(db, MIGRATIONS)).toEqual(MIGRATIONS.filter((m) => m.version > 16).map((m) => m.version))
     for (const query of ['aliasonly', 'platform', 'migration body', 'provenance']) {
       expect(
         db

@@ -16,6 +16,8 @@ Read [TEMPLATE.md](TEMPLATE.md) before drafting outputs. It links the shared for
 Keep the source systems read-only; saving approved knowledge to Alice or project files is the output,
 not permission to modify the systems being studied.
 
+Propose reviewable updates to owning knowledge and graphs; apply only the authorized subset and preserve unrelated coverage. Follow the shared document-knowledge guide.
+
 ## Safety
 
 - Your token is a secret. Never print it, paste it into comments or documents, or commit it.

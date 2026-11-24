@@ -23,6 +23,7 @@ export interface BackupManifest {
 
 const COUNTED_TABLES = [
   'actors', 'projects', 'tasks', 'comments', 'documents', 'document_revisions', 'task_documents', 'project_documents',
+  'knowledge_topics', 'knowledge_topic_documents', 'document_inline_links', 'document_link_index_state',
   'document_tags', 'document_keywords', 'document_relations', 'task_blockers', 'activity_events', 'pads', 'pad_blocks',
 ]
 

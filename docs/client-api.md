@@ -280,3 +280,13 @@ Alice-Removal: 0.4.0
 First-party clients no longer use `/api`: the Web moved in 0.2.0, and Desktop and the CLI never used it.
 **`/api` will be removed in Alice 0.4.0.** New integrations must use `/client/v1` (humans) or MCP
 (agents).
+
+## Project knowledge capability
+
+`project-knowledge` adds topic/member CRUD, project context and document content/outline/preview/
+backlink/topic reads without changing Client API v1. New routes are Client API only. See the
+[exact route/MCP mapping and concurrency rules](project-knowledge.md#contracts-and-concurrency).
+Discovery adds `knowledgeProjectId`, `topicId`, `curatedOnly` while existing filters remain AND filters.
+Context limit is1..20/default10; content maxChars100..100000/default20000; preview cap2000.
+Topic/member writes require mutationId and existing-topic expectedRevision; replay is actor/workspace
+scoped. Older clients ignore the added capability; older servers keep ordinary Documents/search.

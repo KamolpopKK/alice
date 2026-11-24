@@ -1,3 +1,8 @@
+import type { KnowledgeContext, knowledgeContextInput } from '../shared/contracts'
+import type { DocumentContent, DocumentOutline, DocumentPreview, documentContentInput, documentOutlineInput, documentPreviewInput } from '../shared/contracts'
+import type { DocumentBacklink, DocumentTopicMembership, listDocumentBacklinksInput } from '../shared/contracts'
+import type { TopicDocumentPage, listTopicDocumentsInput, putTopicDocumentInput } from '../shared/contracts'
+import type { KnowledgeTopic, KnowledgeTopicResult, TopicMutationInput, createKnowledgeTopicInput, updateKnowledgeTopicInput, listKnowledgeTopicsInput } from '../shared/contracts'
 import * as z from 'zod'
 import type { SavedView, createSavedViewInput } from '../shared/saved-views'
 import type {
@@ -176,6 +181,18 @@ export class AliceClient {
     return this.transport.subscribe(after, handlers)
   }
 
+  readonly knowledge = {
+    context: (projectId: string, input: Partial<z.infer<typeof knowledgeContextInput>> = {}) => this.get<KnowledgeContext>(`/projects/${enc(projectId)}/knowledge/context`, input),
+    documents: (topicId: string, input: Partial<z.infer<typeof listTopicDocumentsInput>> = {}) => this.get<TopicDocumentPage>(`/knowledge/topics/${enc(topicId)}/documents`, input),
+    putDocument: (topicId: string, documentId: string, input: z.input<typeof putTopicDocumentInput>) => this.call<KnowledgeTopicResult>('PUT', `/knowledge/topics/${enc(topicId)}/documents/${enc(documentId)}`, { body: input, idempotent: input.mutationId }),
+    removeDocument: (topicId: string, documentId: string, input: TopicMutationInput) => this.call<KnowledgeTopicResult>('DELETE', `/knowledge/topics/${enc(topicId)}/documents/${enc(documentId)}`, { body: input, idempotent: input.mutationId }),
+    topics: (projectId: string, input: Partial<z.infer<typeof listKnowledgeTopicsInput>> = {}) => this.get<Page<KnowledgeTopic>>(`/projects/${enc(projectId)}/knowledge/topics`, input),
+    topic: (id: string) => this.get<{ topic: KnowledgeTopic }>(`/knowledge/topics/${enc(id)}`),
+    createTopic: (projectId: string, input: z.input<typeof createKnowledgeTopicInput>) => this.call<KnowledgeTopicResult>('POST', `/projects/${enc(projectId)}/knowledge/topics`, { body: input, idempotent: input.mutationId }),
+    updateTopic: (id: string, input: z.input<typeof updateKnowledgeTopicInput>) => this.call<KnowledgeTopicResult>('PATCH', `/knowledge/topics/${enc(id)}`, { body: input, idempotent: input.mutationId }),
+    archiveTopic: (id: string, archived: boolean, input: TopicMutationInput) => this.call<KnowledgeTopicResult>('POST', `/knowledge/topics/${enc(id)}/${archived ? 'archive' : 'restore'}`, { body: input, idempotent: input.mutationId }),
+  }
+
   readonly auth = {
     state: () => this.get<{ bootstrapped: boolean }>('/auth/state'),
     me: () => this.get<{ actor: PublicActor; csrfToken: string | null; via?: string }>('/auth/me'),
@@ -262,6 +279,11 @@ export class AliceClient {
   }
 
   readonly documents = {
+    content: (id: string, input: Partial<z.infer<typeof documentContentInput>> = {}) => this.get<DocumentContent>(`/documents/${enc(id)}/content`, input),
+    outline: (id: string, input: Partial<z.infer<typeof documentOutlineInput>> = {}) => this.get<DocumentOutline>(`/documents/${enc(id)}/outline`, input),
+    preview: (id: string, input: z.infer<typeof documentPreviewInput> = {}) => this.get<DocumentPreview>(`/documents/${enc(id)}/preview`, input),
+    backlinks: (id: string, input: Partial<z.infer<typeof listDocumentBacklinksInput>> = {}) => this.get<Page<DocumentBacklink>>(`/documents/${enc(id)}/backlinks`, input),
+    topics: (id: string, input: Partial<z.infer<typeof listDocumentBacklinksInput>> = {}) => this.get<Page<DocumentTopicMembership>>(`/documents/${enc(id)}/topics`, input),
     list: (input: Partial<In<typeof listDocumentsInput>> = {}) => this.get<Page<DocumentSummary>>('/documents', toQuery(input)),
     get: (id: string) => this.get<{ document: DocumentDetail }>(`/documents/${enc(id)}`).then((r) => r.document),
     create: (input: In<typeof createDocumentInput>, options: MutationOptions = {}) =>

@@ -53,3 +53,10 @@ and keep editing** is the default. Reloading or closing the browser tab asks the
 Unsaved text is kept in memory only, for the workspace and person it belongs to. Moving around the app
 keeps it; it never shows up in another workspace or for another account. A reload, force quit or crash
 loses it.
+
+## Internal document links and previews
+
+The Link toolbar can search existing Documents and inserts standard ID-based Markdown links while
+keeping selected labels. Renames do not rewrite stored labels. Internal navigation, rendered heading
+fragments, provenance-aware backlinks and bounded accessible previews are described in
+[Project knowledge](project-knowledge.md). Existing source/raw Markdown preservation still applies.

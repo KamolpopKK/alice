@@ -8,4 +8,7 @@ export const ALL_TOOLS = [
   'get_task_context', 'add_comment', 'list_comments', 'complete_task',
   'request_approval', 'get_approval', 'list_approvals', 'cancel_approval',
   'get_task_relations', 'set_task_parent', 'add_task_blocker', 'remove_task_blocker',
+  'get_knowledge_context', 'list_topic_documents', 'put_topic_document', 'remove_topic_document',
+  'list_knowledge_topics', 'get_knowledge_topic', 'create_knowledge_topic', 'update_knowledge_topic', 'archive_knowledge_topic', 'restore_knowledge_topic',
+  'get_document_outline', 'get_document_preview', 'list_document_backlinks', 'list_document_topics',
 ]

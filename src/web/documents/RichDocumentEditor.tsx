@@ -1,3 +1,5 @@
+import { DocumentLinkPicker } from './DocumentLinkPicker'
+import { useCapability } from '../hooks'
 import type { Editor } from '@tiptap/core'
 import CodeBlock from '@tiptap/extension-code-block'
 import { EditorContent, NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor, useEditorState, type NodeViewProps } from '@tiptap/react'
@@ -100,6 +102,7 @@ const TOOLS: ToolButton[][] = [
 const SAFE_LINK = /^(https?:\/\/|mailto:|\/|#)/i
 
 function LinkForm({ editor, onClose }: { editor: Editor; onClose: () => void }) {
+  const knowledge = useCapability('project-knowledge')
   const [url, setUrl] = useState((editor.getAttributes('link').href as string | undefined) ?? '')
   const [error, setError] = useState('')
   const apply = (e: FormEvent) => {
@@ -134,10 +137,11 @@ function LinkForm({ editor, onClose }: { editor: Editor; onClose: () => void }) 
       <Button size="sm" onClick={apply}>
         {url.trim() ? 'Apply' : 'Remove link'}
       </Button>
-      <Button size="sm" variant="ghost" onClick={onClose}>
+      <Button size="sm" variant="ghost" onClick={() => { onClose(); editor.commands.focus() }}>
         Cancel
       </Button>
       {error && <FieldMessage tone="error">{error}</FieldMessage>}
+      {knowledge && <DocumentLinkPicker editor={editor} onClose={onClose} />}
     </div>
   )
 }
@@ -182,7 +186,7 @@ function Toolbar({ editor }: { editor: Editor }) {
           </div>
         ))}
         <div className="doc-toolbar-group">
-          <button type="button" className="doc-tool" aria-label="Link" title="Link" aria-pressed={state.link} aria-expanded={linking} disabled={state.raw} onClick={() => setLinking((v) => !v)}>
+          <button type="button" className="doc-tool" aria-label="Link" title="Link" aria-pressed={state.link} aria-expanded={linking} disabled={state.raw} onMouseDown={(e) => e.preventDefault()} onClick={() => setLinking((v) => !v)}>
             <Icon icon={Link2} size="sm" />
           </button>
           <button type="button" className="doc-tool" aria-label="Undo" title="Undo" disabled={!state.undo} onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().undo().run()}>

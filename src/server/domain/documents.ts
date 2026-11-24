@@ -1,3 +1,5 @@
+import { knowledgeFilters, documentTopicContext } from './knowledge-scope'
+import { indexDocumentLinks } from './document-link-index'
 import type * as z from 'zod'
 import {
   DOCUMENT_CONTENT_MESSAGE,
@@ -21,7 +23,7 @@ import { newId } from '../ids'
 import { mutate, type Mutation } from './activity'
 import { requireActiveActor, type Actor } from './actors'
 import { findProjectRow } from './projects'
-import { indexResource, search } from './search'
+import { indexResource, projectContext, search } from './search'
 import { actorCols, actorRefFrom, decodeCursor, diff, encodeCursor } from './sql'
 import { requireTaskRow } from './tasks'
 
@@ -198,6 +200,7 @@ export function createDocument(ctx: AppContext, actor: Actor, input: z.infer<typ
     replaceMetadata(m, id, 'document_keywords', input.searchKeywords ?? [])
     writeRevision(m, id, 1, { title: input.title, body: input.body, sourceUrl }, null)
     indexDocument(m, id)
+    indexDocumentLinks(m.db, { id, body: input.body, revision: 1 })
     m.record({ verb: 'document.created', resource: { type: 'document', id }, data: { title: input.title, revision: 1, status } })
     return id
   })
@@ -260,6 +263,7 @@ export function updateDocument(ctx: AppContext, actor: Actor, id: string, patch:
     if (patch.tags !== undefined) replaceMetadata(m, id, 'document_tags', patch.tags)
     if (patch.searchKeywords !== undefined) replaceMetadata(m, id, 'document_keywords', patch.searchKeywords)
     indexDocument(m, id)
+    if (contentChanged) indexDocumentLinks(m.db, { id, body: next.body, revision }, next.body !== row.body)
     // body อาจยาวมาก: เก็บแค่ว่ามีการแก้ ไม่เก็บเนื้อหาซ้ำใน activity
     const summary = Object.fromEntries(
       Object.entries({ ...contentChanges, ...metadataChanges }).map(([k, v]) => [k, k === 'body' ? { fromLength: String(v.from).length, toLength: String(v.to).length } : v]),
@@ -327,6 +331,7 @@ export function restoreDocumentRevision(ctx: AppContext, actor: Actor, id: strin
       )
       .run(rev.title, rev.body, rev.source_url, revision, actor.id, m.now, id)
     indexDocument(m, id)
+    indexDocumentLinks(m.db, { id, body: rev.body, revision }, rev.body !== row.body)
     m.record({ verb: 'document.revision_restored', resource: { type: 'document', id }, data: { restoredFrom: number, revision, title: rev.title } })
   })
   return { document: getDocument(ctx, id), activityId }
@@ -379,6 +384,7 @@ export function listDocuments(ctx: AppContext, input: z.infer<typeof listDocumen
       status: input.status,
       ownerId: input.ownerId,
       projectId: input.projectId,
+      knowledgeProjectId: input.knowledgeProjectId, topicId: input.topicId, curatedOnly: input.curatedOnly,
       archived: input.archived,
       cursor: input.cursor,
       limit,
@@ -386,13 +392,14 @@ export function listDocuments(ctx: AppContext, input: z.infer<typeof listDocumen
     return {
       items: results.items.map((result) => {
         const row = requireDocRow(ctx.db, ctx.workspaceId, result.id)
-        return { ...toSummary(row, ctx.db), match: result.kind === 'document' ? result.match : null }
+        return { ...toSummary(row, ctx.db), ...(result.kind === 'document' ? { projectContext: result.projectContext, topicContext: result.topicContext } : {}), match: result.kind === 'document' ? result.match : null }
       }),
       nextCursor: results.nextCursor,
     }
   }
-  const where = ['d.workspace_id = ?']
-  const params: unknown[] = [ctx.workspaceId]
+  const knowledge = knowledgeFilters(ctx, input, 'd')
+  const where = ['d.workspace_id = ?', ...knowledge.sql]
+  const params: unknown[] = [ctx.workspaceId, ...knowledge.params]
   if (input.archived === 'active') where.push('d.archived_at IS NULL')
   else if (input.archived === 'archived') where.push('d.archived_at IS NOT NULL')
   if (input.taskId) {
@@ -429,7 +436,7 @@ export function listDocuments(ctx: AppContext, input: z.infer<typeof listDocumen
   const rows = ctx.db.prepare(`${DOC_SELECT} WHERE ${where.join(' AND ')} ORDER BY d.updated_at DESC, d.id DESC LIMIT ?`).all(...params, limit + 1) as DocRow[]
   const page = rows.slice(0, limit)
   const last = page[page.length - 1]
-  return { items: page.map((row) => toSummary(row, ctx.db)), nextCursor: rows.length > limit ? encodeCursor([last.updated_at, last.id]) : null }
+  return { items: page.map((row) => ({ ...toSummary(row, ctx.db), projectContext: projectContext(ctx.db, row.id), topicContext: documentTopicContext(ctx.db, ctx.workspaceId, row.id) })), nextCursor: rows.length > limit ? encodeCursor([last.updated_at, last.id]) : null }
 }
 
 // ---------- Links ----------

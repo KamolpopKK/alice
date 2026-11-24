@@ -388,3 +388,9 @@ npm run desktop:dev  # Alice Desktop dev window (needs Rust)
 profile. Migrations are ordered, transactional and checksummed; a database from a newer build is refused.
 
 License: [AGPL-3.0](LICENSE)
+
+## Project knowledge
+
+Use topics and ordered references to find and reuse existing Documents across projects, then follow
+ID-based links/backlinks and previews or discover revision-specific agent context. Curation remains
+separate from review. See [Project knowledge](docs/project-knowledge.md).

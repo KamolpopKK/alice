@@ -12,4 +12,4 @@ export const CLIENT_API_VERSION_HEADER = 'alice-client-api'
 /** Request header naming the client product and version, e.g. `alice-cli/0.2.0`. */
 export const CLIENT_NAME_HEADER = 'alice-client'
 export const IDEMPOTENCY_HEADER = 'idempotency-key'
-export const CLIENT_CAPABILITIES = ['projects', 'tasks', 'documents', 'comments', 'relationships', 'activity', 'search', 'admin', 'idempotency', 'events.resume', 'device-auth', 'client-sessions', 'task-pads', 'saved-views', 'project-planning', 'approvals'] as const
+export const CLIENT_CAPABILITIES = ['project-knowledge', 'projects', 'tasks', 'documents', 'comments', 'relationships', 'activity', 'search', 'admin', 'idempotency', 'events.resume', 'device-auth', 'client-sessions', 'task-pads', 'saved-views', 'project-planning', 'approvals'] as const

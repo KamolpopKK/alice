@@ -226,3 +226,12 @@ Install only the demo skill with `alice install-skill --client codex --skill ali
 (or `--client claude-code`), then invoke `$alice-demo` or `/alice-demo` in a new agent session.
 This installs instructions, templates and helpers, not Chromium, FFmpeg or Python packages.
 See [Demo video presentations](alice-demo.md) for the separate job environment and review flow.
+
+## Knowledge commands
+
+`alice knowledge topic list|show|create|update|archive|restore`,
+`alice knowledge member list|put|add|move|remove` and `alice knowledge context` share the typed client.
+New `document content|outline|preview|backlinks|topics` commands preserve bounded read metadata/cursors.
+Document/global search add `--knowledge-project`, `--topic`, `--curated-only`. Existing document commands
+stay compatible. See [the tested Local example and contracts](project-knowledge.md#cli-example); use
+`knowledge help` / `document help` for flags. Explicit workspace/agent selection is unchanged.

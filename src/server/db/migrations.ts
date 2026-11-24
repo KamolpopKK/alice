@@ -653,6 +653,63 @@ export const MIGRATIONS: Migration[] = [
       LEFT JOIN comments c ON sd.kind = 'comment' AND c.id = sd.resource_id;
     `,
   },
+  {
+    version: 18,
+    name: 'knowledge_topics',
+    sql: `
+      CREATE TABLE knowledge_topics (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL REFERENCES workspaces(id),
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        name TEXT NOT NULL CHECK(length(trim(name)) BETWEEN 1 AND 200),
+        name_key TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '' CHECK(length(description) <= 2000),
+        revision INTEGER NOT NULL DEFAULT 1 CHECK(revision >= 1),
+        archived_at TEXT,
+        created_by TEXT NOT NULL REFERENCES actors(id),
+        updated_by TEXT NOT NULL REFERENCES actors(id),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      ) STRICT;
+      CREATE INDEX knowledge_topics_listing ON knowledge_topics(workspace_id, project_id, archived_at, name_key, id);
+      CREATE UNIQUE INDEX knowledge_topics_active_name ON knowledge_topics(project_id, name_key) WHERE archived_at IS NULL;
+    `,
+  },
+  {
+    version: 19,
+    name: 'knowledge_topic_documents',
+    sql: `
+      CREATE TABLE knowledge_topic_documents (
+        topic_id TEXT NOT NULL REFERENCES knowledge_topics(id) ON DELETE CASCADE,
+        document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+        order_key TEXT NOT NULL,
+        created_by TEXT NOT NULL REFERENCES actors(id),
+        updated_by TEXT NOT NULL REFERENCES actors(id),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (topic_id, document_id)
+      ) STRICT;
+      CREATE INDEX knowledge_topic_documents_order ON knowledge_topic_documents(topic_id, order_key, document_id);
+      CREATE INDEX knowledge_topic_documents_reverse ON knowledge_topic_documents(document_id, topic_id);
+    `,
+  },
+  {
+    version: 20,
+    name: 'document_inline_link_projection',
+    sql: `
+      CREATE TABLE document_inline_links (
+        source_document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+        target_document_id TEXT NOT NULL,
+        PRIMARY KEY (source_document_id, target_document_id)
+      ) STRICT;
+      CREATE INDEX document_inline_links_backlinks ON document_inline_links(target_document_id, source_document_id);
+      CREATE TABLE document_link_index_state (
+        source_document_id TEXT PRIMARY KEY REFERENCES documents(id) ON DELETE CASCADE,
+        content_revision INTEGER NOT NULL CHECK(content_revision >= 1),
+        parser_version INTEGER NOT NULL CHECK(parser_version >= 1)
+      ) STRICT;
+    `,
+  },
 ]
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version

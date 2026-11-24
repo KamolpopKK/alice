@@ -692,3 +692,10 @@
 .doc-raw-block.ProseMirror-selectednode {
   outline: var(--ui-focus-width) solid var(--ui-focus);
 }
+
+.doc-link-form > section { flex: 1 1 100%; min-width: 0; }
+
+.document-link { display: inline-flex; align-items: baseline; gap: var(--ui-space-1); max-width: 100%; }
+.document-link > a { overflow-wrap: anywhere; min-width: 0; }
+.document-link > button { flex-shrink: 0; vertical-align: middle; }
+.document-preview-text { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }

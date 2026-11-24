@@ -316,6 +316,9 @@ export const searchInput = z.object({
   /** Actor ids; the literal `none` matches documents without an owner. */
   ownerId: listOf(idSchema),
   projectId: listOf(idSchema),
+  knowledgeProjectId: idSchema.optional(),
+  topicId: idSchema.optional(),
+  curatedOnly: z.preprocess((v) => v === 'true' ? true : v === 'false' ? false : v, z.boolean().optional()),
   archived: archiveFilterSchema,
   cursor: cursorSchema,
   limit: limitSchema,
@@ -348,6 +351,7 @@ export interface DocumentSearchResult extends SearchResultBase {
   owner: ActorRef | null
   reviewedAt: string | null
   projectContext: { items: ProjectRef[]; total: number }
+  topicContext?: DocumentTopicContext
 }
 
 export type SearchResult = TaskOrCommentSearchResult | DocumentSearchResult
@@ -406,6 +410,9 @@ export const reviewDocumentInput = z
 export const clearDocumentReviewInput = z.object({ expectedRevision: z.number().int().min(1) }).strict()
 
 export const listDocumentsInput = z.object({
+  knowledgeProjectId: idSchema.optional(),
+  topicId: idSchema.optional(),
+  curatedOnly: z.preprocess((v) => v === 'true' ? true : v === 'false' ? false : v, z.boolean().optional()),
   q: z.string().trim().max(200).optional(),
   taskId: idSchema.optional(),
   projectId: listOf(idSchema),
@@ -432,6 +439,8 @@ export interface TaskRef {
 }
 
 export interface DocumentSummary {
+  topicContext?: DocumentTopicContext
+  projectContext?: { items: ProjectRef[]; total: number }
   id: string
   title: string
   sourceUrl: string | null
@@ -710,4 +719,74 @@ export interface ClientCredentials {
   refreshExpiresAt: string
   session: ClientSessionInfo
   actor: PublicActor
+}
+
+// ---------- Project knowledge ----------
+export interface KnowledgeTopic {
+  id: string
+  projectId: string
+  name: string
+  description: string
+  revision: number
+  archivedAt: string | null
+  createdAt: string
+  updatedAt: string
+  createdBy: ActorRef | null
+  updatedBy: ActorRef | null
+}
+export const knowledgeMutationIdSchema = z.string().regex(/^[A-Za-z0-9_.:-]{8,128}$/, 'Invalid mutationId')
+export const topicMutationInput = z.object({ mutationId: knowledgeMutationIdSchema, expectedRevision: z.number().int().min(1) }).strict()
+export type TopicMutationInput = z.infer<typeof topicMutationInput>
+export const createKnowledgeTopicInput = z.object({ name: documentTitleSchema, description: z.string().trim().max(2000).default(''), mutationId: knowledgeMutationIdSchema }).strict()
+export const updateKnowledgeTopicInput = topicMutationInput.extend({ name: documentTitleSchema.optional(), description: z.string().trim().max(2000).optional() }).strict()
+export const listKnowledgeTopicsInput = z.object({ archived: archiveFilterSchema, cursor: cursorSchema, limit: limitSchema })
+export type KnowledgeTopicResult = { topic: KnowledgeTopic; changed: boolean; activityId: string | null }
+
+export const listTopicDocumentsInput = z.object({ cursor: cursorSchema, limit: limitSchema })
+export const putTopicDocumentInput = topicMutationInput.extend({ beforeDocumentId: idSchema.optional() }).strict()
+export interface TopicDocument {
+  document: DocumentSummary
+  orderKey: string
+  projectContext: { items: ProjectRef[]; total: number }
+}
+export type TopicDocumentPage = Page<TopicDocument> & { topic: KnowledgeTopic }
+
+export const listDocumentBacklinksInput = z.object({ archived: archiveFilterSchema, cursor: cursorSchema, limit: limitSchema })
+export interface DocumentBacklink {
+  document: DocumentSummary
+  provenance: ('inline' | 'references')[]
+  projectContext: { items: ProjectRef[]; total: number }
+}
+export interface DocumentTopicMembership { topic: KnowledgeTopic; project: ProjectRef }
+
+export const documentContentInput = z.object({ expectedRevision: z.coerce.number().int().min(1).optional(), offset: z.coerce.number().int().min(0).default(0), maxChars: z.coerce.number().int().min(100).max(100_000).default(20_000) }).strict()
+export const documentOutlineInput = z.object({ expectedRevision: z.coerce.number().int().min(1).optional(), cursor: cursorSchema, limit: limitSchema }).strict()
+export const documentPreviewInput = z.object({ expectedRevision: z.coerce.number().int().min(1).optional() }).strict()
+export interface DocumentBodyWindow { offset: number; returnedChars: number; totalChars: number; truncated: boolean; nextOffset: number | null }
+export type DocumentContent = { document: DocumentSummary & { body: string; bodyWindow: DocumentBodyWindow } }
+export type DocumentOutline = Page<import('./document-links').DocumentHeading> & { document: DocumentSummary }
+export interface DocumentPreview { state: 'available' | 'archived' | 'unavailable'; document: DocumentSummary | null; body: string | null; bodyWindow: DocumentBodyWindow | null }
+
+export interface DocumentTopicContext {
+  items: Pick<KnowledgeTopic, 'id' | 'projectId' | 'name' | 'archivedAt'>[]
+  total: number
+  nextCursor: string | null
+}
+
+export const knowledgeContextInput = z.object({ q: z.string().trim().min(1).max(200).optional(), topicId: idSchema.optional(), limit: z.coerce.number().int().min(1).max(20).default(10), cursor: cursorSchema }).strict()
+export interface KnowledgeContext {
+  project: Pick<ProjectRef, 'id' | 'name' | 'archivedAt'>
+  topics: Page<Pick<KnowledgeTopic, 'id' | 'name' | 'description' | 'revision'>> & { continuation: Continuation | null }
+  candidates: Page<{
+    document: Pick<DocumentSummary, 'id' | 'title' | 'revision' | 'status' | 'owner' | 'reviewedAt' | 'reviewedBy' | 'reviewedRevision' | 'updatedAt' | 'updatedBy'>
+    excerpt: string
+    match: DocumentSearchMatch | null
+    projectContext: { items: ProjectRef[]; total: number }
+    topicContext: DocumentTopicContext
+    read: { outline: Continuation; content: Continuation }
+  }>
+  discovery: 'curated-order' | 'lexical'
+  limitations: string[]
+  fallback: Continuation
+  budget: { maxChars: number; usedChars: number; truncations: Truncation[] }
 }

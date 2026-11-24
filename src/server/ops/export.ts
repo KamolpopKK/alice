@@ -6,7 +6,7 @@ import { OpsError } from './errors'
 import { exportFileName } from './paths'
 
 export const EXPORT_FORMAT = 'alice-export'
-export const EXPORT_FORMAT_VERSION = 2
+export const EXPORT_FORMAT_VERSION = 3
 
 /** Streams a JSON document entity-by-entity so large workspaces never sit in memory at once. */
 class JsonWriter {
@@ -139,6 +139,10 @@ export function exportWorkspace(dbPath: string, outDir: string): ExportSummary {
       iter(`SELECT source_document_id AS sourceDocumentId, target_document_id AS targetDocumentId, relation_type AS type,
         created_by AS createdBy, created_at AS createdAt FROM document_relations ORDER BY source_document_id, target_document_id, relation_type`),
     )
+    counts.knowledgeTopics = json.array('knowledgeTopics', iter(`SELECT id, project_id AS projectId, name, name_key AS nameKey, description, revision, archived_at AS archivedAt,
+      created_by AS createdBy, updated_by AS updatedBy, created_at AS createdAt, updated_at AS updatedAt FROM knowledge_topics ORDER BY project_id, name_key, id`))
+    counts.knowledgeTopicDocuments = json.array('knowledgeTopicDocuments', iter(`SELECT topic_id AS topicId, document_id AS documentId, order_key AS orderKey,
+      created_by AS createdBy, updated_by AS updatedBy, created_at AS createdAt, updated_at AS updatedAt FROM knowledge_topic_documents ORDER BY topic_id, order_key, document_id`))
     counts.activity = json.array(
       'activity',
       (function* () {

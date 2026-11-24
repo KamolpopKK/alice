@@ -177,3 +177,54 @@ test('Web, CLI, Desktop and an MCP agent tell the same story on one board', asyn
     desktop.stop()
   }
 })
+
+test('knowledge curation, context and revision-safe reads agree across Web CLI Desktop and MCP', async ({ page }) => {
+  test.setTimeout(180000)
+  await page.goto(`${app.url}/login`)
+  await page.getByLabel('Username').fill(OWNER.username)
+  await page.getByLabel('Password', { exact: true }).fill(OWNER.password)
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(accountButton(page)).toBeVisible()
+  const p = (await owner.post('/client/v1/projects', { name: 'Cross-client knowledge' })).body.project
+  const d = (await owner.post('/client/v1/documents', { title: 'Shared cross-client source', body: '# Evidence\nOriginal source.' })).body.document
+  const bot = await createAgent(owner, 'Cross-client curator')
+  const mcp = await connectMcp(app.url, bot.token)
+  const desktop = await DesktopProbe.start()
+  try {
+    const home = cliHome('cross-knowledge-cli')
+    await alice(home, ['profile', 'add', 'knowledge', '--server', app.url])
+    const login = await startAlice(home, ['--workspace', 'knowledge', 'auth', 'login', '--no-browser'])
+    const [, code] = await login.waitForStderr(/code ([A-Z]{4}-[A-Z]{4})/)
+    await approveInBrowser(page, code)
+    expect((await login.done).code).toBe(0)
+    await desktop.send({ cmd: 'add_profile', name: 'knowledge', server: app.url })
+    const start = await desktop.send({ cmd: 'login', profile: 'knowledge' })
+    await approveInBrowser(page, start.userCode)
+    await desktop.waitFor((e) => e.event === 'alice://auth' && e.payload.status === 'signed_in')
+    await desktop.send({ cmd: 'subscribe' })
+    await desktop.waitFor((e) => e.event === 'alice://events' && e.payload.type === 'ready')
+    const t = (await mcp.ok('create_knowledge_topic', { projectId: p.id, name: 'Read first', mutationId: crypto.randomUUID() })).topic
+    const add = await alice(home, ['--workspace', 'knowledge', 'knowledge', 'member', 'put', t.id, d.id, '--revision', '1', '--mutation-id', crypto.randomUUID(), '--json'])
+    expect(add.code, add.stderr).toBe(0)
+    await desktop.waitFor((e) => e.event === 'alice://events' && e.payload.type === 'invalidate' && e.payload.data.id === p.id && e.payload.data.mutation === 'knowledge.document.put')
+    const endpoint = `/projects/${p.id}/knowledge/context`
+    const viaWeb = await web(page, endpoint)
+    const viaCli = JSON.parse((await alice(home, ['--workspace', 'knowledge', 'knowledge', 'context', '--project', p.id, '--json'])).stdout)
+    const viaDesktop = (await desktop.request('GET', endpoint)).data
+    const viaMcp = await mcp.ok('get_knowledge_context', { projectId: p.id })
+    expect(viaCli).toEqual(viaWeb)
+    expect(viaDesktop).toEqual(viaWeb)
+    expect(viaMcp).toEqual(viaWeb)
+    expect(viaWeb.candidates.items[0].document).toMatchObject({ id: d.id, revision: 1, status: 'unreviewed' })
+    await page.goto(`${app.url}/projects/${p.id}?tab=knowledge`)
+    await expect(page.getByRole('heading', { name: 'Read first', exact: true })).toBeVisible()
+    await mcp.ok('update_document', { id: d.id, body: '# Evidence\nChanged source.' })
+    expect((await mcp.call('get_document', { id: d.id, expectedRevision: 1 })).isError).toBe(true)
+    const stale = await desktop.send({ cmd: 'request', method: 'GET', path: `/documents/${d.id}/content`, query: { expectedRevision: '1' } })
+    expect(stale.status).toBe(409)
+    expect((await alice(home, ['--workspace', 'knowledge', 'document', 'content', d.id, '--revision', '1'])).code).toBe(4)
+    const preview = (await desktop.request('GET', `/documents/${d.id}/preview`)).data
+    expect(preview).toMatchObject({ state: 'available', document: { revision: 2, status: 'unreviewed' }, body: '# Evidence\nChanged source.' })
+    expect(app.output()).not.toContain(bot.token)
+  } finally { await mcp.close(); desktop.stop() }
+})

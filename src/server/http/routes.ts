@@ -13,6 +13,7 @@ import { registerRelationshipRoutes } from './relationship-routes'
 import { registerWorkspaceRoutes } from './workspace-routes'
 import { registerDeviceRoutes } from './device-routes'
 import { registerPadRoutes } from './pad-routes'
+import { registerKnowledgeRoutes } from './knowledge-routes'
 import { registerSavedViewRoutes } from './saved-view-routes'
 import { registerDownloadRoutes } from './download-routes'
 import { registerMcp } from '../mcp/server'
@@ -43,6 +44,7 @@ const registerHumanRoutes: RouteRegistrar = async (app, ctx) => {
   await app.register(async (child) => registerPadRoutes(child, ctx), { prefix: CLIENT_API_PREFIX })
   // saved views ของแต่ละคน: Client API เท่านั้น
   await app.register(async (child) => registerSavedViewRoutes(child, ctx), { prefix: CLIENT_API_PREFIX })
+  await app.register(async (child) => registerKnowledgeRoutes(child, ctx), { prefix: CLIENT_API_PREFIX })
   for (const prefix of HUMAN_ROUTE_PREFIXES) {
     await app.register(
       async (child) => {

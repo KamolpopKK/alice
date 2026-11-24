@@ -1,3 +1,6 @@
+import { useEffect } from 'react'
+import type { Nodes, Root } from 'mdast'
+import { DocumentLink, scrollDocumentFragment } from './DocumentLink'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { MermaidDiagram } from './MermaidDiagram'
@@ -13,18 +16,39 @@ const components: Components = {
     }
     return <pre {...props}>{children}</pre>
   },
-  a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer nofollow" />,
+  a: ({ node: _node, ...props }) => <DocumentLink {...props} />,
   // GFM task-list inputs are read-only, but still need an accessible name.
   input: ({ node: _node, type, ...props }) => <input {...props} type={type} aria-label={type === 'checkbox' ? 'Task list item' : undefined} />,
 }
 
 // react-markdown ไม่ render raw HTML และกรอง URL อันตราย (javascript: ฯลฯ) ตั้งแต่ต้น
+function headingAnchors() {
+  return (tree: Root) => {
+    const used = new Set<string>()
+    const text = (node: Nodes): string => 'value' in node ? node.value : 'children' in node ? node.children.map(text).join('') : 'alt' in node ? node.alt ?? '' : ''
+    const visit = (node: Nodes) => {
+      if (node.type === 'heading') {
+        const base = text(node).toLowerCase().trim().replace(/[^\p{L}\p{M}\p{N}_ -]/gu, '').replace(/ +/g, '-') || 'section'
+        let id = base
+        let count = 0
+        while (used.has(id)) id = `${base}-${++count}`
+        used.add(id)
+        node.data = { ...node.data, hProperties: { ...node.data?.hProperties, id } }
+      }
+      if ('children' in node) node.children.forEach(visit)
+    }
+    visit(tree)
+  }
+}
+const plugins = [remarkGfm, headingAnchors]
+
 export function Markdown({ source, className = '' }: { source: string; className?: string }) {
+  useEffect(scrollDocumentFragment, [source])
   if (!source.trim()) return <p className="muted">No description.</p>
   return (
     <div className={`markdown ${className}`}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={plugins}
         skipHtml
         components={components}
       >

@@ -1,3 +1,4 @@
+import { knowledgeCommand } from './commands/knowledge'
 import { CliContext, type GlobalFlags } from './context'
 import { authCommand } from './commands/auth'
 import { LEGACY_SERVER_COMMANDS, installSkillCommand, legacyServerCommand, mcpConfigCommand, versionCommand } from './commands/misc'
@@ -33,7 +34,10 @@ Work
   project list|show|create|update|archive|restore
   task list|show|create|update|assign|claim|comment|comments|complete|archive|restore|parent|block|unblock|relations|activity
   document list|search|show|create|update|review|unreview|relations|relate|unrelate|link|unlink|archive|restore|revisions|restore-revision   (alias: doc)
+  knowledge topic|member|context           Curate sources and discover bounded context
+  document content|outline|preview|backlinks|topics ID [--revision N] [--cursor CURSOR]
   search QUERY [--kind task|document|comment] [--tag TAG] [--status STATUS] [--owner ACTOR|none] [--project ID|NAME]
+  Search scope: --knowledge-project ID|NAME [--topic ID] [--curated-only]
   import [DIR] [--project ID|NAME] [--dry-run]   Bring a board kept as Markdown files (.alice/) into this workspace
   activity [--actor ID] [--type task|project|document] [--limit N | --all]
   actor list
@@ -134,6 +138,8 @@ export async function main(argv: string[], env: NodeJS.ProcessEnv = process.env)
       case 'doc':
       case 'docs':
         return await documentCommand(ctx, args)
+      case 'knowledge':
+        return await knowledgeCommand(ctx, args)
       case 'import':
         return await importCommand(ctx, args)
       case 'activity':
