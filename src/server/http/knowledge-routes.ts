@@ -1,3 +1,5 @@
+import { knowledgeContextInput } from '../../shared/contracts'
+import { getKnowledgeContext } from '../domain/knowledge'
 import { documentContentInput, documentOutlineInput, documentPreviewInput } from '../../shared/contracts'
 import { getDocumentContent, getDocumentOutline, getDocumentPreview } from '../domain/document-content'
 import { listDocumentBacklinksInput } from '../../shared/contracts'
@@ -32,6 +34,10 @@ export function registerKnowledgeRoutes(app: FastifyInstance, ctx: AppContext) {
     return getDocumentPreview(ctx, parse(z.object({ id: idSchema }), req.params).id, parse(documentPreviewInput, req.query))
   })
   const project = z.object({ projectId: idSchema })
+  app.get('/projects/:projectId/knowledge/context', async (req) => {
+    requireAuth(req)
+    return getKnowledgeContext(ctx, parse(project, req.params).projectId, parse(knowledgeContextInput, req.query))
+  })
   const topic = z.object({ topicId: idSchema })
   const member = topic.extend({ documentId: idSchema })
   app.get('/knowledge/topics/:topicId/documents', async (req) => {

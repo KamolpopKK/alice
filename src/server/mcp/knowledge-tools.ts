@@ -1,3 +1,5 @@
+import { knowledgeContextInput } from '../../shared/contracts'
+import { getKnowledgeContext } from '../domain/knowledge'
 import { listTopicDocumentsInput, putTopicDocumentInput } from '../../shared/contracts'
 import { listTopicDocuments, putTopicDocument, removeTopicDocument } from '../domain/knowledge'
 import * as z from 'zod'
@@ -6,6 +8,7 @@ import { archiveKnowledgeTopic, createKnowledgeTopic, getKnowledgeTopic, listKno
 import { defineTool } from './registry'
 
 export const KNOWLEDGE_TOOLS = [
+  defineTool({ name: 'get_knowledge_context', title: 'Discover knowledge context', description: 'Discover bounded curated reading starts or lexical candidates, then read selected outlines/content at their actual revision. No semantic conclusions or full bodies.', input: knowledgeContextInput.extend({ projectId: idSchema }).strict(), readOnly: true, handler: (ctx, _a, { projectId, ...input }) => getKnowledgeContext(ctx, projectId, input) }),
   defineTool({
     name: 'list_topic_documents', title: 'List topic documents', description: 'Read an ordered list of existing documents with provenance and a revision-stable cursor.', input: listTopicDocumentsInput.extend({ topicId: idSchema }).strict(), readOnly: true,
     handler: (ctx, _a, { topicId, ...input }) => listTopicDocuments(ctx, topicId, input)

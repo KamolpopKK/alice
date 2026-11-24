@@ -1,3 +1,4 @@
+import type { KnowledgeContext, knowledgeContextInput } from '../shared/contracts'
 import type { DocumentContent, DocumentOutline, DocumentPreview, documentContentInput, documentOutlineInput, documentPreviewInput } from '../shared/contracts'
 import type { DocumentBacklink, DocumentTopicMembership, listDocumentBacklinksInput } from '../shared/contracts'
 import type { TopicDocumentPage, listTopicDocumentsInput, putTopicDocumentInput } from '../shared/contracts'
@@ -181,6 +182,7 @@ export class AliceClient {
   }
 
   readonly knowledge = {
+    context: (projectId: string, input: Partial<z.infer<typeof knowledgeContextInput>> = {}) => this.get<KnowledgeContext>(`/projects/${enc(projectId)}/knowledge/context`, input),
     documents: (topicId: string, input: Partial<z.infer<typeof listTopicDocumentsInput>> = {}) => this.get<TopicDocumentPage>(`/knowledge/topics/${enc(topicId)}/documents`, input),
     putDocument: (topicId: string, documentId: string, input: z.input<typeof putTopicDocumentInput>) => this.call<KnowledgeTopicResult>('PUT', `/knowledge/topics/${enc(topicId)}/documents/${enc(documentId)}`, { body: input, idempotent: input.mutationId }),
     removeDocument: (topicId: string, documentId: string, input: TopicMutationInput) => this.call<KnowledgeTopicResult>('DELETE', `/knowledge/topics/${enc(topicId)}/documents/${enc(documentId)}`, { body: input, idempotent: input.mutationId }),

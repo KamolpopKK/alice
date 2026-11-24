@@ -1,3 +1,7 @@
+import type { knowledgeContextInput, KnowledgeContext } from '../../shared/contracts'
+import { ContextBudget } from './context-budget'
+import { knowledgeFilters, documentTopicContext } from './knowledge-scope'
+import { listDocuments } from './documents'
 import type { listTopicDocumentsInput, putTopicDocumentInput, TopicDocumentPage } from '../../shared/contracts'
 import { requireDocRow, toSummary } from './documents'
 import { projectContext } from './search'
@@ -201,4 +205,58 @@ function changeTopicDocument(ctx: AppContext, actor: Actor, id: string, document
     const activityId = m.record({ verb: remove ? 'knowledge.document.removed' : 'knowledge.document.put', resource: { type: 'project', id: topic.projectId }, data: { topicId: id, documentId } })
     return { topic: getKnowledgeTopic(ctx, id), changed: true, activityId }
   })
+}
+
+/** Discovery returns candidates, never a semantic answer or an aggregation of document bodies. */
+export function getKnowledgeContext(ctx: AppContext, projectId: string, input: z.infer<typeof knowledgeContextInput>): KnowledgeContext {
+  const project = getProject(ctx, projectId)
+  knowledgeFilters(ctx, { knowledgeProjectId: projectId, topicId: input.topicId }, 'd')
+  let position = 0
+  let searchCursor: string | null = null
+  if (input.cursor) {
+    const c = decodeCursor(input.cursor)
+    if (!c || c.length !== 4 || c[0] !== projectId || c[1] !== (input.q ?? '') || c[2] !== (input.topicId ?? '') || typeof c[3] !== 'string') throw new AliceError('VALIDATION_ERROR', 'Invalid knowledge context cursor')
+    if (input.q) searchCursor = c[3]
+    else {
+      position = Number(c[3])
+      if (!Number.isSafeInteger(position) || position < 0) throw new AliceError('VALIDATION_ERROR', 'Invalid knowledge context position')
+    }
+  }
+  const budget = new ContextBudget(96_000)
+  const topics = input.topicId ? { items: [getKnowledgeTopic(ctx, input.topicId)], nextCursor: null } : listKnowledgeTopics(ctx, projectId, { archived: 'active', limit: 10 })
+  const topicItems = topics.items.map((t, i) => ({ id: t.id, name: t.name, revision: t.revision, description: budget.text(`topics.items.${i}.description`, t.description, 500, { tool: 'get_knowledge_topic', args: { id: t.id } }) }))
+  const scope = input.topicId ? ' AND k.id = ?' : ''
+  const params = [ctx.workspaceId, projectId, ...(input.topicId ? [input.topicId] : [])]
+  const from = `FROM knowledge_topics k JOIN knowledge_topic_documents m ON m.topic_id = k.id JOIN documents d ON d.id = m.document_id
+    WHERE k.workspace_id = ? AND k.project_id = ? AND k.archived_at IS NULL AND d.workspace_id = k.workspace_id AND d.archived_at IS NULL${scope}`
+  const hasCuration = ctx.db.prepare(`SELECT 1 ${from} LIMIT 1`).get(...params)
+  let documents: ReturnType<typeof listDocuments> = { items: [], nextCursor: null }
+  if (hasCuration && input.q) documents = listDocuments(ctx, { q: input.q, knowledgeProjectId: projectId, topicId: input.topicId, archived: 'active', limit: input.limit, cursor: searchCursor })
+  else if (hasCuration) {
+    const rows = ctx.db.prepare(`WITH ordered AS (
+      SELECT d.id, k.name_key, k.id AS topic_id, m.order_key,
+        row_number() OVER (PARTITION BY d.id ORDER BY k.name_key, k.id, m.order_key, d.id) AS occurrence ${from}
+    ) SELECT id FROM ordered WHERE occurrence = 1 ORDER BY name_key, topic_id, order_key, id LIMIT ? OFFSET ?`).all(...params, input.limit + 1, position) as { id: string }[]
+    documents = { items: rows.slice(0, input.limit).map((r) => toSummary(requireDocRow(ctx.db, ctx.workspaceId, r.id), ctx.db)), nextCursor: rows.length > input.limit ? String(position + input.limit) : null }
+  }
+  const candidates = documents.items.map((d, i) => {
+    const { id, title, revision, status, owner, reviewedAt, reviewedBy, reviewedRevision, updatedAt, updatedBy } = d
+    const document = { id, title, revision, status, owner, reviewedAt, reviewedBy, reviewedRevision, updatedAt, updatedBy }
+    const match = d.match ? { ...d.match, excerpt: budget.text(`candidates.items.${i}.match.excerpt`, d.match.excerpt, 200, { tool: 'get_document', args: { id, expectedRevision: revision } }) } : null
+    const candidate = { document, match, projectContext: d.projectContext ?? projectContext(ctx.db, id), topicContext: d.topicContext ?? documentTopicContext(ctx.db, ctx.workspaceId, id), read: {
+      outline: { tool: 'get_document_outline', args: { id, expectedRevision: revision } },
+      content: { tool: 'get_document', args: { id, expectedRevision: revision, maxChars: 20000 } },
+    } }
+    budget.charge(JSON.stringify(candidate).length)
+    return { ...candidate, excerpt: budget.text(`candidates.items.${i}.excerpt`, d.excerpt, 200, candidate.read.content) }
+  })
+  return {
+    project: { id: project.id, name: project.name, archivedAt: project.archivedAt },
+    topics: { items: topicItems, nextCursor: topics.nextCursor, continuation: topics.nextCursor ? { tool: 'list_knowledge_topics', args: { projectId, archived: 'active', cursor: topics.nextCursor, limit: 10 } } : null },
+    candidates: { items: candidates, nextCursor: documents.nextCursor === null ? null : encodeCursor([projectId, input.q ?? '', input.topicId ?? '', documents.nextCursor]) },
+    discovery: input.q ? 'lexical' : 'curated-order',
+    limitations: ['Curated does not mean reviewed or current.', 'Lexical matches do not detect semantic conflicts.', 'Read selected outlines and content at the returned revision; discovery does not include full bodies.'],
+    fallback: { tool: 'search_documents', args: { ...(input.q ? { q: input.q } : {}), archived: 'active', limit: input.limit } },
+    budget: { maxChars: budget.maxChars, usedChars: budget.usedChars, truncations: budget.truncations },
+  }
 }

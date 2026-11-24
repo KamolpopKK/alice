@@ -772,3 +772,21 @@ export interface DocumentTopicContext {
   total: number
   nextCursor: string | null
 }
+
+export const knowledgeContextInput = z.object({ q: z.string().trim().min(1).max(200).optional(), topicId: idSchema.optional(), limit: z.coerce.number().int().min(1).max(20).default(10), cursor: cursorSchema }).strict()
+export interface KnowledgeContext {
+  project: Pick<ProjectRef, 'id' | 'name' | 'archivedAt'>
+  topics: Page<Pick<KnowledgeTopic, 'id' | 'name' | 'description' | 'revision'>> & { continuation: Continuation | null }
+  candidates: Page<{
+    document: Pick<DocumentSummary, 'id' | 'title' | 'revision' | 'status' | 'owner' | 'reviewedAt' | 'reviewedBy' | 'reviewedRevision' | 'updatedAt' | 'updatedBy'>
+    excerpt: string
+    match: DocumentSearchMatch | null
+    projectContext: { items: ProjectRef[]; total: number }
+    topicContext: DocumentTopicContext
+    read: { outline: Continuation; content: Continuation }
+  }>
+  discovery: 'curated-order' | 'lexical'
+  limitations: string[]
+  fallback: Continuation
+  budget: { maxChars: number; usedChars: number; truncations: Truncation[] }
+}
