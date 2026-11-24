@@ -1,5 +1,5 @@
+import { DocumentLink } from '../components/DocumentLink'
 import { useRef, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { KnowledgeTopic } from '../../shared/contracts'
 import { newIdempotencyKey } from '../../client/client'
@@ -64,7 +64,7 @@ export function TopicReadingList({ topic, readOnly }: {
       {members.isLoading ? <Skeleton lines={2} /> : members.error ? <Banner tone="danger" title="Reading list could not be loaded" action={<Button onClick={() => void members.refetch()}>Reload reading list</Button>}>{errorText(members.error)}</Banner> : <>
         {!rows.length && <EmptyState title="No reading documents yet">Choose existing documents in the order people should read them.</EmptyState>}
         <ol>{rows.map((item, i) => <li key={item.document.id}>
-          <Link to={`/documents/${item.document.id}`}>{item.document.title}</Link>
+          <DocumentLink href={`/documents/${item.document.id}`}>{item.document.title}</DocumentLink>
           <p>{item.document.status} · Revision {item.document.revision}{item.document.archivedAt ? ' · Archived document' : ''}</p>
           <p>Linked projects: {item.projectContext.items.map((p) => p.name + (p.archivedAt ? ' (archived)' : '')).join(', ') || 'None'}{item.projectContext.total > item.projectContext.items.length ? ` (+${item.projectContext.total - item.projectContext.items.length} more)` : ''}</p>
           {!readOnly && <div className="row">

@@ -1,3 +1,4 @@
+import { DocumentLink } from './DocumentLink'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useInfiniteQuery } from '@tanstack/react-query'
@@ -25,7 +26,7 @@ export function DocumentBacklinks({ documentId }: { documentId: string }) {
       {backlinks.isLoading ? <Skeleton lines={2} /> : backlinks.error ? <Banner tone="danger" title="Backlinks could not be loaded" action={<Button onClick={() => void backlinks.refetch()}>Retry backlinks</Button>}>{errorText(backlinks.error)}</Banner> : <>
         {!items.length && <EmptyState title="No incoming references" />}
         <ul className="document-relation-list">{items.map(({ document: d, provenance, projectContext }) => <li key={d.id}>
-          <span><Link to={`/documents/${d.id}`}>{d.title}</Link> <Badge>{d.status}</Badge>{d.archivedAt && <Badge>Archived source</Badge>}
+          <span><DocumentLink href={`/documents/${d.id}`}>{d.title}</DocumentLink> <Badge>{d.status}</Badge>{d.archivedAt && <Badge>Archived source</Badge>}
             <span> · Revision {d.revision}</span><p>{provenance.map((p) => p === 'inline' ? 'Link in content' : 'Manual reference').join(' · ')}</p>
             {projectContext.items.length > 0 && <p>Linked projects: {projectContext.items.map((p) => p.name).join(', ')}{projectContext.total > projectContext.items.length ? ` (+${projectContext.total - projectContext.items.length} more)` : ''}</p>}
           </span>

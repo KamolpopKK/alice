@@ -1,3 +1,4 @@
+import { DocumentLink } from '../components/DocumentLink'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useInfiniteQuery } from '@tanstack/react-query'
@@ -39,7 +40,7 @@ export function KnowledgeSearch({ projectId, topics }: {
     {results.isLoading ? <Skeleton lines={3} /> : results.error ? <Banner tone="danger" title="Knowledge search could not be loaded" action={<Button onClick={() => void results.refetch()}>Retry knowledge search</Button>}>{errorText(results.error)}</Banner> : <>
       {!items.length && <EmptyState title="No matching documents in this scope">Try other words or filters, or search all Documents. Relevant knowledge may use different wording.</EmptyState>}
       <ul>{items.map((d) => <li key={d.id}>
-        <Link to={`/documents/${d.id}`}>{d.title}</Link> <Badge>{d.status}</Badge><span> · Revision {d.revision}</span>
+        <DocumentLink href={`/documents/${d.id}`}>{d.title}</DocumentLink> <Badge>{d.status}</Badge><span> · Revision {d.revision}</span>
         <p>{d.excerpt}</p>{d.match && <p>Matched {d.match.field}{d.match.value ? `: ${d.match.value}` : ''}</p>}
         <p>Linked projects: {d.projectContext?.items.map((p) => p.name).join(', ') || 'None'}</p>
         <p>Topics: {d.topicContext?.items.map((t) => t.name + (t.archivedAt ? ' (archived)' : '')).join(', ') || 'Not curated'}{d.topicContext && d.topicContext.total > d.topicContext.items.length && <> · <Link to={`/documents/${d.id}`}>View all {d.topicContext.total} topics</Link></>}</p>
