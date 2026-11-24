@@ -9,7 +9,7 @@ Before creating a brief, design, plan or reusable finding:
 1. Discover the relevant project/topic first with `list_knowledge_topics` and `get_knowledge_context`
    when available; inspect candidates, not the whole vault. Use `search_documents` / `search` for normal
    discovery or when curation is empty. Do not ask for attachments that the selected workspace already
-   contains. Search is lexical (title, keywords, tags, body and source URL), not semantic/vector search
+   contains. Search is lexical (title, keywords, tags, body and source URL), not semantic or vector search
    or conflict detection. Older servers without `project-knowledge` use ordinary document search.
    For Local CLI: `alice knowledge context --project ID [--q QUERY] [--topic ID] --json`.
    Read selected headings with `get_document_outline`, then `get_document` at the returned

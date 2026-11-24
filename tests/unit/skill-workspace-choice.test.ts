@@ -59,7 +59,7 @@ describe('the shared document knowledge guide', () => {
       expect(text).toContain('[DOCUMENT-KNOWLEDGE.md](DOCUMENT-KNOWLEDGE.md)')
     }
     expect(guide).toContain('not semantic or vector search')
-    expect(guide).toContain('title + id + section')
+    expect(guide).toContain('title + id + revision actually read + heading or offset range')
     expect(guide).toContain('use `superseded` only as history')
     expect(guide).toContain('does not apply to project files')
   })

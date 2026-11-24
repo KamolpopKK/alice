@@ -40,11 +40,14 @@ const linkInput = z
   .strict()
   .refine((v) => (v.taskId ? 1 : 0) + (v.projectId ? 1 : 0) === 1, { message: 'Provide exactly one of taskId or projectId' })
 
-export const DOCUMENT_TOOLS = [
+export const KNOWLEDGE_DOCUMENT_TOOLS = [
   defineTool({ name: 'get_document_outline', title: 'Get document outline', description: 'Read paginated heading offsets at one revision; pass expectedRevision when reading selected ranges.', input: documentOutlineInput.extend({ id: idSchema }).strict(), readOnly: true, handler: (ctx, _a, { id, ...input }) => getDocumentOutline(ctx, id, input) }),
   defineTool({ name: 'get_document_preview', title: 'Get document preview', description: 'Preview at most 2000 characters; archived/unavailable documents expose no body.', input: documentPreviewInput.extend({ id: idSchema }).strict(), readOnly: true, handler: (ctx, _a, { id, ...input }) => getDocumentPreview(ctx, id, input) }),
   defineTool({ name: 'list_document_backlinks', title: 'List document backlinks', description: 'Read incoming inline/manual references with distinct provenance; excludes related, supersedes and curation.', input: listDocumentBacklinksInput.extend({ id: idSchema }).strict(), readOnly: true, handler: (ctx, _a, { id, ...input }) => listDocumentBacklinks(ctx, id, input) }),
   defineTool({ name: 'list_document_topics', title: 'List document topics', description: 'Read curated topic memberships, separately from body references and review.', input: listDocumentBacklinksInput.extend({ id: idSchema }).strict(), readOnly: true, handler: (ctx, _a, { id, ...input }) => listDocumentTopics(ctx, id, input) }),
+]
+
+export const DOCUMENT_TOOLS = [
   defineTool({
     name: 'search_documents',
     title: 'Search documents',
