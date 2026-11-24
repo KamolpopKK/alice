@@ -1,7 +1,7 @@
 ---
 name: alice
 description: Work on the team's Alice taskboard through its MCP tools, the alice command or Markdown files in the project's .alice/ folder — find ready tasks, claim them atomically, load task context, post progress comments and complete work with a summary. Use when asked to pick up, work on, update or report on Alice tasks, projects or documents.
-version: 0.2.8
+version: 0.2.9
 ---
 
 # Working in Alice

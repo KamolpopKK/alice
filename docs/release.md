@@ -1,3 +1,20 @@
+# Alice 0.2.9 — Project Knowledge and alice-curate
+
+- **Project Knowledge.** Topics give a project an introduction and an ordered reading list of existing
+  Documents, shared without copying. Editor links between documents navigate inside the app and
+  produce backlinks; safe previews show lifecycle, revision and review state.
+- **Bounded discovery for agents.** Knowledge search covers a project's links plus topic membership.
+  Content windows and outlines are stable per revision. Discovery is lexical only; there is no
+  semantic or vector search. Available from Web/Desktop, the CLI (`alice knowledge`) and MCP.
+- **`alice-curate`.** Ask an agent to inspect a project's or workspace's knowledge, focused or as a full
+  content comparison. Findings and proposals stay in chat, and only the items you approve are applied.
+  See [Curating project knowledge](alice-curate.md).
+- All seven bundled skills advance to 0.2.9 for Local integration refresh. Update Desktop/CLI and
+  restart the agent session. Client API v1 and MCP v1 gain the additive `project-knowledge` capability;
+  older clients keep their existing Documents workflows.
+- Migrations 18–20 run at start-up. Keep a verified pre-upgrade backup: older binaries reject the newer
+  schema, so a downgrade means restoring that backup. Portable export is now format v3.
+
 # Alice 0.2.8 — Chat-first discovery rounds
 
 - `alice-think` always presents the full question round in chat with numbered `❓` questions,
