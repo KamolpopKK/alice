@@ -113,3 +113,12 @@ Task resources include `parentId`, `childCount` and `openBlockerCount`.
   include lifecycle/owner/project context and the same best-match explanation as `search_documents`.
 
 Enums: status `backlog | ready | in_progress | blocked | done | canceled`; priority `none | low | medium | high | urgent`.
+
+## Project knowledge tools
+
+MCP v1 adds `list_knowledge_topics`, `get_knowledge_topic`, `create_knowledge_topic`,
+`update_knowledge_topic`, `archive_knowledge_topic`, `restore_knowledge_topic`, `list_topic_documents`,
+`put_topic_document`, `remove_topic_document`, `get_knowledge_context`, `list_document_backlinks`,
+`list_document_topics`, `get_document_outline` and `get_document_preview`. `get_document` additionally
+accepts optional expectedRevision; old calls remain valid. See [Project knowledge](project-knowledge.md)
+for limits, scoped writes, deliberate continuations and actual-revision citations.

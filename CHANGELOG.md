@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Added
+
+- Project Knowledge topics and ordered shared Document references, scoped lexical/context discovery,
+  canonical editor links/backlinks and safe bounded previews across Web/Desktop/CLI/MCP.
+- Revision-stable content/outline reads, actor-scoped topic/member replay and additive capability fallback.
+- Portable export v3 includes authoritative knowledge topics/memberships; source-preserving recovery,
+  both-client guidance and measured knowledge workloads are covered by qualification evidence.
+
+
 ## 0.2.8 — 2026-11-24
 
 ### Fixed
