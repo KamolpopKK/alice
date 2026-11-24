@@ -69,7 +69,7 @@ describe('agent tooling downloads', () => {
     expect(cli.status).toBe(0)
     expect(fs.readFileSync(path.join(home, '.claude/skills/alice/SKILL.md'), 'utf8')).toBe(SKILL)
     // ทุก skill ต้องถูกฝังมาใน alice.js ด้วย โดยไม่ต้องมี source อยู่ข้าง ๆ
-    for (const skill of ['alice-plan', 'alice-think', 'alice-spec']) {
+    for (const skill of ['alice-plan', 'alice-think', 'alice-spec', 'alice-curate']) {
       for (const file of fs.readdirSync(path.join(ROOT, 'skill', skill))) {
         expect(fs.readFileSync(path.join(home, '.claude/skills', skill, file), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, 'skill', skill, file), 'utf8'))
       }

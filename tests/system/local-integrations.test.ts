@@ -48,6 +48,7 @@ describe('Local agent integrations', () => {
     expect(skill).toBe(fs.readFileSync(path.join(ROOT, 'skill/alice/SKILL.md'), 'utf8'))
     expect(skill).toContain('--as codex')
     expect(fs.existsSync(path.join(h.env.HOME, '.codex/skills/alice-plan/SKILL.md'))).toBe(true)
+    expect(fs.readFileSync(path.join(h.env.HOME, '.codex/skills/alice-curate/SKILL.md'), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, 'skill/alice-curate/SKILL.md'), 'utf8'))
     expect(fs.existsSync(path.join(h.env.HOME, '.claude/skills/alice'))).toBe(false)
 
     // workspace ที่สร้างทีหลังได้ agent ที่เลือกไว้เมื่อเปิดครั้งแรก
@@ -62,7 +63,7 @@ describe('Local agent integrations', () => {
 
     const list = json((await alice(h, ['integration', 'list', '--json'])).stdout).data
     const codex = list.find((a: { client: string }) => a.client === 'codex')
-    expect(codex).toMatchObject({ optedIn: true, skills: { alice: APP_VERSION, 'alice-plan': APP_VERSION, 'alice-spec': APP_VERSION } })
+    expect(codex).toMatchObject({ optedIn: true, skills: { alice: APP_VERSION, 'alice-plan': APP_VERSION, 'alice-spec': APP_VERSION, 'alice-curate': APP_VERSION } })
     expect(codex.credentials.sort()).toEqual(['personal', 'side'])
     expect(JSON.stringify(list)).not.toContain('alice_lc_')
     // agent เปลี่ยน integration เองไม่ได้
@@ -102,17 +103,24 @@ describe('Local agent integrations', () => {
     const understand = path.join(h.env.HOME, '.codex/skills/alice-understand/SKILL.md')
     expect(fs.existsSync(understand)).toBe(true)
     fs.unlinkSync(understand)
+    const curate = path.join(h.env.HOME, '.codex/skills/alice-curate/SKILL.md')
+    fs.writeFileSync(curate, fs.readFileSync(curate, 'utf8').replace(/^version: .*$/m, 'version: 0.1.0'))
     fs.mkdirSync(path.join(h.env.HOME, '.claude/skills/alice'), { recursive: true })
     fs.writeFileSync(path.join(h.env.HOME, '.claude/skills/alice/SKILL.md'), 'version: 0.1.0\n')
     const refreshed = json((await alice(h, ['integration', 'refresh', '--json'])).stdout).data.refreshed
-    expect(refreshed).toEqual([{ client: 'codex', installed: ['alice', 'alice-understand'] }])
+    expect(refreshed).toEqual([{ client: 'codex', installed: ['alice', 'alice-understand', 'alice-curate'] }])
     expect(fs.readFileSync(understand, 'utf8')).toContain(`version: ${APP_VERSION}`)
+    expect(fs.readFileSync(curate, 'utf8')).toContain(`version: ${APP_VERSION}`)
     expect(fs.readFileSync(file, 'utf8')).toContain(`version: ${APP_VERSION}`)
     // Claude ไม่ได้เปิด: ไม่ถูกแตะ
     expect(fs.readFileSync(path.join(h.env.HOME, '.claude/skills/alice/SKILL.md'), 'utf8')).toBe('version: 0.1.0\n')
 
     fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace(/^version: .*$/m, 'version: 0.0.1'))
+    // doctor ตรวจเวอร์ชันของ SKILL.md: curate ที่เก่าถูกติดตั้งใหม่ทั้งชุด รวมไฟล์ที่หายไป
+    fs.writeFileSync(curate, fs.readFileSync(curate, 'utf8').replace(/^version: .*$/m, 'version: 0.0.1'))
+    fs.unlinkSync(path.join(h.env.HOME, '.codex/skills/alice-curate/TEMPLATE.md'))
     expect((await alice(h, ['doctor', '--repair', '--yes'])).code).toBe(0)
     expect(fs.readFileSync(file, 'utf8')).toContain(`version: ${APP_VERSION}`)
+    expect(fs.readFileSync(path.join(h.env.HOME, '.codex/skills/alice-curate/TEMPLATE.md'), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, 'skill/alice-curate/TEMPLATE.md'), 'utf8'))
   })
 })

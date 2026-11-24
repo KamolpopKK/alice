@@ -343,7 +343,7 @@ describe('documented installation in a clean environment', () => {
     const home = tempDataDir('skills-home')
     const all = runCli(['install-skill', '--client', 'claude-code'], { HOME: home })
     expect(all.status).toBe(0)
-    for (const skill of ['alice', 'alice-plan', 'alice-think', 'alice-spec', 'alice-understand', 'alice-demo']) {
+    for (const skill of ['alice', 'alice-plan', 'alice-think', 'alice-spec', 'alice-understand', 'alice-demo', 'alice-curate']) {
       expect(all.stdout).toContain(`Installed the ${skill} skill to ${path.join(home, '.claude/skills', skill)}`)
       expect(fs.readFileSync(path.join(home, '.claude/skills', skill, 'SKILL.md'), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, 'skill', skill, 'SKILL.md'), 'utf8'))
       for (const file of fs.readdirSync(path.join(ROOT, 'skill', skill))) {
@@ -359,14 +359,24 @@ describe('documented installation in a clean environment', () => {
     for (const file of sharedFiles) {
       const guide = fs.readFileSync(path.join(ROOT, 'skill/_shared', file), 'utf8')
       expect(fs.readFileSync(path.join(only, '.codex/skills/alice-plan', file), 'utf8')).toBe(guide)
-      for (const skill of ['alice', 'alice-plan', 'alice-think', 'alice-spec', 'alice-understand', 'alice-demo']) {
+      for (const skill of ['alice', 'alice-plan', 'alice-think', 'alice-spec', 'alice-understand', 'alice-demo', 'alice-curate']) {
         expect(fs.readFileSync(path.join(home, '.claude/skills', skill, file), 'utf8')).toBe(guide)
+      }
+    }
+
+    // เลือก alice-curate ได้ตัวเดียว พร้อมไฟล์ของมันและไฟล์กลางครบทุกไฟล์
+    const curate = tempDataDir('skills-curate')
+    expect(runCli(['install-skill', '--client', 'claude-code', '--skill', 'alice-curate'], { HOME: curate }).status).toBe(0)
+    expect(fs.readdirSync(path.join(curate, '.claude/skills'))).toEqual(['alice-curate'])
+    for (const relative of ['skill/_shared', 'skill/alice-curate']) {
+      for (const file of fs.readdirSync(path.join(ROOT, relative))) {
+        expect(fs.readFileSync(path.join(curate, '.claude/skills/alice-curate', file), 'utf8')).toBe(fs.readFileSync(path.join(ROOT, relative, file), 'utf8'))
       }
     }
 
     const unknown = runCli(['install-skill', '--client', 'codex', '--skill', 'alice-ops'], { HOME: only })
     expect(unknown.status).toBe(1)
-    expect(unknown.stderr).toContain('--skill must be one of: alice, alice-plan, alice-think, alice-spec, alice-understand, alice-demo')
+    expect(unknown.stderr).toContain('--skill must be one of: alice, alice-plan, alice-think, alice-spec, alice-understand, alice-demo, alice-curate')
   })
 
   it('Claude Code config connects over remote MCP using the token from the environment', async () => {
