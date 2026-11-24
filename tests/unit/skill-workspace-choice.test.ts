@@ -51,7 +51,7 @@ describe('the shared project files guide', () => {
 
 describe('the shared document knowledge guide', () => {
   const guide = fs.readFileSync(path.join(ROOT, 'skill/_shared/DOCUMENT-KNOWLEDGE.md'), 'utf8')
-  const skills = ['alice', 'alice-plan', 'alice-think', 'alice-spec', 'alice-understand', 'alice-demo']
+  const skills = ['alice', 'alice-plan', 'alice-think', 'alice-spec', 'alice-understand', 'alice-demo', 'alice-curate']
 
   it('is required by every skill and distinguishes runtime documents from project files', () => {
     for (const skill of skills) {

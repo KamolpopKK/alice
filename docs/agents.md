@@ -35,7 +35,7 @@ The adapter refuses to start against a server that speaks a different MCP contra
 contract it needs. The `install-skill` and `mcp-config` helpers are part of the `alice` CLI. They also
 work from the standalone `alice.js`, which has every skill embedded.
 
-Alice ships six skills, and `install-skill` installs all of them unless you pass `--skill` with one
+Alice ships seven skills, and `install-skill` installs all of them unless you pass `--skill` with one
 name:
 
 | Skill | Use it to |
@@ -46,6 +46,7 @@ name:
 | `alice-plan` | Break agreed requirements and a sufficient technical approach into reviewed tasks, dependencies and verification steps. |
 | `alice-understand` | Understand an existing system, connect business flows to code/services, and maintain reusable knowledge with a separate Mermaid System graph. |
 | `alice-demo` | Create capture, HTML or mixed demo videos from a user-reviewed storyboard, with optional narration and subtitles. See [the demo guide](alice-demo.md). |
+| `alice-curate` | Inspect a knowledge library on request, report evidence-based findings in chat and apply only the changes you approve. See [the curation guide](alice-curate.md). |
 
 Every skill talks to you about tasks and documents by their titles, adding the project or parent task
 when two share a title. It shows an id only when you ask for it or an exact command needs it, and then
@@ -90,6 +91,25 @@ release containing the skill, or build this source for development. See the
 [output templates](../skill/alice-understand/TEMPLATE.md) and
 [walkthrough](../tests/manual/alice-understand.md).
 
+## Curating project knowledge
+
+Use `$alice-curate` in Codex or `/alice-curate` in Claude Code when you want an agent to check or tidy
+existing knowledge, for example:
+
+```text
+Check the alice dev knowledge with a focused inspection.
+Compare every document in the Payments project in full.
+```
+
+The agent agrees the scope (one project by default, the whole workspace only when you say so) and the
+depth: **A — Focused inspection** (recommended) or **B — Full content comparison**, which reads every
+document and takes more time and tokens. It reports findings in chat as fact, suspicion, conflict or
+unknown, with the document title, id, revision actually read and section. Inspection is read-only and
+needs no saved report or task. Changes happen only for the proposal items you approve, after the agent
+re-reads the latest document or topic; review, archive and supersedes always need their own approval.
+`alice-understand` stays the skill for understanding code and systems. Examples, sample reports and the
+approval flow: [Curating project knowledge](alice-curate.md).
+
 ## Downloading the tools from your server
 
 Every Alice server serves the CLI and the stdio adapter that match its version. No sign-in is needed, and
@@ -111,7 +131,7 @@ The recommended setup (the one the Agents page uses) runs the stdio adapter, whi
 from a file every time it connects:
 
 ```bash
-alice install-skill --client claude-code            # ~/.claude/skills/{alice,alice-plan,alice-think,alice-spec,alice-understand,alice-demo} (use --scope project for ./.claude)
+alice install-skill --client claude-code            # ~/.claude/skills/{alice,alice-plan,alice-think,alice-spec,alice-understand,alice-demo,alice-curate} (use --scope project for ./.claude)
 mkdir -p ~/.config/alice && (umask 077; printf 'Paste the Alice agent token: '; read -rs t; printf %s "$t" > ~/.config/alice/token; echo)
 claude mcp add --scope user -e ALICE_URL=https://alice.example.com -e ALICE_TOKEN_FILE=$HOME/.config/alice/token --transport stdio alice -- alice-mcp-stdio
 claude mcp get alice                                # Status: ✔ Connected
@@ -133,7 +153,7 @@ needs a restart.
 ## Codex
 
 ```bash
-alice install-skill --client codex                  # ~/.codex/skills/{alice,alice-plan,alice-think,alice-spec,alice-understand,alice-demo}
+alice install-skill --client codex                  # ~/.codex/skills/{alice,alice-plan,alice-think,alice-spec,alice-understand,alice-demo,alice-curate}
 mkdir -p ~/.config/alice && (umask 077 && printf %s "$ALICE_TOKEN" > ~/.config/alice/token)
 alice mcp-config --client codex --url https://alice.example.com >> ~/.codex/config.toml
 ```
@@ -418,7 +438,7 @@ alice integration unassign codex --workspace personal --yes
 ```
 
 Enabling an agent does three things:
-1. It installs the `alice`, `alice-plan`, `alice-think`, `alice-spec`, `alice-understand` and `alice-demo` skills and their supporting files for that client.
+1. It installs the `alice`, `alice-plan`, `alice-think`, `alice-spec`, `alice-understand`, `alice-demo` and `alice-curate` skills and their supporting files for that client.
 2. It gives the agent its own identity in every Local workspace. Workspaces created later get it when
    they first open.
 3. It stores the agent's credential in the OS credential store.
@@ -437,7 +457,7 @@ The Remote setup on the **Agents** page (MCP, the stdio adapter and downloads) i
 
 The Local setup prompt carries setup through verification. It finds `alice` on PATH or at
 `~/.local/bin/alice`, uses available app-control tools to install the command if needed, enables only
-the selected client, checks all six skills and supporting files, and selects a Local workspace before
+the selected client, checks all seven skills and supporting files, and selects a Local workspace before
 reading ready tasks. With several Local workspaces it asks which to use. It does not claim tasks.
 
 The agent requests the filesystem, network, Local daemon or app-control access an action needs through

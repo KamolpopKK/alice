@@ -110,7 +110,8 @@ blind retry. Writes, activity and replay state commit together. Existing event k
 events do not contain Document bodies.
 
 Agents propose reviewable organization/content changes with target IDs/revisions, changes, reasons and
-review consequences before applying them. Reuse existing scoped approval; apply only the approved
+review consequences before applying them. To have an agent inspect a library on request and propose
+those changes, use the `alice-curate` skill: see [Curating project knowledge](alice-curate.md). Reuse existing scoped approval; apply only the approved
 subset. Read requests do not authorize library reorganization. Curation/content generation never
 counts as review, and unrelated archive/supersedes is not implied. This does not gate ordinary tests
 or implementation already authorized by the task.

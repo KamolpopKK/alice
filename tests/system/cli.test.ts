@@ -20,26 +20,26 @@ async function cliLogin(home: CliEnv, approver: HttpClient, profile?: string) {
 const secretsIn = (text: string) => text.match(/alice_(c[ar]|dc)_[a-z0-9]+/g) ?? []
 
 describe('alice CLI artifact', () => {
-  it('installs the embedded understanding skill for both clients and scopes without source files', async () => {
+  it('installs the embedded understanding and curation skills for both clients and scopes without source files', async () => {
     const { standalone } = await buildCli()
-    for (const client of ['codex', 'claude-code']) {
+    for (const skill of ['alice-understand', 'alice-curate']) for (const client of ['codex', 'claude-code']) {
       for (const scope of ['user', 'project']) {
-        const target = tempDataDir('understand-install')
+        const target = tempDataDir(`${skill}-install`)
         const home = cliHome()
-        const result = await alice(home, ['install-skill', '--client', client, '--scope', scope, '--skill', 'alice-understand'], {
+        const result = await alice(home, ['install-skill', '--client', client, '--scope', scope, '--skill', skill], {
           entry: path.join(standalone, 'alice.js'), extraEnv: { HOME: target }, cwd: target,
         })
         expect(result.code, result.stderr).toBe(0)
         const base = path.join(target, client === 'codex' ? '.codex/skills' : '.claude/skills')
-        expect(fs.readdirSync(base)).toEqual(['alice-understand'])
-        for (const relative of ['skill/_shared', 'skill/alice-understand']) {
+        expect(fs.readdirSync(base)).toEqual([skill])
+        for (const relative of ['skill/_shared', `skill/${skill}`]) {
           const source = path.resolve(import.meta.dirname, '../..', relative)
           for (const file of fs.readdirSync(source)) {
-            expect(fs.readFileSync(path.join(base, 'alice-understand', file), 'utf8')).toBe(fs.readFileSync(path.join(source, file), 'utf8'))
+            expect(fs.readFileSync(path.join(base, skill, file), 'utf8')).toBe(fs.readFileSync(path.join(source, file), 'utf8'))
           }
         }
         const version = await alice(home, ['version', '--json'], { entry: path.join(standalone, 'alice.js'), extraEnv: { HOME: target }, cwd: target })
-        expect(JSON.parse(version.stdout).agentSkills['alice-understand'][`${client} (${scope})`]).toBe(APP_VERSION)
+        expect(JSON.parse(version.stdout).agentSkills[skill][`${client} (${scope})`]).toBe(APP_VERSION)
       }
     }
   })

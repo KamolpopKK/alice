@@ -39,10 +39,10 @@ describe('README Quick start with AI agents', () => {
     }
   })
 
-  it('names the client identity, checks all six skills and never promises a Local runtime it does not install', () => {
+  it('names the client identity, checks every skill and never promises a Local runtime it does not install', () => {
     for (const name of ['Full setup', 'Skills only']) {
       expect(prompts[name]).toMatch(/codex\s+for\s+Codex,\s+claude-code\s+for\s+Claude\s+Code/)
-      for (const skill of ['alice-think', 'alice-spec', 'alice-plan', 'alice-understand', 'alice-demo']) expect(prompts[name]).toContain(skill)
+      for (const skill of ['alice-think', 'alice-spec', 'alice-plan', 'alice-understand', 'alice-demo', 'alice-curate']) expect(prompts[name]).toContain(skill)
       expect(prompts[name]).toMatch(/PROJECT-FILES\.md,\s+DOCUMENT-KNOWLEDGE\.md\s+and\s+OUTPUT-FORMATS\.md/)
     }
     expect(prompts['alice command only']).toMatch(/does\s+not\s+give\s+this\s+computer\s+a\s+Local\s+runtime/)

@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url'
 export const CLIENTS = ['claude-code', 'codex'] as const
 export type AgentClient = (typeof CLIENTS)[number]
 
-/** Agent skills shipped with Alice: implementation, planning, discovery and technical design. */
-export const SKILLS = ['alice', 'alice-plan', 'alice-think', 'alice-spec', 'alice-understand', 'alice-demo'] as const
+/** Agent skills shipped with Alice: implementation, planning, discovery, technical design, understanding, demos and knowledge curation. */
+export const SKILLS = ['alice', 'alice-plan', 'alice-think', 'alice-spec', 'alice-understand', 'alice-demo', 'alice-curate'] as const
 export type SkillName = (typeof SKILLS)[number]
 
 /** Files under skill/_shared/ ship inside every skill, so whichever skill an agent uses has them. */

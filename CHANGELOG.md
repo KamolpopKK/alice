@@ -9,6 +9,9 @@
 - Revision-stable content/outline reads, actor-scoped topic/member replay and additive capability fallback.
 - Portable export v3 includes authoritative knowledge topics/memberships; source-preserving recovery,
   both-client guidance and measured knowledge workloads are covered by qualification evidence.
+- **`alice-curate` skill.** Ask an agent to inspect a project's or workspace's knowledge (focused or
+  full content comparison), get evidence-based findings and proposals in chat, and apply only the items
+  you approve. Installed with the other skills for Codex and Claude Code.
 
 
 ## 0.2.8 — 2026-11-24
