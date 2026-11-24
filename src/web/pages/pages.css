@@ -692,3 +692,5 @@
 .doc-raw-block.ProseMirror-selectednode {
   outline: var(--ui-focus-width) solid var(--ui-focus);
 }
+
+.doc-link-form > section { flex: 1 1 100%; min-width: 0; }
