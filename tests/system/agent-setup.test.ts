@@ -13,6 +13,8 @@ import { runCli, startApp, tempDataDir, type RunningApp } from '../helpers/app'
 import { bootstrapOwner, createAgent, type AgentHandle } from '../helpers/client'
 import { connectWithTransport } from '../helpers/mcp'
 import { ALL_TOOLS } from '../helpers/tools'
+import { DOCUMENT_HELP } from '../../src/cli/commands/document'
+import { KNOWLEDGE_HELP } from '../../src/cli/commands/knowledge'
 
 const ROOT = path.resolve(import.meta.dirname, '../..')
 const SKILL = fs.readFileSync(path.join(ROOT, 'skill/alice/SKILL.md'), 'utf8')
@@ -190,6 +192,87 @@ describe('alice-think skill', () => {
     expect(think).toMatch(/Never claim, start or complete tasks while thinking/)
     expect(think).not.toMatch(/claim_task|complete_task/)
     expect(think).toMatch(/token is a secret/i)
+  })
+})
+
+describe('alice-curate skill', () => {
+  const dir = path.join(ROOT, 'skill/alice-curate')
+  const curate = fs.readFileSync(path.join(dir, 'SKILL.md'), 'utf8')
+  const template = fs.readFileSync(path.join(dir, 'TEMPLATE.md'), 'utf8')
+  const between = (from: string, to: string) => curate.slice(curate.indexOf(from), curate.indexOf(to))
+
+  it('has YAML front matter that tracks the server and routes understanding to alice-understand', () => {
+    const front = parseYaml(/^---\n([\s\S]*?)\n---\n/.exec(curate)![1])
+    expect(front).toMatchObject({ name: 'alice-curate', version: APP_VERSION, description: expect.any(String) })
+    expect(front.description.length).toBeGreaterThan(40)
+    expect(front.description.length).toBeLessThanOrEqual(1024)
+    expect(front.description).toContain('use alice-understand')
+    expect(curate).toContain(`MCP contract v${MCP_CONTRACT_VERSION}`)
+    expect(between('## When to use another skill', '## Recovering from errors')).toContain('`alice-understand`')
+  })
+
+  it('links only files that exist in its flat installed package', () => {
+    for (const text of [curate, template]) {
+      for (const [, link] of text.matchAll(/\]\(([^)#]+\.md)(?:#[^)]*)?\)/g)) {
+        expect(fs.existsSync(path.join(dir, link)) || fs.existsSync(path.join(ROOT, 'skill/_shared', link)), link).toBe(true)
+      }
+    }
+    for (const guide of ['DOCUMENT-KNOWLEDGE.md', 'TEMPLATE.md', 'PROJECT-FILES.md']) expect(curate).toContain(`[${guide}](${guide})`)
+  })
+
+  it('names only MCP tools and CLI commands that exist', () => {
+    const both = `${curate}\n${template}`
+    const named = new Set([...both.matchAll(/`([a-z]+(?:_[a-z]+)+)\b/g)].map((m) => m[1]).filter((n) => /^(get|list|create|update|archive|restore|claim|complete|add|link|unlink|search|set|remove|put|review|clear)_/.test(n)))
+    for (const name of named) expect(ALL_TOOLS).toContain(name)
+    for (const tool of ['search_documents', 'list_knowledge_topics', 'get_knowledge_topic', 'list_topic_documents', 'get_knowledge_context', 'get_document_preview', 'list_document_topics', 'list_document_relations', 'list_document_backlinks', 'get_document_outline', 'get_document', 'update_document', 'put_topic_document', 'remove_topic_document', 'update_knowledge_topic', 'link_document_relation']) {
+      expect(curate).toContain(`\`${tool}`)
+    }
+    // คำสั่ง CLI ที่ skill อ้างต้องอยู่ใน help จริง
+    for (const command of ['--knowledge-project', 'outline', 'content', 'backlinks', 'topics', 'relations']) expect(DOCUMENT_HELP).toContain(command)
+    for (const command of ['topic list', 'topic update', 'member list', 'member put', 'member remove', 'context']) expect(KNOWLEDGE_HELP).toContain(command)
+  })
+
+  it('agrees scope and depth first and recommends A without treating it as the answer', () => {
+    const scope = between('## 1. Agree scope and depth', '## 2. Inspect the structure')
+    for (const rule of ['Reuse the workspace already chosen', 'One project by default', 'whole workspace only when the person asks', 'never\n  inspect the rest of its project', '**A — Focused inspection** (recommended)', '**B — Full content comparison**', 'more time and tokens', 'your recommendation is not the person\'s choice', 'Do not ask again when the\n  request already states scope and depth']) {
+      expect(scope).toContain(rule)
+    }
+    expect(template).toContain('I will wait for your choice before starting')
+  })
+
+  it('inspects structure from project links and curation without overclaiming', () => {
+    const structure = between('## 2. Inspect the structure', '## 3. Read content')
+    for (const rule of ['`knowledgeProjectId` (actual\n   project links union active topic membership)', 'deduplicate\n   by document id', 'not from search excerpts', 'archived, unavailable or superseded', 'information to weigh, not errors on their own', 'because of its age, or a duplicate because titles look alike']) {
+      expect(structure).toContain(rule)
+    }
+    const content = between('## 3. Read content', '## 4. Report in chat')
+    for (const rule of ['`CONFLICT`', 'do not combine\nwindows from different revisions', 'Record the reason for each read', 'Read every document in the inventory to its end', 'Never fall back to A without saying so', 'never call the comparison complete', 'revision actually read and the heading or offset range', 'never\nclaim that every duplicate or conflict was found', '**Fact**', '**Suspicion**', '**Conflict**', '**Unknown**']) {
+      expect(content).toContain(rule)
+    }
+  })
+
+  it('reports in chat and stops without writes unless items are approved', () => {
+    const report = between('## 4. Report in chat', '## 5. Propose')
+    for (const rule of ['what was found → evidence → impact → proposal', 'separate from items that need a decision', 'no issues were found within the inspected scope', 'never certify', 'Do not save the report as a Document or create tasks unless the person asks', 'Without approval nothing changes']) {
+      expect(report).toContain(rule)
+    }
+    expect(between('## Safety', '## Naming tasks')).toContain('Inspection never writes')
+    expect(template).toContain('This is not a guarantee that the whole library is correct')
+    expect(template).toContain('| # | Class | Found | Evidence | Impact | Proposal |')
+    expect(curate).not.toMatch(/claim_task|complete_task|create_task|create_document|review_document|archive_document|archive_knowledge_topic/)
+  })
+
+  it('applies only the approved subset after re-reading the latest state', () => {
+    const apply = between('## 5. Propose and apply', '## Curating project files')
+    for (const rule of ['the revision\nit is based on', 'effect on revision and review', 'approve all, some or none', 'does not approve review, archive, restore or supersedes', 'Re-read the latest document', 'propose the revised item and\n   wait for approval', 'other people\'s edits survive', 'has no compare-and-swap', '`expectedRevision` and a new `mutationId`', 'same\n   `mutationId` and payload', 'applied, failed (with the error), not applied and why']) {
+      expect(apply).toContain(rule)
+    }
+    for (const result of ['Applied', 'Not applied — changed since proposal', 'Failed', 'Not applied — not approved']) expect(template).toContain(result)
+  })
+
+  it('keeps project files to their own Markdown format', () => {
+    const files = between('## Curating project files', '## When to use another skill')
+    for (const rule of ['there are no topics,\nlifecycle status, review, backlinks or typed relations', 'Do not invent topics or\nstatus fields']) expect(files).toContain(rule)
   })
 })
 
