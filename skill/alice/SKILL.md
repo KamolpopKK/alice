@@ -19,6 +19,8 @@ overview. Follow only relevant detail, verify the code being changed, and update
 System graph when responsibilities, contracts, dependencies or flows change. Internal-only edits need
 no document rewrite. Follow the shared knowledge guide; do not invoke alice-understand automatically.
 
+Discover scoped knowledge before selective reads; cite the actual revision and keep runtime maintenance within the approved scope. Follow the shared document-knowledge guide.
+
 ## Safety
 
 - Your token is a secret. Never print it, paste it into comments or documents, or commit it.

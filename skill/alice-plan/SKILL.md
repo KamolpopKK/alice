@@ -35,6 +35,8 @@ the board is where the person reviews it. Ask only for information that is genui
 workspace, the project, an unsettled scope or main design decision, or a planning choice that existing
 conventions cannot settle.
 
+Link task context to the actual source revision/heading or offsets, and resolve missing evidence before dependent planning decisions. Follow the shared document-knowledge guide.
+
 ## Safety
 
 - Your token is a secret. Never print it, paste it into comments or documents, or commit it.

@@ -24,6 +24,8 @@ Before formatting the design or a spike, read [TEMPLATE.md](TEMPLATE.md). It def
 and links the shared requirement-reference and Mermaid conventions. Select only relevant content,
 keeping the selected template headings and fields.
 
+Use revision-specific source evidence for technical decisions; expose contradictions rather than treating curated/current as universally correct. Follow the shared document-knowledge guide.
+
 ## Safety
 
 - Your token is a secret. Never print it, paste it into comments or documents, or commit it.

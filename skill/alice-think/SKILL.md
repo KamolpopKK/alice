@@ -29,6 +29,8 @@ Before formatting a brief, task or spike, read [TEMPLATE.md](TEMPLATE.md). It de
 and links the shared requirement-reference and Mermaid conventions. Select relevant content using
 this skill; keep the selected template headings and fields.
 
+Reuse discovered sources in the brief; separate user needs from source evidence and inference, and propose library maintenance separately. Follow the shared document-knowledge guide.
+
 ## Safety
 
 - Your token is a secret. Never print it, paste it into comments or documents, or commit it.
