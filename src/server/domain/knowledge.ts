@@ -227,7 +227,7 @@ export function getKnowledgeContext(ctx: AppContext, projectId: string, input: z
   const topicItems = topics.items.map((t, i) => ({ id: t.id, name: t.name, revision: t.revision, description: budget.text(`topics.items.${i}.description`, t.description, 500, { tool: 'get_knowledge_topic', args: { id: t.id } }) }))
   const scope = input.topicId ? ' AND k.id = ?' : ''
   const params = [ctx.workspaceId, projectId, ...(input.topicId ? [input.topicId] : [])]
-  const from = `FROM knowledge_topics k JOIN knowledge_topic_documents m ON m.topic_id = k.id JOIN documents d ON d.id = m.document_id
+  const from = `FROM knowledge_topics k CROSS JOIN knowledge_topic_documents m ON m.topic_id = k.id CROSS JOIN documents d ON d.id = m.document_id
     WHERE k.workspace_id = ? AND k.project_id = ? AND k.archived_at IS NULL AND d.workspace_id = k.workspace_id AND d.archived_at IS NULL${scope}`
   const hasCuration = ctx.db.prepare(`SELECT 1 ${from} LIMIT 1`).get(...params)
   let documents: ReturnType<typeof listDocuments> = { items: [], nextCursor: null }

@@ -233,7 +233,7 @@ export function search(ctx: AppContext, input: z.infer<typeof searchInput>): Pag
     .prepare(
       `SELECT d.kind, d.resource_id, d.task_id, d.display_title, d.archived,
          ${fieldRank.sql} AS field_rank,
-         CASE WHEN EXISTS (SELECT 1 FROM knowledge_topic_documents km JOIN knowledge_topics kt ON kt.id = km.topic_id WHERE km.document_id = doc.id AND kt.workspace_id = ? AND kt.archived_at IS NULL${input.knowledgeProjectId ? ' AND kt.project_id = ?' : ''}) THEN 0 ELSE 1 END AS curation_rank,
+         CASE WHEN doc.id IN (SELECT km.document_id FROM knowledge_topics kt JOIN knowledge_topic_documents km ON km.topic_id = kt.id WHERE kt.workspace_id = ? AND kt.archived_at IS NULL${input.knowledgeProjectId ? ' AND kt.project_id = ?' : ''}) THEN 0 ELSE 1 END AS curation_rank,
          CASE WHEN d.kind <> 'document' THEN 0 WHEN doc.knowledge_status = 'current' THEN 0
               WHEN doc.knowledge_status IN ('draft', 'unreviewed') THEN 1 ELSE 2 END AS lifecycle_rank,
          ${snippetSql(compiled, 0, 'title')} AS title_snippet,

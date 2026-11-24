@@ -21,22 +21,22 @@ export function knowledgeFilters(ctx: AppContext, input: KnowledgeScope, alias: 
     if (!topic) throw new AliceError('NOT_FOUND', 'Knowledge topic not found')
     if (input.knowledgeProjectId && topic.project_id !== input.knowledgeProjectId) throw new AliceError('VALIDATION_ERROR', 'Topic does not belong to the knowledge project')
     if (topic.archived_at) throw new AliceError('INVALID_STATE', 'Restore the topic before discovering its knowledge')
-    sql.push(`EXISTS (SELECT 1 FROM knowledge_topic_documents km WHERE km.document_id = ${alias}.id AND km.topic_id = ?)`)
+    sql.push(`${alias}.id IN (SELECT document_id FROM knowledge_topic_documents WHERE topic_id = ?)`)
     params.push(input.topicId)
   }
-  const membership = `SELECT 1 FROM knowledge_topic_documents km JOIN knowledge_topics kt ON kt.id = km.topic_id WHERE km.document_id = ${alias}.id AND kt.workspace_id = ? AND kt.archived_at IS NULL`
+  const membership = `SELECT km.document_id FROM knowledge_topics kt JOIN knowledge_topic_documents km ON km.topic_id = kt.id WHERE kt.workspace_id = ? AND kt.archived_at IS NULL`
   if (input.knowledgeProjectId) {
-    sql.push(`(EXISTS (SELECT 1 FROM project_documents kp WHERE kp.document_id = ${alias}.id AND kp.project_id = ?) OR EXISTS (${membership} AND kt.project_id = ?))`)
+    sql.push(`${alias}.id IN (SELECT document_id FROM project_documents WHERE project_id = ? UNION ${membership} AND kt.project_id = ?)`)
     params.push(input.knowledgeProjectId, ctx.workspaceId, input.knowledgeProjectId)
   }
   if (input.curatedOnly) {
-    sql.push(`EXISTS (${membership}${input.knowledgeProjectId ? ' AND kt.project_id = ?' : ''})`)
+    sql.push(`${alias}.id IN (${membership}${input.knowledgeProjectId ? ' AND kt.project_id = ?' : ''})`)
     params.push(ctx.workspaceId, ...(input.knowledgeProjectId ? [input.knowledgeProjectId] : []))
   }
   return { sql, params }
 }
 export function documentTopicContext(db: DB, workspaceId: string, documentId: string): DocumentTopicContext {
-  const rows = db.prepare(`SELECT k.id, k.project_id, k.name, k.archived_at, count(*) OVER () AS total FROM knowledge_topic_documents m JOIN knowledge_topics k ON k.id = m.topic_id
+  const rows = db.prepare(`SELECT k.id, k.project_id, k.name, k.archived_at, count(*) OVER () AS total FROM knowledge_topic_documents m CROSS JOIN knowledge_topics k ON k.id = m.topic_id
     WHERE m.document_id = ? AND k.workspace_id = ? ORDER BY k.id LIMIT 5`).all(documentId, workspaceId) as {
     id: string
     project_id: string
