@@ -169,7 +169,7 @@ describe('portable export', () => {
     const res = runCli(['export', '--out', out], { ALICE_DATA_DIR: app.dataDir })
     expect(res.status, res.stderr).toBe(0)
     const data = JSON.parse(fs.readFileSync(path.join(out, 'workspace.json'), 'utf8'))
-    expect(data).toMatchObject({ format: 'alice-export', formatVersion: 2 })
+    expect(data).toMatchObject({ format: 'alice-export', formatVersion: 3 })
     for (const key of ['actors', 'projects', 'tasks', 'taskBlockers', 'comments', 'documents', 'documentRevisions', 'taskDocuments', 'projectDocuments', 'documentTags', 'documentKeywords', 'documentRelations', 'activity']) {
       expect(Array.isArray(data[key]), key).toBe(true)
       expect(data[key].length, key).toBeGreaterThan(0)
