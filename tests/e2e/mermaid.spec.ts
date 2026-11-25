@@ -158,9 +158,9 @@ test('the expanded diagram viewer fits, zooms and pans the rendered image withou
   await page.keyboard.press('0')
   await expect(viewer.getByRole('button', { name: 'Fit to view' })).toHaveAttribute('aria-pressed', 'true')
   await expect.poll(fits).toBe(true)
-  const smallerFit = await zoom.textContent()
+  const smallerWidth = await image.evaluate((n) => n.getBoundingClientRect().width)
   await page.setViewportSize(viewportSize)
-  await expect(zoom).not.toHaveText(smallerFit!)
+  await expect.poll(() => image.evaluate((n) => n.getBoundingClientRect().width)).toBeGreaterThan(smallerWidth)
   await expect.poll(fits).toBe(true)
 
   expect(await page.evaluate(() => (window as unknown as { __renders: number }).__renders)).toBe(0)

@@ -726,3 +726,7 @@
 .document-reader-body > .markdown-table {
   min-width: 100%;
 }
+/* ตารางที่แคบกว่าพื้นที่อยู่กลาง ไม่ชิดขอบซ้ายห่างจากคอลัมน์ข้อความ */
+.document-reader-body > .markdown-table > table {
+  margin-inline: auto;
+}

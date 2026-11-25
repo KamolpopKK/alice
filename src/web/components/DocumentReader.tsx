@@ -37,19 +37,23 @@ export function DocumentReader({
   initialFragment,
   notice,
   returnFocusFallback,
+  onNavigate,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
   /** What this content is (saved revision or unsaved draft), shown under the title. */
   description: ReactNode
-  body: string
+  /** Markdown to show; `null` while it is loading or must not be shown (status comes from `notice`). */
+  body: string | null
   documentId?: string
   /** Canonical heading fragment (`#slug`) to start reading at. */
   initialFragment?: string
   /** Status banners shown above the content. */
   notice?: ReactNode
   returnFocusFallback?: () => HTMLElement | null
+  /** A link inside is leaving for another page. Defaults to closing the reader. */
+  onNavigate?: () => void
 }) {
   const rawId = useId()
   const namespace = `reader-${rawId.replace(/[^a-zA-Z0-9]/g, '')}`
@@ -57,18 +61,16 @@ export function DocumentReader({
   const saved = useRef<ScrollSnapshot | null>(null)
   const change = useRef(onOpenChange)
   change.current = onOpenChange
+  const leave = useRef(onNavigate)
+  leave.current = onNavigate
   const scope = useMemo<MarkdownScope>(
-    () => ({ namespace, documentId, root: () => root.current, onNavigate: () => change.current(false) }),
+    () => ({ namespace, documentId, root: () => root.current, onNavigate: () => (leave.current ? leave.current() : change.current(false)) }),
     [namespace, documentId],
   )
 
   useEffect(() => {
     if (open) {
       saved.current = snapshotScroll()
-      if (initialFragment) {
-        const frame = requestAnimationFrame(() => scrollScopedFragment(scope, initialFragment))
-        return () => cancelAnimationFrame(frame)
-      }
       return undefined
     }
     const snapshot = saved.current
@@ -77,13 +79,21 @@ export function DocumentReader({
     // รอให้ Dialog คืน focus เสร็จก่อน แล้วค่อยคืนตำแหน่ง scroll ของหน้าต้นทาง
     const frame = requestAnimationFrame(() => restoreScroll(snapshot))
     return () => cancelAnimationFrame(frame)
-  }, [open, initialFragment, scope])
+  }, [open])
+
+  // เริ่มอ่านที่หัวข้อจาก fragment เมื่อเนื้อหาพร้อมแล้ว (เนื้อหาจาก server อาจมาทีหลัง)
+  const ready = open && body !== null
+  useEffect(() => {
+    if (!ready || !initialFragment) return undefined
+    const frame = requestAnimationFrame(() => scrollScopedFragment(scope, initialFragment))
+    return () => cancelAnimationFrame(frame)
+  }, [ready, initialFragment, scope])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title={title} description={description} size="viewport" className="document-reader" returnFocusFallback={returnFocusFallback}>
       <article ref={root} className="document-reader-content" aria-label={`${title} content`}>
         {notice}
-        {body.trim() ? <Markdown source={body} className="document-reader-body" scope={scope} /> : <p className="ui-text-muted">This document has no content.</p>}
+        {body === null ? null : body.trim() ? <Markdown source={body} className="document-reader-body" scope={scope} /> : <p className="ui-text-muted">This document has no content.</p>}
       </article>
     </Dialog>
   )
