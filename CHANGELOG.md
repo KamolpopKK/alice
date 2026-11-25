@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+- **Comfortable document reading.** A focus reader for saved documents and for unsaved drafts (**Read
+  draft**), wide tables that scroll inside their own frame, an expanded Mermaid viewer with Fit, zoom
+  and pan, and **Expand to read** in document previews, which loads the full current revision on request.
+  Frontend only: no schema, Client API or MCP change.
+
 ## 0.2.9 — 2026-11-24
 
 ### Added

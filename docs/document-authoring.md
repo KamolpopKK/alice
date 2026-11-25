@@ -25,6 +25,13 @@ Markdown stays the saved format, so agents and the `alice` command read exactly 
 If the rich editor cannot load, the Markdown source is offered instead. Task descriptions and comments
 keep the plain Markdown editor.
 
+**Read draft** opens what you have written so far in the focus reader (see below), labelled *Unsaved
+draft · not a saved revision*. In rich text it includes what you typed a moment ago; in Markdown it
+shows the source as it is now. Reading saves nothing and leaves the editor exactly as it was: same mode,
+same undo and redo history, raw blocks untouched. Each time you open it, it shows the latest draft. If the
+draft cannot be converted to Markdown (for example it would pass 100,000 characters), the reader does not
+open and your text stays as it is.
+
 ## Saving
 
 - **Create document** creates nothing until pressed, then opens the new document. Opened from a task or
@@ -54,9 +61,31 @@ Unsaved text is kept in memory only, for the workspace and person it belongs to.
 keeps it; it never shows up in another workspace or for another account. A reload, force quit or crash
 loses it.
 
+## Reading in a larger view
+
+- **Focus reader.** On a document, **Focus reader** (next to View) opens the saved content in a
+  near-full-window view over the page. The title, status and revision stay at the top with **Close**;
+  the content scrolls on its own. Text keeps a comfortable line length, while tables, code and
+  diagrams can use the whole width. Links to headings in the same document scroll inside the reader;
+  links to other pages close it and open them as usual. **Close** or Escape returns you to the same
+  place and focus on the page. It is not remembered between visits and never changes the document.
+- **Wide tables** scroll sideways inside their own frame, on the page and in the reader, instead of
+  squeezing every column. Each cell wraps at a readable width. Focus the table (Tab) and use the arrow
+  keys, a trackpad or touch to move across. Tables in the editor are unchanged.
+- **Diagrams.** A Mermaid diagram that rendered shows **Expand diagram**. The viewer opens with the
+  whole diagram fitted to the window and offers **Zoom out**, the zoom level, **Zoom in** and **Fit to
+  view**. With focus in the viewer, + and − zoom and 0 fits; scroll, the arrow and Page keys, a trackpad
+  or touch move around. Zooming resizes the same image, so it is instant and nothing is drawn again. A
+  diagram that fails to render keeps its error and source and has no viewer.
+- **Escape closes one layer at a time**: the diagram viewer first, then the reader, then a preview.
+  Focus returns to the button that opened each one.
+
+These views work the same in the browser and in Alice Desktop. They were tested in Chromium on desktop
+and phone-sized screens; Safari, Firefox and physical phones and tablets are not yet qualified.
+
 ## Internal document links and previews
 
 The Link toolbar can search existing Documents and inserts standard ID-based Markdown links while
 keeping selected labels. Renames do not rewrite stored labels. Internal navigation, rendered heading
-fragments, provenance-aware backlinks and bounded accessible previews are described in
-[Project knowledge](project-knowledge.md). Existing source/raw Markdown preservation still applies.
+fragments, provenance-aware backlinks and bounded accessible previews, including **Expand to read**, are
+described in [Project knowledge](project-knowledge.md). Existing source/raw Markdown preservation still applies.
