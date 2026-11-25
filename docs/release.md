@@ -1,3 +1,16 @@
+# Alice 0.2.10 — Comfortable document reading
+
+- **Focus reader.** Read a document in a near-full-window view with a comfortable line length, while
+  tables, code and diagrams use the full width. Heading links scroll inside it, and closing returns you
+  to the same place. **Read draft** in the editor shows your unsaved text the same way without saving.
+- **Wide tables** scroll sideways inside their own frame instead of squeezing every column.
+- **Diagrams.** Click a Mermaid diagram to open it fitted to the window. Zoom with a trackpad pinch,
+  ⌘/Ctrl + scroll, the buttons or + − 0, and pan by scrolling.
+- **Expand to read** in document previews loads the full current revision only when you ask, with the
+  actual status and revision. It never mixes revisions or shows archived or stale content.
+- All seven bundled skills advance to 0.2.10 for Local integration refresh. Frontend-only change: no
+  schema, Client API or MCP contract change.
+
 # Alice 0.2.9 — Project Knowledge and alice-curate
 
 - **Project Knowledge.** Topics give a project an introduction and an ordered reading list of existing
