@@ -88,6 +88,39 @@ export const DialogOpen: Story = {
   ),
 }
 
+const readerText = Array.from({ length: 10 }, (_, i) => (
+  <p key={i} style={{ maxWidth: '72ch' }}>
+    Paragraph {i + 1}. Long reading content scrolls inside the dialog body while the title and Close stay in place.
+  </p>
+))
+
+export const ViewportDialogOpen: Story = {
+  render: () => (
+    <Dialog open onOpenChange={() => undefined} title="Release checklist" description="Saved document · Current · Revision 4" size="viewport">
+      {readerText}
+    </Dialog>
+  ),
+}
+
+export const NestedDialogs: Story = {
+  render: function NestedDialogs() {
+    const [reader, setReader] = useState(false)
+    const [inner, setInner] = useState(false)
+    return (
+      <>
+        <Button onClick={() => setReader(true)}>Open reader</Button>
+        <Dialog open={reader} onOpenChange={setReader} title="Release checklist" description="Saved document · Revision 4" size="viewport">
+          <Button onClick={() => setInner(true)}>Open diagram</Button>
+          {readerText}
+          <Dialog open={inner} onOpenChange={setInner} title="Diagram" size="lg">
+            <p>Escape closes this dialog first and returns focus to Open diagram.</p>
+          </Dialog>
+        </Dialog>
+      </>
+    )
+  },
+}
+
 export const SheetOpen: Story = {
   render: () => (
     <Sheet open onOpenChange={() => undefined} title="Task detail" side="right">

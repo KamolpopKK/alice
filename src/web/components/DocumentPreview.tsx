@@ -6,6 +6,7 @@ import { client } from '../api'
 import { useCapability } from '../hooks'
 import { errorText } from '../tasks/TaskDetail'
 import { Badge, Banner, Button, Dialog, IconButton, Skeleton } from '../ui'
+import { useMarkdownScope } from './markdown-scope'
 
 /** The same bounded preview is used by content links, backlinks and curated discovery. */
 export function DocumentPreview({ documentId, href, label }: {
@@ -14,6 +15,7 @@ export function DocumentPreview({ documentId, href, label }: {
   label: string
 }) {
   const [open, setOpen] = useState(false)
+  const scope = useMarkdownScope()
   const supported = useCapability('project-knowledge')
   const preview = useQuery({
     queryKey: ['document-preview', documentId], enabled: supported && open,
@@ -24,7 +26,7 @@ export function DocumentPreview({ documentId, href, label }: {
   const data = !preview.isFetching && !preview.error ? preview.data : undefined
   return <Dialog open={open} onOpenChange={setOpen} title="Document preview" description="A bounded view of the original document. Curation is separate from review." size="lg"
     trigger={<IconButton icon={Eye} size="sm" label={`Preview ${label}`} />}
-    actions={<><Button onClick={() => setOpen(false)} data-autofocus>Close preview</Button><Link className="ui-button ui-button--primary ui-button--md" to={href} onClick={() => setOpen(false)}>Open document</Link></>}>
+    actions={<><Button onClick={() => setOpen(false)} data-autofocus>Close preview</Button><Link className="ui-button ui-button--primary ui-button--md" to={href} onClick={() => { setOpen(false); scope?.onNavigate?.() }}>Open document</Link></>}>
     {preview.isPending || preview.isFetching ? <div role="status"><p>Loading current document preview…</p><Skeleton lines={3} /></div> : preview.error ? <Banner tone="danger" title="Preview could not be loaded" action={<Button onClick={() => void preview.refetch()}>Retry preview</Button>}>{errorText(preview.error)} Open the document or retry to check its actual state.</Banner> : data && <>
       {data.state === 'unavailable' ? <Banner tone="warning" title="Document unavailable">This reference cannot be resolved in the active workspace. No content is shown.</Banner> : <>
         <h3>{data.document!.title}</h3>

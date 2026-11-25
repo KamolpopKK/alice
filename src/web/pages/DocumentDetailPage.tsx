@@ -1,6 +1,6 @@
 import { DocumentBacklinks } from '../components/DocumentBacklinks'
 import { useCapability } from '../hooks'
-import { useState, type FormEvent } from 'react'
+import { useCallback, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ActivityEvent, DocumentDetail, DocumentKnowledgeStatus, DocumentRevision, Page } from '../../shared/contracts'
@@ -8,13 +8,14 @@ import { FullPageError, isRecoverable } from '../brand'
 import { ApiError, client } from '../api'
 import { ActivityList } from '../components/Activity'
 import { Markdown } from '../components/Markdown'
+import { DocumentReader } from '../components/DocumentReader'
 import { DocumentKnowledgeFields, KNOWLEDGE_STATUS_LABELS } from '../components/DocumentKnowledgeFields'
 import { DocumentRelations } from '../components/DocumentRelations'
 import { ActorBadge, formatDate } from '../components/ui'
 import { STATUS_LABELS } from '../../shared/contracts'
 import { STATUS_TONE } from '../tasks/model'
 import { errorText } from '../tasks/TaskDetail'
-import { Archive, ArchiveRestore, History as HistoryIcon, Pencil } from 'lucide-react'
+import { Archive, ArchiveRestore, BookOpen, History as HistoryIcon, Pencil } from 'lucide-react'
 import { Badge, Banner, Button, FieldMessage, Skeleton, TextField } from '../ui'
 
 export function useDocument(id: string) {
@@ -38,6 +39,9 @@ export function DocumentDetailPage() {
   const doc = useDocument(id)
   const knowledge = useCapability('project-knowledge')
   const [mode, setMode] = useState<'view' | 'history'>('view')
+  const [reading, setReading] = useState(false)
+  const heading = useRef<HTMLHeadingElement>(null)
+  const readerFallback = useCallback(() => heading.current, [])
   const navigate = useNavigate()
   const qc = useQueryClient()
   const archive = useMutation({
@@ -68,7 +72,7 @@ export function DocumentDetailPage() {
       </nav>
       <div className="resource-head">
         <div>
-          <h1>{d.title}</h1>
+          <h1 ref={heading} tabIndex={-1}>{d.title}</h1>
           <div className="resource-meta-row">
             {archived && <Badge>archived</Badge>}
             <Badge tone={KNOWLEDGE_TONE[d.status]}>{KNOWLEDGE_STATUS_LABELS[d.status]}</Badge>
@@ -82,6 +86,11 @@ export function DocumentDetailPage() {
           <Button size="sm" variant={mode === 'view' ? 'primary' : 'secondary'} aria-pressed={mode === 'view'} onClick={() => setMode('view')}>
             View
           </Button>
+          {mode === 'view' && d.body && (
+            <Button size="sm" icon={BookOpen} onClick={() => setReading(true)} aria-haspopup="dialog">
+              Focus reader
+            </Button>
+          )}
           {!archived && (
             <Button size="sm" icon={Pencil} onClick={() => navigate(`/documents/${d.id}/edit`)}>
               Edit
@@ -128,6 +137,15 @@ export function DocumentDetailPage() {
           <DocumentActivity id={d.id} />
         </aside>
       </div>
+      <DocumentReader
+        open={reading && mode === 'view'}
+        onOpenChange={setReading}
+        title={d.title}
+        description={<>Saved document · {KNOWLEDGE_STATUS_LABELS[d.status]}{archived ? ' · archived' : ''} · Revision {d.revision}</>}
+        body={d.body}
+        documentId={d.id}
+        returnFocusFallback={readerFallback}
+      />
     </div>
   )
 }
