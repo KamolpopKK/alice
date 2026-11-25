@@ -12,7 +12,7 @@ const index = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, '../.
 }
 const stories = Object.values(index.entries).filter((e) => e.type === 'story')
 // overlay ที่เปิดค้าง (Dialog/Sheet) ตรวจแยก: content อยู่ใน portal และ inert ทั้งหน้าโดยตั้งใจ
-const MODAL_OPEN = new Set(['alice-ui-overlays--dialog-open', 'alice-ui-overlays--sheet-open'])
+const MODAL_OPEN = new Set(['alice-ui-overlays--dialog-open', 'alice-ui-overlays--sheet-open', 'alice-ui-overlays--viewport-dialog-open'])
 
 async function openStory(page: Page, id: string, theme: 'light' | 'dark') {
   await page.goto(`/iframe.html?id=${id}&viewMode=story&globals=theme:${theme}`)
@@ -69,6 +69,38 @@ test('focus is always visible on primitives reached by Tab', async ({ page }) =>
   await expect(button).toBeFocused()
   const outline = await button.evaluate((el) => getComputedStyle(el).outlineStyle + ' ' + getComputedStyle(el).outlineWidth)
   expect(outline).toBe('solid 2px')
+})
+
+test('viewport dialog: fixed close, body scrolls alone, nested Escape closes one layer at a time', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 600 })
+  await openStory(page, 'alice-ui-overlays--nested-dialogs', 'light')
+  const opener = page.getByRole('button', { name: 'Open reader' })
+  await opener.focus()
+  await page.keyboard.press('Enter')
+  const reader = page.getByRole('dialog', { name: 'Release checklist' })
+  await expect(reader.getByRole('button', { name: 'Close' })).toBeFocused()
+  const box = await reader.boundingBox()
+  expect(box!.width).toBeGreaterThan(1200)
+  expect(box!.height).toBeGreaterThan(560)
+  const body = reader.locator('.ui-dialog-body')
+  await body.evaluate((el) => el.scrollTo(0, el.scrollHeight))
+  expect(await body.evaluate((el) => el.scrollTop)).toBeGreaterThan(0)
+  await expect(reader.getByRole('button', { name: 'Close' })).toBeInViewport()
+  const inner = reader.getByRole('button', { name: 'Open diagram' })
+  await inner.focus()
+  await page.keyboard.press('Enter')
+  const diagram = page.getByRole('dialog', { name: 'Diagram' })
+  // focus ย้ายเข้าชั้นบนสุดแล้ว (focus trap) ก่อนกด Escape
+  await expect(diagram.getByRole('button', { name: 'Close' })).toBeFocused()
+  // Radix ลงทะเบียนชั้นใหม่ใน effect หลังย้าย focus: รอหนึ่งเฟรม (คนกดไม่ทันในช่วงนี้)
+  await page.evaluate(() => new Promise(requestAnimationFrame))
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: 'Diagram' })).toHaveCount(0)
+  await expect(reader).toBeVisible()
+  await expect(inner).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(reader).toHaveCount(0)
+  await expect(opener).toBeFocused()
 })
 
 test('menu: Enter opens, arrows move, disabled items are skipped, Escape returns focus', async ({ page }) => {

@@ -1,4 +1,9 @@
+import AxeBuilder from '@axe-core/playwright'
+import fs from 'node:fs'
+import path from 'node:path'
 import { expect, signIn, test } from './fixtures'
+
+const EVIDENCE = path.resolve('.alice-test/document-reading')
 
 const fence = (source: string) => `\`\`\`mermaid\n${source}\n\`\`\``
 const flow = 'flowchart LR\n  A[Browser] --> B[API]'
@@ -74,4 +79,182 @@ test('shared Mermaid renderer covers task, comments and project and blocks activ
   expect(await page.locator('.mermaid-diagram script, .mermaid-diagram iframe, .mermaid-diagram a').count()).toBe(0)
   await page.goto(`${app.url}/projects/${project.id}`)
   await expect(page.locator('.mermaid-diagram img')).toHaveCount(1)
+})
+
+const bigFlow = () => ['flowchart TB', ...Array.from({ length: 99 }, (_, i) => `  N${i}[Node ${i}] --> N${i + 1}[Node ${i + 1}]`)].join('\n')
+
+async function settle(page: import('@playwright/test').Page, theme: string) {
+  await page.evaluate(async (t) => {
+    document.documentElement.setAttribute('data-theme', t)
+    await new Promise(requestAnimationFrame)
+    await Promise.all(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {})))
+  }, theme)
+}
+
+test('the expanded diagram viewer fits, zooms and pans the rendered image without rendering again @mobile', async ({ app, owner, page }, info) => {
+  const body = ['Before the diagrams.', fence(flow), fence(bigFlow()), fence('this is invalid mermaid'), 'After the diagrams.'].join('\n\n')
+  const doc = (await owner.post('/api/documents', { title: 'Diagram viewer', body })).body.document
+  await signIn(page, app)
+  await page.goto(`${app.url}/documents/${doc.id}`)
+  const inline = page.locator('.document-body .mermaid-diagram img')
+  await expect(inline).toHaveCount(2)
+  // เฉพาะ diagram ที่ render สำเร็จมีปุ่มขยาย; diagram ที่ผิดยังแสดง error และ source
+  const expand = page.locator('.document-body').getByRole('button', { name: 'Expand diagram', exact: true })
+  await expect(expand).toHaveCount(2)
+  await expect(page.getByText(/Unable to render Mermaid diagram/)).toBeVisible()
+  await expect(page.locator('.document-body').getByText('After the diagrams.')).toBeVisible()
+
+  // นับการ render ใหม่: MermaidDiagram ตั้ง aria-busy ทุกครั้งที่ render
+  await page.evaluate(() => {
+    const w = window as unknown as { __renders: number }
+    w.__renders = 0
+    new MutationObserver((records) => { for (const r of records) if ((r.target as Element).getAttribute('aria-busy') === 'true') w.__renders++ })
+      .observe(document.body, { subtree: true, attributes: true, attributeFilter: ['aria-busy'] })
+  })
+  const src = await inline.nth(1).getAttribute('src')
+  await expect.poll(() => inline.nth(1).evaluate((n: HTMLImageElement) => n.naturalHeight)).toBeGreaterThan(0)
+  await expand.nth(1).click()
+  const viewer = page.getByRole('dialog', { name: 'Diagram', exact: true })
+  const viewport = viewer.getByRole('region', { name: 'Diagram, scroll to move around' })
+  const image = viewport.getByRole('img', { name: 'Mermaid diagram' })
+  const zoom = viewer.getByRole('status', { name: 'Zoom level' })
+  await expect(image).toHaveAttribute('src', src!)
+  await expect(viewer.getByRole('button', { name: 'Fit to view' })).toHaveAttribute('aria-pressed', 'true')
+
+  const fits = () => viewport.evaluate((v) => {
+    const img = v.querySelector('img')!
+    return img.getBoundingClientRect().width <= v.clientWidth + 1 && img.getBoundingClientRect().height <= v.clientHeight + 1 && v.scrollWidth <= v.clientWidth + 1 && v.scrollHeight <= v.clientHeight + 1
+  })
+  await expect.poll(fits).toBe(true)
+  const fitText = await zoom.textContent()
+  expect(Number(fitText!.replace('%', ''))).toBeLessThan(100)
+
+  // ซูมด้วยปุ่มและคีย์บอร์ด (เฉพาะเมื่อ focus อยู่ใน viewer)
+  await viewer.getByRole('button', { name: 'Zoom in' }).click()
+  await viewer.getByRole('button', { name: 'Zoom in' }).click()
+  await expect(zoom).not.toHaveText(fitText!)
+  await expect(viewer.getByRole('button', { name: 'Fit to view' })).toHaveAttribute('aria-pressed', 'false')
+  await viewport.focus()
+  const zoomed = await zoom.textContent()
+  await page.keyboard.press('+')
+  await expect(zoom).not.toHaveText(zoomed!)
+  await page.keyboard.press('-')
+  await expect(zoom).toHaveText(zoomed!)
+  // เลื่อนสำรวจด้วยคีย์บอร์ดเมื่อภาพใหญ่กว่าพื้นที่
+  for (let i = 0; i < 8; i++) await page.keyboard.press('+')
+  await expect.poll(() => viewport.evaluate((v) => v.scrollHeight > v.clientHeight)).toBe(true)
+  const top = await viewport.evaluate((v) => v.scrollTop)
+  await page.keyboard.press('PageDown')
+  await expect.poll(() => viewport.evaluate((v) => v.scrollTop)).toBeGreaterThan(top)
+  // ซูมมีขอบเขต
+  for (let i = 0; i < 20; i++) await page.keyboard.press('+')
+  await expect(zoom).toHaveText('400%')
+  await expect(viewer.getByRole('button', { name: 'Zoom in' })).toBeDisabled()
+
+  // ปรับขนาดหน้าต่าง: โหมดซูมเองไม่ถูก reset; โหมด Fit คำนวณใหม่
+  const viewportSize = page.viewportSize()!
+  await page.setViewportSize({ width: viewportSize.width - 100, height: viewportSize.height - 100 })
+  await expect(zoom).toHaveText('400%')
+  await page.keyboard.press('0')
+  await expect(viewer.getByRole('button', { name: 'Fit to view' })).toHaveAttribute('aria-pressed', 'true')
+  await expect.poll(fits).toBe(true)
+  // แผนภาพนี้สูงกว่ากว้างมาก: Fit ถูกกำหนดด้วยความสูง จึงเทียบความสูง (ความกว้างหลังปัดอาจเท่าเดิม)
+  const smallerHeight = await image.evaluate((n) => n.getBoundingClientRect().height)
+  await page.setViewportSize(viewportSize)
+  await expect.poll(() => image.evaluate((n) => n.getBoundingClientRect().height)).toBeGreaterThan(smallerHeight)
+  await expect.poll(fits).toBe(true)
+
+  // ⌘/Ctrl + scroll และ pinch ซูมรอบ pointer; scroll ธรรมดายังเลื่อนภาพ
+  await page.keyboard.press('0')
+  await expect(viewer.getByRole('button', { name: 'Fit to view' })).toHaveAttribute('aria-pressed', 'true')
+  // ซูมจนภาพสูงกว่าพื้นที่ (เลื่อนได้): ภาพที่เล็กกว่าพื้นที่อยู่กึ่งกลางและเลื่อนไม่ได้
+  while (!(await viewport.evaluate((v) => v.scrollHeight > v.clientHeight * 2))) await viewer.getByRole('button', { name: 'Zoom in' }).click()
+  await viewport.evaluate((v) => v.scrollTo(v.scrollWidth / 2, v.scrollHeight / 2))
+  const imageBox = (await image.boundingBox())!
+  const box = (await viewport.boundingBox())!
+  const pointer = { x: Math.max(box.x + 5, Math.min(box.x + box.width - 5, imageBox.x + imageBox.width / 2)), y: box.y + box.height * 0.4 }
+  const scrollsX = await viewport.evaluate((v) => v.scrollWidth > v.clientWidth)
+  // จุดของภาพใต้ pointer เป็นสัดส่วนของภาพ
+  const underPointer = () => image.evaluate((img, p) => { const r = img.getBoundingClientRect(); return { x: (p.x - r.left) / r.width, y: (p.y - r.top) / r.height } }, pointer)
+  await page.mouse.move(pointer.x, pointer.y)
+  const beforePoint = await underPointer()
+  const beforeLevel = await zoom.textContent()
+  await page.keyboard.down('Control')
+  await page.mouse.wheel(0, -100)
+  await page.keyboard.up('Control')
+  await expect(zoom).not.toHaveText(beforeLevel!)
+  const afterPoint = await underPointer()
+  expect(Math.abs(afterPoint.y - beforePoint.y)).toBeLessThan(0.02)
+  if (scrollsX) expect(Math.abs(afterPoint.x - beforePoint.x)).toBeLessThan(0.02)
+  // gesture แบบ WebKit (Alice Desktop บน macOS): gesturestart/gesturechange พร้อม scale
+  const levelBeforePinch = Number((await zoom.textContent())!.replace('%', ''))
+  await viewport.evaluate((v, p) => {
+    const fire = (type: string, scale: number) => {
+      const e = new Event(type, { bubbles: true, cancelable: true })
+      Object.assign(e, { scale, clientX: p.x, clientY: p.y })
+      v.dispatchEvent(e)
+    }
+    fire('gesturestart', 1)
+    fire('gesturechange', 1.5)
+    fire('gestureend', 1.5)
+  }, pointer)
+  await expect.poll(async () => Number((await zoom.textContent())!.replace('%', ''))).toBeGreaterThan(levelBeforePinch)
+  const scrolled = await viewport.evaluate((v) => v.scrollTop)
+  const levelBeforeScroll = await zoom.textContent()
+  await page.mouse.wheel(0, 200)
+  await expect.poll(() => viewport.evaluate((v) => v.scrollTop)).toBeGreaterThan(scrolled)
+  await expect(zoom).toHaveText(levelBeforeScroll!)
+
+  expect(await page.evaluate(() => (window as unknown as { __renders: number }).__renders)).toBe(0)
+  await expect(image).toHaveAttribute('src', src!)
+  fs.mkdirSync(EVIDENCE, { recursive: true })
+  await page.screenshot({ path: `${EVIDENCE}/mermaid-viewer-${info.project.name}.png` })
+  for (const theme of ['light', 'dark']) {
+    await settle(page, theme)
+    const axe = await new AxeBuilder({ page }).include('[role="dialog"]').analyze()
+    expect(axe.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([])
+  }
+
+  await page.keyboard.press('Escape')
+  await expect(viewer).toHaveCount(0)
+  await expect(expand.nth(1)).toBeFocused()
+  expect((await owner.get(`/api/documents/${doc.id}`)).body.document.body).toBe(body)
+})
+
+test('the diagram viewer nests above the focus reader and the editor preview', async ({ app, owner, page }) => {
+  const doc = (await owner.post('/api/documents', { title: 'Nested viewer', body: `Intro.\n\n${fence(flow)}` })).body.document
+  await signIn(page, app)
+  await page.goto(`${app.url}/documents/${doc.id}`)
+  await page.getByRole('button', { name: 'Focus reader', exact: true }).click()
+  const reader = page.getByRole('dialog', { name: 'Nested viewer', exact: true })
+  const expand = reader.getByRole('button', { name: 'Expand diagram', exact: true })
+  // แผนภาพทั้งก้อนเป็นปุ่ม: เปิดด้วยคีย์บอร์ดได้ และคลิกที่มุมของภาพก็เปิดได้
+  await expect(expand.locator('img')).toBeVisible()
+  await expand.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('dialog', { name: 'Diagram', exact: true })).toBeVisible()
+  await page.evaluate(() => new Promise(requestAnimationFrame))
+  await page.keyboard.press('Escape')
+  await expect(expand).toBeFocused()
+  const corner = (await expand.locator('img').boundingBox())!
+  await page.mouse.click(corner.x + 4, corner.y + corner.height - 4)
+  const viewer = page.getByRole('dialog', { name: 'Diagram', exact: true })
+  await expect(viewer.getByRole('button', { name: 'Close' })).toBeFocused()
+  await page.evaluate(() => new Promise(requestAnimationFrame))
+  await page.keyboard.press('Escape')
+  await expect(viewer).toHaveCount(0)
+  await expect(reader).toBeVisible()
+  await expect(expand).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(reader).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Edit', exact: true }).click()
+  const preview = page.locator('.doc-code-preview')
+  await preview.getByRole('button', { name: 'Expand diagram', exact: true }).click()
+  await expect(viewer).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(viewer).toHaveCount(0)
+  await expect(page.locator('.doc-editor-content[contenteditable="true"]')).toBeVisible()
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+  expect((await owner.get(`/api/documents/${doc.id}`)).body.document.revision).toBe(doc.revision)
 })

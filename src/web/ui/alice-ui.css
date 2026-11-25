@@ -44,6 +44,7 @@
 .ui-menu-item[data-highlighted],
 .ui-toast-action:focus-visible,
 .ui-table-wrap:focus-visible,
+.markdown-table:focus-visible,
 .ui-card--interactive:focus-visible {
   outline: var(--ui-focus-width) solid var(--ui-focus);
   outline-offset: var(--ui-focus-offset);
@@ -710,6 +711,28 @@ input[data-empty]::-webkit-datetime-edit {
 }
 .ui-dialog--lg {
   width: min(calc(100vw - 32px), 760px);
+}
+/* เกือบเต็มหน้าต่าง: หัวและปุ่มปิดอยู่กับที่ เนื้อหาเลื่อนแยกเอง */
+.ui-dialog--viewport {
+  width: calc(100vw - 32px);
+  height: calc(100dvh - 32px);
+  max-width: 1600px;
+  overflow: hidden;
+}
+.ui-dialog--viewport .ui-dialog-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+@media (max-width: 639px) {
+  .ui-dialog--viewport {
+    width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    padding: var(--ui-space-4);
+  }
 }
 .ui-dialog-head {
   display: flex;

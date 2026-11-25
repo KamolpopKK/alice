@@ -716,6 +716,14 @@ main:focus {
   border-radius: var(--radius);
   overflow-x: auto;
 }
+/* width 0 + min-width 100%: เต็มความกว้าง parent แต่ไม่ดัน grid/flex ของหน้าให้กว้างตามตาราง */
+.markdown-table {
+  width: 0;
+  min-width: 100%;
+  margin: 1rem 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
 .markdown table {
   border-collapse: collapse;
 }
@@ -723,6 +731,21 @@ main:focus {
 .markdown th {
   border: 1px solid var(--border);
   padding: 4px 8px;
+  vertical-align: top;
+}
+/*
+ * ไม่บีบคอลัมน์ให้พอดีจอ: ตารางกว้างตามเนื้อหา แต่ละเซลล์กว้างไม่เกิน 28em แล้วตัดบรรทัด
+ * (คำยาว/URL ตัดได้ทุกตำแหน่ง ข้อความไทยตัดตามปกติ) ตารางที่กว้างกว่าพื้นที่จึงเลื่อนในกรอบของมันเอง
+ */
+.markdown-table table {
+  width: max-content;
+}
+.markdown-table :is(td, th) {
+  text-align: start;
+}
+.markdown-cell {
+  max-width: 28em;
+  overflow-wrap: anywhere;
 }
 .markdown blockquote {
   margin: 0;
@@ -1268,4 +1291,44 @@ main[data-offline] button[type='submit'] {
 /* ยังไม่มีผล: ไม่ให้ช่องว่างของ gap ดันปุ่ม (ไม่ซ่อน live region เพื่อให้ยังประกาศผลได้) */
 .update-check > [role='status']:empty {
   margin-inline-end: -8px;
+}
+/* แผนภาพที่ render แล้วกดได้ทั้งก้อนเพื่อเปิดตัวดูขยาย */
+.mermaid-diagram-open {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: inherit;
+  cursor: zoom-in;
+}
+.mermaid-diagram-open:focus-visible {
+  outline: var(--ui-focus-width) solid var(--ui-focus);
+  outline-offset: var(--ui-focus-offset);
+}
+.mermaid-diagram-open-hint {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-surface-raised);
+  color: var(--ui-text);
+  opacity: 0;
+}
+/* ไม่บังแผนภาพ: แสดงไอคอนเมื่อชี้หรือ focus; จอสัมผัสที่ไม่มี hover แสดงตลอด */
+.mermaid-diagram-open:hover .mermaid-diagram-open-hint,
+.mermaid-diagram-open:focus-visible .mermaid-diagram-open-hint {
+  opacity: 1;
+}
+@media (hover: none) {
+  .mermaid-diagram-open-hint {
+    opacity: 0.85;
+  }
 }

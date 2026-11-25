@@ -37,6 +37,20 @@ Archived/unavailable references expose no preview body. Refreshing and failed pr
 body text; retry or open the source. Escape closes the dialog and returns focus. Preview content is
 plain text, so linked images/HTML are not executed or fetched.
 
+**Expand to read** in a preview of an available document loads the whole current document into the
+focus reader, above the preview, without leaving the page. Nothing beyond the 2,000-character preview is
+fetched until you press it. Alice then checks the document's state and revision again and reads all of
+its content at that revision; the body appears only when it is complete, rendered like the Document page
+(tables, diagrams, heading links) and starting at the link's heading. The header shows the status,
+revision and reviewed revision that were actually read.
+
+- If the document changes while it loads, the reader says so and offers **Load latest**; it never mixes
+  revisions.
+- Archived and unavailable documents show their state and no body.
+- While the document refreshes after someone saves it, while a retry runs, and after an error, no earlier
+  body is shown. Closing the reader discards a load still in flight.
+- Escape closes the reader and returns to the preview; links inside close both and open as usual.
+
 ## Discover first; read selectively
 
 `knowledgeProjectId` searches actual project links **union** active curated topic membership, including

@@ -166,6 +166,13 @@ Switch workspace screen. Only Alice Desktop shows it; the web app is updated wit
   and checked by the native updater; see [desktop-release.md](desktop-release.md) for the rules.
 - If a document has unsaved changes, installing asks first, because the app restarts.
 
+## Reading documents
+
+The focus reader, wide-table scrolling, the diagram viewer, **Expand to read** in previews and **Read
+draft** behave as in the web app ([Writing documents](document-authoring.md#reading-in-a-larger-view)).
+They live inside the window (no system full screen), so window resizing refits a diagram that is in Fit
+mode. The manual check for Alice Desktop on macOS is [tests/manual/document-reading.md](../tests/manual/document-reading.md).
+
 ## Development
 
 ```bash

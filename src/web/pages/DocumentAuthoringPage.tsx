@@ -115,11 +115,11 @@ function useDraft(key: string | null, initial: () => DocumentDraft) {
   return { draft, setDraft, update, discard: () => key && clearDraft(key) }
 }
 
-function AuthoringFields({ draft, update, bodyRows, editorKey = 0 }: { draft: DocumentDraft; update: ReturnType<typeof useDraft>['update']; bodyRows: number; editorKey?: number }) {
+function AuthoringFields({ draft, update, bodyRows, editorKey = 0, documentId }: { draft: DocumentDraft; update: ReturnType<typeof useDraft>['update']; bodyRows: number; editorKey?: number; documentId?: string }) {
   return (
     <>
       <TextField label="Document title" value={draft.title} onChange={(e) => update('title', e.target.value)} required maxLength={200} autoFocus data-autofocus />
-      <DocumentEditor key={editorKey} label="Body" value={draft.body} onChange={(body) => update('body', body)} rows={bodyRows} />
+      <DocumentEditor key={editorKey} label="Body" value={draft.body} onChange={(body) => update('body', body)} rows={bodyRows} title={draft.title} documentId={documentId} />
       <TextField
         label="Source URL (optional)"
         hint="A document needs a body, a source URL, or both."
@@ -404,7 +404,7 @@ function EditForm({ doc, scope, back }: { doc: DocumentDetail; scope: string | n
       </Dialog>
       {draft.pendingLink && <PendingLink pending={draft.pendingLink} retry={() => retryLink.mutate()} busy={retryLink.isPending} />}
       {retryLink.error && <FieldMessage tone="error">Still not linked: {errorText(retryLink.error)}</FieldMessage>}
-      <AuthoringFields draft={draft} update={update} bodyRows={20} editorKey={editorKey} />
+      <AuthoringFields draft={draft} update={update} bodyRows={20} editorKey={editorKey} documentId={doc.id} />
       <p className="ui-text-muted">
         {contentChanged
           ? 'Saving content creates revision ' + (doc.revision + 1) + ' and clears its review. Earlier revisions stay available in History.'

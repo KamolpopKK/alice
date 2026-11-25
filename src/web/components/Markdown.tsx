@@ -1,9 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import type { Nodes, Root } from 'mdast'
 import { DocumentLink, scrollDocumentFragment } from './DocumentLink'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { MermaidDiagram } from './MermaidDiagram'
+import { MarkdownScopeContext, scopedAnchorId, type MarkdownScope } from './markdown-scope'
 
 // Stable component identities keep diagrams mounted when surrounding content updates.
 const components: Components = {
@@ -16,14 +17,24 @@ const components: Components = {
     }
     return <pre {...props}>{children}</pre>
   },
+  // ตารางกว้างเลื่อนแนวนอนในกรอบของตัวเอง (focus ได้เพื่อใช้คีย์บอร์ด) ไม่ทำให้ทั้งหน้าล้น
+  table: ({ node: _node, ...props }) => (
+    <div className="markdown-table" role="region" aria-label="Table, scrolls sideways when wide" tabIndex={0}>
+      <table {...props} />
+    </div>
+  ),
+  // td/th ไม่รองรับ max-width: จำกัดความกว้างที่เนื้อหาในเซลล์แทน
+  th: ({ node: _node, children, ...props }) => <th {...props}><div className="markdown-cell">{children}</div></th>,
+  td: ({ node: _node, children, ...props }) => <td {...props}><div className="markdown-cell">{children}</div></td>,
   a: ({ node: _node, ...props }) => <DocumentLink {...props} />,
   // GFM task-list inputs are read-only, but still need an accessible name.
   input: ({ node: _node, type, ...props }) => <input {...props} type={type} aria-label={type === 'checkbox' ? 'Task list item' : undefined} />,
 }
 
 // react-markdown ไม่ render raw HTML และกรอง URL อันตราย (javascript: ฯลฯ) ตั้งแต่ต้น
-function headingAnchors() {
-  return (tree: Root) => {
+// slug เดิมเป็น canonical; instance ที่มี namespace เติม prefix ใน DOM เท่านั้น
+function headingAnchors(namespace?: string) {
+  return () => (tree: Root) => {
     const used = new Set<string>()
     const text = (node: Nodes): string => 'value' in node ? node.value : 'children' in node ? node.children.map(text).join('') : 'alt' in node ? node.alt ?? '' : ''
     const visit = (node: Nodes) => {
@@ -33,22 +44,30 @@ function headingAnchors() {
         let count = 0
         while (used.has(id)) id = `${base}-${++count}`
         used.add(id)
-        node.data = { ...node.data, hProperties: { ...node.data?.hProperties, id } }
+        node.data = { ...node.data, hProperties: { ...node.data?.hProperties, id: namespace ? scopedAnchorId(namespace, id) : id } }
       }
       if ('children' in node) node.children.forEach(visit)
     }
     visit(tree)
   }
 }
-const plugins = [remarkGfm, headingAnchors]
+const plugins = [remarkGfm, headingAnchors()]
 
-export function Markdown({ source, className = '' }: { source: string; className?: string }) {
-  useEffect(scrollDocumentFragment, [source])
+/**
+ * Renders Markdown safely. With `scope`, heading IDs are namespaced for this instance and same-document
+ * fragment links stay inside the scope's root; the page URL fragment is left to the unscoped page copy.
+ */
+export function Markdown({ source, className = '', scope }: { source: string; className?: string; scope?: MarkdownScope }) {
+  const namespace = scope?.namespace
+  const scoped = useMemo(() => (namespace ? [remarkGfm, headingAnchors(namespace)] : plugins), [namespace])
+  useEffect(() => {
+    if (!namespace) scrollDocumentFragment()
+  }, [source, namespace])
   if (!source.trim()) return <p className="muted">No description.</p>
-  return (
+  const body = (
     <div className={`markdown ${className}`}>
       <ReactMarkdown
-        remarkPlugins={plugins}
+        remarkPlugins={scoped}
         skipHtml
         components={components}
       >
@@ -56,6 +75,7 @@ export function Markdown({ source, className = '' }: { source: string; className
       </ReactMarkdown>
     </div>
   )
+  return scope ? <MarkdownScopeContext.Provider value={scope}>{body}</MarkdownScopeContext.Provider> : body
 }
 
 /** Markdown textarea with a write/preview toggle (no rich-text editing). */

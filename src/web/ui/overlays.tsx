@@ -143,20 +143,26 @@ type DialogProps = {
   actions?: ReactNode
   /** Optional trigger; without it, focus returns to whatever opened the dialog. */
   trigger?: ReactElement
-  size?: 'sm' | 'md' | 'lg'
+  /** `viewport` fills nearly the whole window with a fixed header and a body that scrolls on its own. */
+  size?: 'sm' | 'md' | 'lg' | 'viewport'
+  /** Extra class on the dialog surface, for content that needs its own layout. */
+  className?: string
+  /** Where focus goes on close when the element that opened the dialog is no longer on the page. */
+  returnFocusFallback?: () => HTMLElement | null
 }
 
 /** Remembers what had focus when an overlay opened, so closing it can put focus back there. */
-function useReturnFocus(open: boolean) {
+function useReturnFocus(open: boolean, fallback?: () => HTMLElement | null) {
   const opener = useRef<HTMLElement | null>(null)
   useEffect(() => {
     if (open && document.activeElement instanceof HTMLElement && document.activeElement !== document.body) opener.current = document.activeElement
   }, [open])
   return (e: Event) => {
-    const target = opener.current
+    const target = opener.current?.isConnected ? opener.current : fallback?.()
     if (target?.isConnected) {
       e.preventDefault()
-      target.focus()
+      // ไม่ให้การคืน focus เลื่อนหน้าต้นทางไปจากตำแหน่งที่อ่านค้างไว้
+      target.focus({ preventScroll: true })
     }
   }
 }
@@ -171,14 +177,14 @@ function focusPreferred(e: Event) {
 }
 
 /** Modal dialog: traps focus, closes on Escape, and returns focus to whatever opened it. */
-export function Dialog({ open, onOpenChange, title, description, children, actions, trigger, size = 'md' }: DialogProps) {
-  const onCloseAutoFocus = useReturnFocus(open)
+export function Dialog({ open, onOpenChange, title, description, children, actions, trigger, size = 'md', className, returnFocusFallback }: DialogProps) {
+  const onCloseAutoFocus = useReturnFocus(open, returnFocusFallback)
   return (
     <RDialog.Root open={open} onOpenChange={onOpenChange}>
       {trigger && <RDialog.Trigger asChild>{trigger}</RDialog.Trigger>}
       <RDialog.Portal>
         <RDialog.Overlay className="ui-overlay" />
-        <RDialog.Content className={cx('ui-dialog', `ui-dialog--${size}`)} onOpenAutoFocus={focusPreferred} onCloseAutoFocus={trigger ? undefined : onCloseAutoFocus}>
+        <RDialog.Content className={cx('ui-dialog', `ui-dialog--${size}`, className)} onOpenAutoFocus={focusPreferred} onCloseAutoFocus={trigger ? undefined : onCloseAutoFocus}>
           <div className="ui-dialog-head">
             <RDialog.Title className="ui-dialog-title">{title}</RDialog.Title>
             <RDialog.Close asChild>

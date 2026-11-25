@@ -550,6 +550,12 @@
   justify-content: space-between;
   gap: var(--ui-space-2);
 }
+.doc-body-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
 .doc-body-label {
   font-weight: 600;
   font-size: 0.85rem;
@@ -699,3 +705,34 @@
 .document-link > a { overflow-wrap: anywhere; min-width: 0; }
 .document-link > button { flex-shrink: 0; vertical-align: middle; }
 .document-preview-text { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+
+/* Focus reader: ข้อความยาวบรรทัดอ่านสบาย ส่วนตาราง แผนภาพ และ code ใช้ความกว้างเต็ม */
+.document-reader-content {
+  min-width: 0;
+}
+.document-reader-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) min(72ch, 100%) minmax(0, 1fr);
+  font-size: var(--ui-text-md);
+  line-height: 1.65;
+}
+.document-reader-body > * {
+  grid-column: 2;
+  min-width: 0;
+}
+.document-reader-body > .markdown-table,
+.document-reader-body > pre,
+.document-reader-body > .mermaid-diagram {
+  grid-column: 1 / -1;
+  max-width: 100%;
+}
+.document-reader-body :is(h1, h2, h3, h4, h5, h6) {
+  scroll-margin-top: var(--ui-space-3);
+}
+.document-reader-body > .markdown-table {
+  min-width: 100%;
+}
+/* ตารางที่แคบกว่าพื้นที่อยู่กลาง ไม่ชิดขอบซ้ายห่างจากคอลัมน์ข้อความ */
+.document-reader-body > .markdown-table > table {
+  margin-inline: auto;
+}
