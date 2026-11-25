@@ -180,3 +180,118 @@ for (const theme of ['light', 'dark'] as const) {
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   })
 }
+
+test('Read draft shows the latest unsaved text at once, keeps the same editor, mode and undo, and never saves @mobile', async ({ app, owner, page }, info) => {
+  const original = [
+    '# Draft title',
+    'Intro paragraph.',
+    '<div align="center">kept as written</div>',
+    'Jump to [details](/documents/DOC#details).',
+    '## Details',
+    'Detail text.',
+    '```mermaid\nflowchart LR\n  A[Draft] --> B[Read]\n```',
+  ].join('\n\n') + '\n'
+  const created = (await owner.post('/client/v1/documents', { title: 'Draft reading', body: 'placeholder' })).body.document
+  const doc = (await owner.patch(`/client/v1/documents/${created.id}`, { body: original.replace('DOC', created.id) })).body.document
+  const writes: string[] = []
+  page.on('request', (r) => { if (r.method() !== 'GET' && r.url().includes('/documents')) writes.push(`${r.method()} ${r.url()}`) })
+  await signIn(page, app)
+  await editDocument(page, app.url, doc.id)
+  await page.locator('.doc-editor-content').evaluate((el) => el.setAttribute('data-instance', 'kept'))
+
+  // พิมพ์แล้วเปิดทันที (ยังอยู่ในช่วง debounce 400 ms)
+  await page.locator('.doc-editor-content p', { hasText: 'Intro paragraph.' }).click()
+  await page.keyboard.press('End')
+  await page.keyboard.type(' Typed just now.')
+  const read = page.getByRole('button', { name: 'Read draft', exact: true })
+  await read.click()
+  const reader = page.getByRole('dialog', { name: 'Draft reading', exact: true })
+  await expect(reader).toContainText('Unsaved draft · not a saved revision')
+  await expect(reader.locator('.document-reader-body')).toContainText('Intro paragraph. Typed just now.')
+  await expect(reader.locator('.mermaid-diagram img')).toHaveCount(1)
+  // ลิงก์ไปหัวข้อของเอกสารเดียวกันเลื่อนอยู่ใน reader
+  await reader.getByRole('link', { name: 'details', exact: true }).click()
+  await expect(reader).toBeVisible()
+  await expect(reader.getByRole('heading', { name: 'Details' })).toBeInViewport()
+  await expect(page).toHaveURL(new RegExp(`/documents/${doc.id}/edit$`))
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate(async (t) => {
+      document.documentElement.setAttribute('data-theme', t)
+      await new Promise(requestAnimationFrame)
+      await Promise.all(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {})))
+    }, theme)
+    const axe = await new AxeBuilder({ page }).include('[role="dialog"]').analyze()
+    expect(axe.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([])
+  }
+  await page.screenshot({ path: `.alice-test/document-reading/draft-reader-${info.project.name}.png` })
+  await page.keyboard.press('Escape')
+  await expect(reader).toHaveCount(0)
+  await expect(read).toBeFocused()
+
+  // editor เดิม (ไม่ถูก remount), โหมดเดิม, undo ยังใช้ได้
+  await expect(page.locator('.doc-editor-content[data-instance="kept"]')).toHaveCount(1)
+  await expect(page.getByRole('radio', { name: 'Rich text' })).toHaveAttribute('aria-checked', 'true')
+  await expect(page.locator('.doc-raw-block')).toHaveCount(1)
+  await editor(page).focus()
+  await page.keyboard.press('ControlOrMeta+z')
+  await expect(page.locator('.doc-editor-content p', { hasText: 'Intro paragraph.' })).not.toContainText('Typed just now.')
+  // เปิดใหม่ได้ draft ล่าสุด (หลัง undo)
+  await read.click()
+  await expect(reader.locator('.document-reader-body')).not.toContainText('Typed just now.')
+  await page.keyboard.press('Escape')
+  await expect(read).toBeFocused()
+  await editor(page).focus()
+  await page.keyboard.press('ControlOrMeta+Shift+z')
+  await expect(page.locator('.doc-editor-content p', { hasText: 'Intro paragraph.' })).toContainText('Typed just now.')
+
+  // โหมด Markdown: ใช้ข้อความปัจจุบันใน textarea และยังอยู่โหมดเดิม
+  await page.getByRole('radio', { name: 'Markdown' }).click()
+  const source = page.getByLabel('Body', { exact: true })
+  await source.fill((await source.inputValue()).replace('Detail text.', 'Detail text from source.'))
+  await read.click()
+  await expect(reader.locator('.document-reader-body')).toContainText('Detail text from source.')
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('radio', { name: 'Markdown' })).toHaveAttribute('aria-checked', 'true')
+  await expect(source).toHaveValue(/Detail text from source\./)
+
+  // อ่านอย่างเดียวไม่บันทึก; Save ยังทำงานเดิม
+  expect(writes).toEqual([])
+  expect((await owner.get(`/client/v1/documents/${doc.id}`)).body.document.revision).toBe(doc.revision)
+  const expected = await source.inputValue()
+  await page.getByRole('button', { name: 'Save changes' }).click()
+  await expect.poll(async () => (await owner.get(`/client/v1/documents/${doc.id}`)).body.document.body).toBe(expected)
+  expect(expected).toContain('<div align="center">kept as written</div>')
+})
+
+test('Read draft reports a draft that cannot be converted and keeps the text', async ({ app, owner, page }) => {
+  // ใกล้ขีดจำกัด 100,000 ตัวอักษร: พิมพ์เพิ่มแล้วแปลงไม่ได้
+  const doc = (await owner.post('/client/v1/documents', { title: 'Near the limit', body: 'x'.repeat(99_990) })).body.document
+  await signIn(page, app)
+  await editDocument(page, app.url, doc.id)
+  await page.locator('.doc-editor-content p').first().click()
+  await page.keyboard.press('ControlOrMeta+End')
+  await page.keyboard.type(' more than fits')
+  await page.getByRole('button', { name: 'Read draft', exact: true }).click()
+  await expect(page.getByText('The draft could not be shown')).toBeVisible()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.locator('.doc-editor-content')).toContainText('more than fits')
+  await expect(page.getByRole('radio', { name: 'Rich text' })).toHaveAttribute('aria-checked', 'true')
+  expect((await owner.get(`/client/v1/documents/${doc.id}`)).body.document.revision).toBe(doc.revision)
+})
+
+test('a link in the draft reader still asks before discarding unsaved changes', async ({ app, owner, page }) => {
+  const other = (await owner.post('/client/v1/documents', { title: 'Elsewhere', body: 'Other body.' })).body.document
+  const doc = (await owner.post('/client/v1/documents', { title: 'Guarded draft', body: `Go to [elsewhere](/documents/${other.id}).` })).body.document
+  await signIn(page, app)
+  await editDocument(page, app.url, doc.id)
+  await page.getByLabel('Document title').fill('Guarded draft edited')
+  await page.getByRole('button', { name: 'Read draft', exact: true }).click()
+  const reader = page.getByRole('dialog', { name: 'Guarded draft edited', exact: true })
+  await reader.getByRole('link', { name: 'elsewhere', exact: true }).click()
+  const leave = page.getByRole('dialog', { name: 'Discard unsaved changes?' })
+  await expect(leave).toBeVisible()
+  await expect(reader).toHaveCount(0)
+  await leave.getByRole('button', { name: 'Stay and keep editing' }).click()
+  await expect(page).toHaveURL(new RegExp(`/documents/${doc.id}/edit$`))
+  await expect(page.getByLabel('Document title')).toHaveValue('Guarded draft edited')
+})

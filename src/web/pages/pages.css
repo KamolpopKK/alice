@@ -550,6 +550,12 @@
   justify-content: space-between;
   gap: var(--ui-space-2);
 }
+.doc-body-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
 .doc-body-label {
   font-weight: 600;
   font-size: 0.85rem;

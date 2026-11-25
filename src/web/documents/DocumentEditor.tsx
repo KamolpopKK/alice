@@ -1,6 +1,8 @@
 import { Component, Suspense, lazy, useId, useRef, useState, type ReactNode } from 'react'
+import { BookOpen } from 'lucide-react'
+import { DocumentReader } from '../components/DocumentReader'
 import { Markdown } from '../components/Markdown'
-import { Banner, SegmentedControl, Skeleton } from '../ui'
+import { Banner, Button, SegmentedControl, Skeleton } from '../ui'
 import type { RichEditorHandle } from './RichDocumentEditor'
 
 // โหลด rich editor เมื่อเปิดฟอร์มเอกสารเท่านั้น
@@ -27,7 +29,16 @@ type Mode = 'rich' | 'source'
  * show safely stay as written and are edited in Markdown. If the rich editor cannot load, the Markdown
  * source stays available.
  */
-export function DocumentEditor({ label, value, onChange, rows = 12 }: { label: string; value: string; onChange: (markdown: string) => void; rows?: number }) {
+export function DocumentEditor({ label, value, onChange, rows = 12, title, documentId }: {
+  label: string
+  value: string
+  onChange: (markdown: string) => void
+  rows?: number
+  /** Draft title, shown in the focus reader. */
+  title?: string
+  /** The document being edited, so links to its own headings stay in the reader. */
+  documentId?: string
+}) {
   const id = useId()
   const labelId = `${id}-label`
   const [mode, setMode] = useState<Mode>('rich')
@@ -36,6 +47,21 @@ export function DocumentEditor({ label, value, onChange, rows = 12 }: { label: s
   // เปลี่ยน key เมื่อกลับจาก Markdown เพื่อสร้าง mapping ใหม่จากข้อความล่าสุด
   const [generation, setGeneration] = useState(0)
   const rich = useRef<RichEditorHandle>(null)
+  // snapshot ของ draft ตอนกดเปิด: ปิดแล้วเปิดใหม่จะอ่าน draft ล่าสุดอีกครั้ง
+  const [reading, setReading] = useState<string | null>(null)
+  const [readError, setReadError] = useState('')
+
+  // ไม่สลับโหมด ไม่เปลี่ยน generation และไม่ unmount editor: แค่ flush ข้อความที่ยังอยู่ในช่วง debounce
+  const openReader = () => {
+    let markdown = value
+    if (mode === 'rich' && !richFailed && rich.current) {
+      const result = rich.current.flush()
+      if (!result.ok) return setReadError(result.error)
+      markdown = result.markdown
+    }
+    setReadError('')
+    setReading(markdown)
+  }
 
   const switchTo = (next: Mode) => {
     if (next === mode) return
@@ -68,18 +94,38 @@ export function DocumentEditor({ label, value, onChange, rows = 12 }: { label: s
         <span id={labelId} className="doc-body-label">
           {label}
         </span>
-        {!richFailed && (
-          <SegmentedControl
-            label="Editor mode"
-            value={mode}
-            onValueChange={(v) => switchTo(v as Mode)}
-            options={[
-              { value: 'rich', label: 'Rich text' },
-              { value: 'source', label: 'Markdown' },
-            ]}
-          />
-        )}
+        <div className="doc-body-tools">
+          <Button size="sm" variant="ghost" icon={BookOpen} onClick={openReader} aria-haspopup="dialog">
+            Read draft
+          </Button>
+          {!richFailed && (
+            <SegmentedControl
+              label="Editor mode"
+              value={mode}
+              onValueChange={(v) => switchTo(v as Mode)}
+              options={[
+                { value: 'rich', label: 'Rich text' },
+                { value: 'source', label: 'Markdown' },
+              ]}
+            />
+          )}
+        </div>
       </div>
+      {readError && (
+        <Banner tone="danger" title="The draft could not be shown">
+          {readError} Your text is unchanged; keep editing or switch to Markdown.
+        </Banner>
+      )}
+      <DocumentReader
+        open={reading !== null}
+        onOpenChange={(open) => {
+          if (!open) setReading(null)
+        }}
+        title={title?.trim() || 'Untitled draft'}
+        description="Unsaved draft · not a saved revision"
+        body={reading}
+        documentId={documentId}
+      />
       {switchError && (
         <Banner tone="danger" title="Still in rich text">
           {switchError}
