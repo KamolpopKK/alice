@@ -1,0 +1,51 @@
+/* Expanded Mermaid viewer: แถบควบคุมอยู่กับที่ พื้นที่ภาพเลื่อนเองทั้งสองแกน */
+.mermaid-viewer .ui-dialog-body {
+  display: flex;
+  overflow: hidden;
+}
+.mermaid-viewer-frame {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  min-width: 0;
+  min-height: 0;
+}
+.mermaid-viewer-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
+.mermaid-viewer-zoom {
+  min-width: 4.5ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.mermaid-viewer-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-surface);
+}
+.mermaid-viewer-viewport:focus-visible {
+  outline: var(--ui-focus-width) solid var(--ui-focus);
+  outline-offset: var(--ui-focus-offset);
+}
+/* ภาพเล็กกว่าพื้นที่อยู่กลาง ภาพใหญ่กว่าพื้นที่เลื่อนได้ครบทุกขอบ */
+.mermaid-viewer-canvas {
+  display: grid;
+  place-items: center;
+  min-width: 100%;
+  min-height: 100%;
+  width: max-content;
+  height: max-content;
+}
+.mermaid-viewer-canvas img {
+  display: block;
+  max-width: none;
+  user-select: none;
+}

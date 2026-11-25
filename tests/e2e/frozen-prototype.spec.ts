@@ -56,6 +56,17 @@ test('Mermaid diagrams render with a frozen prototype', async ({ app, owner, pag
     await expect.poll(() => image.evaluate((node: HTMLImageElement) => node.naturalWidth)).toBeGreaterThan(0)
   }
   await expect(page.getByText(/Unable to render Mermaid diagram/)).toHaveCount(0)
+  // ตัวดูขยาย: เปิด ซูม และ Fit ได้โดยไม่มี error
+  await page.getByRole('button', { name: 'Expand diagram' }).nth(2).click()
+  const viewer = page.getByRole('dialog', { name: 'Diagram', exact: true })
+  const zoom = viewer.getByRole('status', { name: 'Zoom level' })
+  const before = await zoom.textContent()
+  await viewer.getByRole('button', { name: 'Zoom in' }).click()
+  await expect(zoom).not.toHaveText(before!)
+  await viewer.getByRole('button', { name: 'Fit to view' }).click()
+  await expect(zoom).toHaveText(before!)
+  await page.keyboard.press('Escape')
+  await expect(viewer).toHaveCount(0)
   expect(errors).toEqual([])
 })
 

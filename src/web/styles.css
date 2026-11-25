@@ -1292,3 +1292,6 @@ main[data-offline] button[type='submit'] {
 .update-check > [role='status']:empty {
   margin-inline-end: -8px;
 }
+.mermaid-diagram-expand {
+  margin-top: 8px;
+}
