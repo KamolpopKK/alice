@@ -2,12 +2,19 @@
 
 ## Unreleased
 
+## 0.2.10 — 2026-11-25
+
 ### Added
 
 - **Comfortable document reading.** A focus reader for saved documents and for unsaved drafts (**Read
-  draft**), wide tables that scroll inside their own frame, an expanded Mermaid viewer with Fit, zoom
-  and pan, and **Expand to read** in document previews, which loads the full current revision on request.
-  Frontend only: no schema, Client API or MCP change.
+  draft**), wide tables that scroll inside their own frame, an expanded Mermaid viewer (click a diagram;
+  Fit, zoom with pinch, ⌘/Ctrl + scroll, buttons or keys, and pan) and **Expand to read** in document
+  previews, which loads the full current revision on request.
+
+### Changed
+
+- **Refresh all seven bundled skills to 0.2.10.** Update Desktop/CLI and restart the agent session.
+  Frontend-only release: no schema, Client API or MCP contract change.
 
 ## 0.2.9 — 2026-11-24
 

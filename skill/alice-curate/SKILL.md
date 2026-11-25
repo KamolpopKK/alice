@@ -1,7 +1,7 @@
 ---
 name: alice-curate
 description: Inspect an Alice knowledge library on request — topics, reading starts, links, lifecycle status and, at the chosen depth, document content — then report evidence-based findings and proposals in chat and apply only the changes the person approves. Use to check or tidy existing project knowledge; not for understanding a codebase (use alice-understand), planning or working on tasks.
-version: 0.2.9
+version: 0.2.10
 ---
 
 # Curating project knowledge in Alice
