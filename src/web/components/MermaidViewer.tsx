@@ -1,14 +1,14 @@
-import { useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Maximize, ZoomIn, ZoomOut } from 'lucide-react'
 import { Button, Dialog, IconButton } from '../ui'
-import { fitScale, scrollAfterZoom, zoomBounds, zoomIn, zoomOut, zoomPercent, type Size } from './mermaid-viewer-geometry'
+import { clampZoom, fitScale, scrollAfterZoom, scrollAfterZoomAt, wheelZoomFactor, zoomBounds, zoomIn, zoomOut, zoomPercent, type Size } from './mermaid-viewer-geometry'
 import './MermaidViewer.css'
 
 /**
  * Expanded view of a diagram that already rendered. It shows the same image (an SVG data URL, so no
  * script or external resource can run) at a chosen size: zooming only changes the image's displayed
  * size and never asks Mermaid to render again. Panning uses the viewport's own scrollbars, keyboard
- * and touch scrolling.
+ * and touch scrolling. A trackpad pinch, or ⌘/Ctrl with the scroll wheel, zooms around the pointer.
  */
 export function MermaidViewer({ open, onOpenChange, image, size }: { open: boolean; onOpenChange: (open: boolean) => void; image: string; size: Size }) {
   const viewport = useRef<HTMLDivElement | null>(null)
@@ -24,8 +24,19 @@ export function MermaidViewer({ open, onOpenChange, image, size }: { open: boole
     modeRef.current = next
     setModeState(next)
   }
-  const [scale, setScale] = useState(1)
-  const [fit, setFit] = useState(1)
+  const [scale, setScaleState] = useState(1)
+  const [fit, setFitState] = useState(1)
+  // ค่าล่าสุดสำหรับ listener ของ gesture ที่ยิงถี่กว่ารอบ render
+  const scaleRef = useRef(scale)
+  const fitRef = useRef(fit)
+  const setScale = (next: number) => {
+    scaleRef.current = next
+    setScaleState(next)
+  }
+  const setFit = (next: number) => {
+    fitRef.current = next
+    setFitState(next)
+  }
   // ตำแหน่ง scroll ที่ต้องตั้งหลัง render ขนาดใหม่ เพื่อให้จุดกลางเดิมอยู่กลางจอ
   const pending = useRef<{ left: number; top: number } | null>(null)
 
@@ -82,6 +93,51 @@ export function MermaidViewer({ open, onOpenChange, image, size }: { open: boole
   }
   const { min, max } = zoomBounds(fit)
 
+  // pinch บน trackpad (WebKit: gesture events, Chromium: wheel + ctrlKey) และ ⌘/Ctrl + scroll: ซูมรอบ pointer
+  // scroll ธรรมดายังเลื่อนภาพตามเดิม
+  useEffect(() => {
+    const el = element
+    if (!el) return undefined
+    const zoomAt = (next: number, clientX: number, clientY: number) => {
+      const from = scaleRef.current
+      if (next === from) return
+      const rect = el.getBoundingClientRect()
+      const point = { x: clientX - rect.left - el.clientLeft, y: clientY - rect.top - el.clientTop }
+      const scroll = pending.current ?? { left: el.scrollLeft, top: el.scrollTop }
+      pending.current = scrollAfterZoomAt(scroll, point, from, next)
+      modeRef.current = 'manual'
+      setModeState('manual')
+      setScale(next)
+    }
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return
+      e.preventDefault()
+      zoomAt(clampZoom(scaleRef.current * wheelZoomFactor(e.deltaY), fitRef.current), e.clientX, e.clientY)
+    }
+    type Gesture = Event & { scale: number; clientX: number; clientY: number }
+    let base = 1
+    const onGestureStart = (e: Event) => {
+      e.preventDefault()
+      base = scaleRef.current
+    }
+    const onGestureChange = (e: Event) => {
+      e.preventDefault()
+      const g = e as Gesture
+      zoomAt(clampZoom(base * g.scale, fitRef.current), g.clientX, g.clientY)
+    }
+    const prevent = (e: Event) => e.preventDefault()
+    el.addEventListener('wheel', onWheel, { passive: false })
+    el.addEventListener('gesturestart', onGestureStart)
+    el.addEventListener('gesturechange', onGestureChange)
+    el.addEventListener('gestureend', prevent)
+    return () => {
+      el.removeEventListener('wheel', onWheel)
+      el.removeEventListener('gesturestart', onGestureStart)
+      el.removeEventListener('gesturechange', onGestureChange)
+      el.removeEventListener('gestureend', prevent)
+    }
+  }, [element])
+
   // ปุ่มลัดทำงานเฉพาะเมื่อ focus อยู่ใน viewer เท่านั้น ไม่ดักทั้งแอป
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.metaKey || event.ctrlKey || event.altKey) return
@@ -93,7 +149,7 @@ export function MermaidViewer({ open, onOpenChange, image, size }: { open: boole
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title="Diagram" description="Zoom with the buttons or + and −, 0 fits the whole diagram. Scroll to move around." size="viewport" className="mermaid-viewer">
+    <Dialog open={open} onOpenChange={onOpenChange} title="Diagram" description="Pinch, ⌘/Ctrl + scroll, the buttons or + and − zoom; 0 fits the whole diagram. Scroll to move around." size="viewport" className="mermaid-viewer">
       <div className="mermaid-viewer-frame" onKeyDown={onKeyDown}>
         <div className="mermaid-viewer-toolbar" role="toolbar" aria-label="Diagram zoom">
           <IconButton icon={ZoomOut} label="Zoom out" size="sm" variant="secondary" onClick={() => applyZoom(zoomOut(scale, fit))} disabled={scale <= min} />

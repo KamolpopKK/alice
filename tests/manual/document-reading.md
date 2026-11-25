@@ -49,8 +49,8 @@ macOS version, Mac model and the commit the app was built from.
 Create the documents in the app: **New document → Markdown**, paste, then **Create document**.
 
 ```sh
-node --import tsx tests/manual/document-reading-fixtures.ts reading | pbcopy   # "Reading fixture"
-node --import tsx tests/manual/document-reading-fixtures.ts draft | pbcopy     # "Draft check"
+node --import tsx tests/manual/document-reading-fixtures.ts reading | LANG=en_US.UTF-8 pbcopy   # "Reading fixture"
+node --import tsx tests/manual/document-reading-fixtures.ts draft | LANG=en_US.UTF-8 pbcopy     # "Draft check"
 ```
 
 Create a third document, "Link source", whose body links to the first one:
@@ -64,7 +64,7 @@ Create a third document, "Link source", whose body links to the first one:
 | 2 | In the reader, scroll; resize the window narrower and wider | Content scrolls on its own; header and Close stay visible; text keeps its line length; no sideways page scroll |
 | 3 | Tab to the wide table, use the arrow keys; then scroll it with the trackpad | Only the table moves sideways; Column 20 is reachable |
 | 4 | **Expand diagram** on the large diagram | Viewer opens fitted (whole diagram visible), zoom % shown |
-| 5 | **Zoom in** ×3, + and −, 0; drag the scrollbars or use the trackpad; resize the window while fitted, then while zoomed | Zoom changes instantly with no redraw flash; 0 fits again; resize refits only when fitted |
+| 5 | **Zoom in** ×3, + and −, 0; pinch on the trackpad and ⌘ + scroll over a node; scroll with two fingers; resize the window while fitted, then while zoomed | Zoom changes instantly with no redraw flash and stays around the pointer; plain scrolling moves the diagram; 0 fits again; resize refits only when fitted |
 | 6 | Escape, Escape | Viewer closes (focus on Expand diagram), then the reader closes (focus on Focus reader, same scroll position) |
 | 7 | Switch Settings → Appearance to Dark and repeat 1, 4 | Both views readable in dark |
 | 8 | Open "Link source", press the preview icon, then **Expand to read** | Full document opens above the preview, starting at "Wide table", with actual status/revision/reviewed revision |

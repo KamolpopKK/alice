@@ -74,7 +74,8 @@ loses it.
   keys, a trackpad or touch to move across. Tables in the editor are unchanged.
 - **Diagrams.** A Mermaid diagram that rendered shows **Expand diagram**. The viewer opens with the
   whole diagram fitted to the window and offers **Zoom out**, the zoom level, **Zoom in** and **Fit to
-  view**. With focus in the viewer, + and − zoom and 0 fits; scroll, the arrow and Page keys, a trackpad
+  view**. Pinch on a trackpad, or hold ⌘ (Ctrl on Windows and Linux) and scroll, to zoom around the
+  pointer. With focus in the viewer, + and − zoom and 0 fits. Plain scrolling, the arrow and Page keys,
   or touch move around. Zooming resizes the same image, so it is instant and nothing is drawn again. A
   diagram that fails to render keeps its error and source and has no viewer.
 - **Escape closes one layer at a time**: the diagram viewer first, then the reader, then a preview.

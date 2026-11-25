@@ -163,6 +163,47 @@ test('the expanded diagram viewer fits, zooms and pans the rendered image withou
   await expect.poll(() => image.evaluate((n) => n.getBoundingClientRect().width)).toBeGreaterThan(smallerWidth)
   await expect.poll(fits).toBe(true)
 
+  // ⌘/Ctrl + scroll และ pinch ซูมรอบ pointer; scroll ธรรมดายังเลื่อนภาพ
+  await page.keyboard.press('0')
+  await expect(viewer.getByRole('button', { name: 'Fit to view' })).toHaveAttribute('aria-pressed', 'true')
+  // ซูมจนภาพสูงกว่าพื้นที่ (เลื่อนได้): ภาพที่เล็กกว่าพื้นที่อยู่กึ่งกลางและเลื่อนไม่ได้
+  while (!(await viewport.evaluate((v) => v.scrollHeight > v.clientHeight * 2))) await viewer.getByRole('button', { name: 'Zoom in' }).click()
+  await viewport.evaluate((v) => v.scrollTo(v.scrollWidth / 2, v.scrollHeight / 2))
+  const imageBox = (await image.boundingBox())!
+  const box = (await viewport.boundingBox())!
+  const pointer = { x: Math.max(box.x + 5, Math.min(box.x + box.width - 5, imageBox.x + imageBox.width / 2)), y: box.y + box.height * 0.4 }
+  const scrollsX = await viewport.evaluate((v) => v.scrollWidth > v.clientWidth)
+  // จุดของภาพใต้ pointer เป็นสัดส่วนของภาพ
+  const underPointer = () => image.evaluate((img, p) => { const r = img.getBoundingClientRect(); return { x: (p.x - r.left) / r.width, y: (p.y - r.top) / r.height } }, pointer)
+  await page.mouse.move(pointer.x, pointer.y)
+  const beforePoint = await underPointer()
+  const beforeLevel = await zoom.textContent()
+  await page.keyboard.down('Control')
+  await page.mouse.wheel(0, -100)
+  await page.keyboard.up('Control')
+  await expect(zoom).not.toHaveText(beforeLevel!)
+  const afterPoint = await underPointer()
+  expect(Math.abs(afterPoint.y - beforePoint.y)).toBeLessThan(0.02)
+  if (scrollsX) expect(Math.abs(afterPoint.x - beforePoint.x)).toBeLessThan(0.02)
+  // gesture แบบ WebKit (Alice Desktop บน macOS): gesturestart/gesturechange พร้อม scale
+  const levelBeforePinch = Number((await zoom.textContent())!.replace('%', ''))
+  await viewport.evaluate((v, p) => {
+    const fire = (type: string, scale: number) => {
+      const e = new Event(type, { bubbles: true, cancelable: true })
+      Object.assign(e, { scale, clientX: p.x, clientY: p.y })
+      v.dispatchEvent(e)
+    }
+    fire('gesturestart', 1)
+    fire('gesturechange', 1.5)
+    fire('gestureend', 1.5)
+  }, pointer)
+  await expect.poll(async () => Number((await zoom.textContent())!.replace('%', ''))).toBeGreaterThan(levelBeforePinch)
+  const scrolled = await viewport.evaluate((v) => v.scrollTop)
+  const levelBeforeScroll = await zoom.textContent()
+  await page.mouse.wheel(0, 200)
+  await expect.poll(() => viewport.evaluate((v) => v.scrollTop)).toBeGreaterThan(scrolled)
+  await expect(zoom).toHaveText(levelBeforeScroll!)
+
   expect(await page.evaluate(() => (window as unknown as { __renders: number }).__renders)).toBe(0)
   await expect(image).toHaveAttribute('src', src!)
   fs.mkdirSync(EVIDENCE, { recursive: true })

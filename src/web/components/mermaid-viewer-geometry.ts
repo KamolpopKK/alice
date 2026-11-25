@@ -48,3 +48,24 @@ export function scrollAfterZoom(
   const cy = (scroll.top + viewport.height / 2) / from
   return { left: Math.max(0, cx * to - viewport.width / 2), top: Math.max(0, cy * to - viewport.height / 2) }
 }
+
+/**
+ * Scroll offsets that keep the image point under `point` (relative to the viewport) still under it
+ * after a zoom: pinch and modifier-scroll zoom around the pointer.
+ */
+export function scrollAfterZoomAt(
+  scroll: { left: number; top: number },
+  point: { x: number; y: number },
+  from: number,
+  to: number,
+): { left: number; top: number } {
+  return {
+    left: Math.max(0, ((scroll.left + point.x) / from) * to - point.x),
+    top: Math.max(0, ((scroll.top + point.y) / from) * to - point.y),
+  }
+}
+
+/** Zoom factor for one wheel step. Trackpad pinch sends small deltas, a mouse wheel large ones. */
+export function wheelZoomFactor(deltaY: number): number {
+  return Math.exp(-Math.max(-50, Math.min(50, deltaY)) / 100)
+}
