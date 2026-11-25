@@ -249,7 +249,7 @@ async function measureExpanded(page: Page, url: string, sourceId: string, target
 async function measureViewer(page: Page, url: string, id: string) {
   await page.goto(`${url}/documents/${id}`)
   await page.locator('.document-body .mermaid-diagram img').waitFor()
-  const open = await openTimed(page, '.document-body .mermaid-diagram-expand', '.mermaid-viewer .mermaid-viewer-viewport img')
+  const open = await openTimed(page, '.document-body .mermaid-diagram-open', '.mermaid-viewer .mermaid-viewer-viewport img')
   await installInteractionRecorder(page)
   const fitLevel = await page.getByRole('status', { name: 'Zoom level' }).textContent()
   await measureZoom(page)

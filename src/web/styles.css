@@ -1292,6 +1292,43 @@ main[data-offline] button[type='submit'] {
 .update-check > [role='status']:empty {
   margin-inline-end: -8px;
 }
-.mermaid-diagram-expand {
-  margin-top: 8px;
+/* แผนภาพที่ render แล้วกดได้ทั้งก้อนเพื่อเปิดตัวดูขยาย */
+.mermaid-diagram-open {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: inherit;
+  cursor: zoom-in;
+}
+.mermaid-diagram-open:focus-visible {
+  outline: var(--ui-focus-width) solid var(--ui-focus);
+  outline-offset: var(--ui-focus-offset);
+}
+.mermaid-diagram-open-hint {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-surface-raised);
+  color: var(--ui-text);
+  opacity: 0;
+}
+/* ไม่บังแผนภาพ: แสดงไอคอนเมื่อชี้หรือ focus; จอสัมผัสที่ไม่มี hover แสดงตลอด */
+.mermaid-diagram-open:hover .mermaid-diagram-open-hint,
+.mermaid-diagram-open:focus-visible .mermaid-diagram-open-hint {
+  opacity: 1;
+}
+@media (hover: none) {
+  .mermaid-diagram-open-hint {
+    opacity: 0.85;
+  }
 }

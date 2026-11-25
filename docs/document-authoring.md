@@ -72,7 +72,8 @@ loses it.
 - **Wide tables** scroll sideways inside their own frame, on the page and in the reader, instead of
   squeezing every column. Each cell wraps at a readable width. Focus the table (Tab) and use the arrow
   keys, a trackpad or touch to move across. Tables in the editor are unchanged.
-- **Diagrams.** A Mermaid diagram that rendered shows **Expand diagram**. The viewer opens with the
+- **Diagrams.** Click a Mermaid diagram that rendered, or Tab to it and press Enter (**Expand diagram**
+  for screen readers), to open the viewer. It opens with the
   whole diagram fitted to the window and offers **Zoom out**, the zoom level, **Zoom in** and **Fit to
   view**. Pinch on a trackpad, or hold ⌘ (Ctrl on Windows and Linux) and scroll, to zoom around the
   pointer. With focus in the viewer, + and − zoom and 0 fits. Plain scrolling, the arrow and Page keys,

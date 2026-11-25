@@ -158,9 +158,10 @@ test('the expanded diagram viewer fits, zooms and pans the rendered image withou
   await page.keyboard.press('0')
   await expect(viewer.getByRole('button', { name: 'Fit to view' })).toHaveAttribute('aria-pressed', 'true')
   await expect.poll(fits).toBe(true)
-  const smallerWidth = await image.evaluate((n) => n.getBoundingClientRect().width)
+  // แผนภาพนี้สูงกว่ากว้างมาก: Fit ถูกกำหนดด้วยความสูง จึงเทียบความสูง (ความกว้างหลังปัดอาจเท่าเดิม)
+  const smallerHeight = await image.evaluate((n) => n.getBoundingClientRect().height)
   await page.setViewportSize(viewportSize)
-  await expect.poll(() => image.evaluate((n) => n.getBoundingClientRect().width)).toBeGreaterThan(smallerWidth)
+  await expect.poll(() => image.evaluate((n) => n.getBoundingClientRect().height)).toBeGreaterThan(smallerHeight)
   await expect.poll(fits).toBe(true)
 
   // ⌘/Ctrl + scroll และ pinch ซูมรอบ pointer; scroll ธรรมดายังเลื่อนภาพ
@@ -227,7 +228,16 @@ test('the diagram viewer nests above the focus reader and the editor preview', a
   await page.getByRole('button', { name: 'Focus reader', exact: true }).click()
   const reader = page.getByRole('dialog', { name: 'Nested viewer', exact: true })
   const expand = reader.getByRole('button', { name: 'Expand diagram', exact: true })
-  await expand.click()
+  // แผนภาพทั้งก้อนเป็นปุ่ม: เปิดด้วยคีย์บอร์ดได้ และคลิกที่มุมของภาพก็เปิดได้
+  await expect(expand.locator('img')).toBeVisible()
+  await expand.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('dialog', { name: 'Diagram', exact: true })).toBeVisible()
+  await page.evaluate(() => new Promise(requestAnimationFrame))
+  await page.keyboard.press('Escape')
+  await expect(expand).toBeFocused()
+  const corner = (await expand.locator('img').boundingBox())!
+  await page.mouse.click(corner.x + 4, corner.y + corner.height - 4)
   const viewer = page.getByRole('dialog', { name: 'Diagram', exact: true })
   await expect(viewer.getByRole('button', { name: 'Close' })).toBeFocused()
   await page.evaluate(() => new Promise(requestAnimationFrame))

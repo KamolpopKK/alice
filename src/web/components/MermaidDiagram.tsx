@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Maximize2 } from 'lucide-react'
-import { Button } from '../ui'
 import { useTheme } from '../ui/theme'
 import { MermaidViewer } from './MermaidViewer'
 
@@ -60,14 +59,19 @@ export function MermaidDiagram({ source }: { source: string }) {
   const current = result?.source === source && result.theme === resolved ? result : undefined
   return (
     <figure className="mermaid-diagram" aria-label="Mermaid diagram" aria-busy={!current}>
-      {current?.rendered ? <img src={current.rendered.image} alt="Mermaid diagram" /> : <p role="status">{current?.error ?? 'Rendering diagram…'}</p>}
-      {current?.rendered && (
+      {current?.rendered ? (
         <>
-          <Button size="sm" variant="ghost" icon={Maximize2} className="mermaid-diagram-expand" onClick={() => setExpanded(true)} aria-haspopup="dialog">
-            Expand diagram
-          </Button>
+          {/* ทั้งแผนภาพเป็นปุ่มเปิดตัวดูขยาย: คลิกตรงไหนก็ได้ หรือ Tab แล้ว Enter */}
+          <button type="button" className="mermaid-diagram-open" onClick={() => setExpanded(true)} aria-haspopup="dialog" aria-label="Expand diagram" title="Expand diagram">
+            <img src={current.rendered.image} alt="" />
+            <span className="mermaid-diagram-open-hint" aria-hidden="true">
+              <Maximize2 size={16} />
+            </span>
+          </button>
           <MermaidViewer open={expanded} onOpenChange={setExpanded} image={current.rendered.image} size={naturalSize(current.rendered)} />
         </>
+      ) : (
+        <p role="status">{current?.error ?? 'Rendering diagram…'}</p>
       )}
       <details open={Boolean(current?.error)}>
         <summary>Diagram source</summary>

@@ -63,7 +63,7 @@ Create a third document, "Link source", whose body links to the first one:
 | 1 | Open "Reading fixture", scroll halfway, Tab to **Focus reader** and press Enter | Near-full-window reader with title, "Saved document · … · Revision N" and Close in view; no page change underneath |
 | 2 | In the reader, scroll; resize the window narrower and wider | Content scrolls on its own; header and Close stay visible; text keeps its line length; no sideways page scroll |
 | 3 | Tab to the wide table, use the arrow keys; then scroll it with the trackpad | Only the table moves sideways; Column 20 is reachable |
-| 4 | **Expand diagram** on the large diagram | Viewer opens fitted (whole diagram visible), zoom % shown |
+| 4 | Click anywhere on the large diagram (then also try Tab to it + Enter) | Viewer opens fitted (whole diagram visible), zoom % shown |
 | 5 | **Zoom in** ×3, + and −, 0; pinch on the trackpad and ⌘ + scroll over a node; scroll with two fingers; resize the window while fitted, then while zoomed | Zoom changes instantly with no redraw flash and stays around the pointer; plain scrolling moves the diagram; 0 fits again; resize refits only when fitted |
 | 6 | Escape, Escape | Viewer closes (focus on Expand diagram), then the reader closes (focus on Focus reader, same scroll position) |
 | 7 | Switch Settings → Appearance to Dark and repeat 1, 4 | Both views readable in dark |
