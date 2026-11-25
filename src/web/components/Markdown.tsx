@@ -17,6 +17,15 @@ const components: Components = {
     }
     return <pre {...props}>{children}</pre>
   },
+  // ตารางกว้างเลื่อนแนวนอนในกรอบของตัวเอง (focus ได้เพื่อใช้คีย์บอร์ด) ไม่ทำให้ทั้งหน้าล้น
+  table: ({ node: _node, ...props }) => (
+    <div className="markdown-table" role="region" aria-label="Table, scrolls sideways when wide" tabIndex={0}>
+      <table {...props} />
+    </div>
+  ),
+  // td/th ไม่รองรับ max-width: จำกัดความกว้างที่เนื้อหาในเซลล์แทน
+  th: ({ node: _node, children, ...props }) => <th {...props}><div className="markdown-cell">{children}</div></th>,
+  td: ({ node: _node, children, ...props }) => <td {...props}><div className="markdown-cell">{children}</div></td>,
   a: ({ node: _node, ...props }) => <DocumentLink {...props} />,
   // GFM task-list inputs are read-only, but still need an accessible name.
   input: ({ node: _node, type, ...props }) => <input {...props} type={type} aria-label={type === 'checkbox' ? 'Task list item' : undefined} />,

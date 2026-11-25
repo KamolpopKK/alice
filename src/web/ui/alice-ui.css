@@ -44,6 +44,7 @@
 .ui-menu-item[data-highlighted],
 .ui-toast-action:focus-visible,
 .ui-table-wrap:focus-visible,
+.markdown-table:focus-visible,
 .ui-card--interactive:focus-visible {
   outline: var(--ui-focus-width) solid var(--ui-focus);
   outline-offset: var(--ui-focus-offset);

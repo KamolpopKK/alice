@@ -716,6 +716,14 @@ main:focus {
   border-radius: var(--radius);
   overflow-x: auto;
 }
+/* width 0 + min-width 100%: เต็มความกว้าง parent แต่ไม่ดัน grid/flex ของหน้าให้กว้างตามตาราง */
+.markdown-table {
+  width: 0;
+  min-width: 100%;
+  margin: 1rem 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
 .markdown table {
   border-collapse: collapse;
 }
@@ -723,6 +731,21 @@ main:focus {
 .markdown th {
   border: 1px solid var(--border);
   padding: 4px 8px;
+  vertical-align: top;
+}
+/*
+ * ไม่บีบคอลัมน์ให้พอดีจอ: ตารางกว้างตามเนื้อหา แต่ละเซลล์กว้างไม่เกิน 28em แล้วตัดบรรทัด
+ * (คำยาว/URL ตัดได้ทุกตำแหน่ง ข้อความไทยตัดตามปกติ) ตารางที่กว้างกว่าพื้นที่จึงเลื่อนในกรอบของมันเอง
+ */
+.markdown-table table {
+  width: max-content;
+}
+.markdown-table :is(td, th) {
+  text-align: start;
+}
+.markdown-cell {
+  max-width: 28em;
+  overflow-wrap: anywhere;
 }
 .markdown blockquote {
   margin: 0;

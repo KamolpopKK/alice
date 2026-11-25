@@ -714,7 +714,7 @@
   grid-column: 2;
   min-width: 0;
 }
-.document-reader-body > table,
+.document-reader-body > .markdown-table,
 .document-reader-body > pre,
 .document-reader-body > .mermaid-diagram {
   grid-column: 1 / -1;
@@ -722,4 +722,7 @@
 }
 .document-reader-body :is(h1, h2, h3, h4, h5, h6) {
   scroll-margin-top: var(--ui-space-3);
+}
+.document-reader-body > .markdown-table {
+  min-width: 100%;
 }
