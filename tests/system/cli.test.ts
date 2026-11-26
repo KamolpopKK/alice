@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { spawnSync } from 'node:child_process'
 import http from 'node:http'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -22,7 +23,7 @@ const secretsIn = (text: string) => text.match(/alice_(c[ar]|dc)_[a-z0-9]+/g) ??
 describe('alice CLI artifact', () => {
   it('installs the embedded understanding and curation skills for both clients and scopes without source files', async () => {
     const { standalone } = await buildCli()
-    for (const skill of ['alice-understand', 'alice-curate']) for (const client of ['codex', 'claude-code']) {
+    for (const skill of ['alice-understand', 'alice-curate', 'alice-demo']) for (const client of ['codex', 'claude-code']) {
       for (const scope of ['user', 'project']) {
         const target = tempDataDir(`${skill}-install`)
         const home = cliHome()
@@ -41,6 +42,54 @@ describe('alice CLI artifact', () => {
         const version = await alice(home, ['version', '--json'], { entry: path.join(standalone, 'alice.js'), extraEnv: { HOME: target }, cwd: target })
         expect(JSON.parse(version.stdout).agentSkills[skill][`${client} (${scope})`]).toBe(APP_VERSION)
       }
+    }
+  })
+
+  it('executes installed visual samples and review helpers for both clients and scopes', async () => {
+    const { standalone } = await buildCli()
+    for (const client of ['codex', 'claude-code']) for (const scope of ['user', 'project']) {
+      const fixtureRoot = tempDataDir('demo-executable-install'), env = cliHome()
+      const install = await alice(env, ['install-skill', '--client', client, '--scope', scope, '--skill', 'alice-demo'], {
+        entry: path.join(standalone, 'alice.js'), extraEnv: { HOME: fixtureRoot }, cwd: fixtureRoot,
+      })
+      expect(install.code, install.stderr).toBe(0)
+      const installed = path.join(fixtureRoot, client === 'codex' ? '.codex' : '.claude', 'skills/alice-demo')
+      expect(fs.existsSync(path.join(fixtureRoot, 'node_modules'))).toBe(false)
+      expect(fs.existsSync(path.join(fixtureRoot, '.venv'))).toBe(false)
+      const job = path.join(fixtureRoot, 'job')
+      fs.mkdirSync(job)
+      // Production dependencies belong to the job, never the installer/App. No repository source imports.
+      fs.symlinkSync(path.resolve('node_modules'), path.join(job, 'node_modules'))
+      const runner = path.join(job, 'smoke.mjs')
+      fs.writeFileSync(runner, `import fs from 'node:fs'
+import path from 'node:path'
+import {pathToFileURL} from 'node:url'
+const installed=process.argv[2],root=process.argv[3]
+const load=(file)=>import(pathToFileURL(path.join(installed,file)).href)
+const core=await load('demo-core.mjs')
+const styles=await load('demo-styles.mjs')
+const {generateVisualSample}=await load('demo-visual.mjs')
+const {createContactSheets,verifyReviewPackage}=await load('demo-review.mjs')
+const source=core.snapshotSource({id:'doc_fixture',title:'Installed helper fixture',body:'Synthetic Thai API demo',revision:1})
+const scene={id:'intro',title:'Thai API',onScreenText:'Shared context',type:'html',html:'scene.html',start:0,duration:6,dependencies:[]}
+const v1={version:1,source,video:{width:320,height:180,fps:1},narration:null,subtitles:false,scenes:[scene]}
+core.validateManifest(v1,root)
+const m={...v1,version:2,purpose:'sample',visual:styles.stylePresets[0].visual,review:{mode:'images',sceneId:'intro',start:0},render:{seed:1,localTime:true,toolVersions:{chromium:'installed fixture'}}}
+core.writeJson(root,'source.json',source)
+fs.writeFileSync(path.join(root,'scene.html'),styles.directionSceneHtml(m.visual,scene))
+let denied=false
+try{await generateVisualSample(root,m,{readSource:async()=>source})}catch(e){denied=e.code==='APPROVAL_REQUIRED'}
+if(!denied)throw new Error('Installed helper accepted missing authorization')
+const options={readSource:async()=>source,authorize:async b=>({stage:b.stage,sourceHash:b.source.hash,inputHash:b.inputHash,reference:'Controlled installation fixture; simulated authorization'})}
+const images=await generateVisualSample(root,m,options)
+const video=await generateVisualSample(root,{...m,review:{...m.review,mode:'video5'}},options)
+const review=await createContactSheets(root,{output:video.output,sceneMap:{fps:1,frameCount:5,scenes:[{id:'intro',title:'Intro',startFrame:0,endFrame:5,count:5}]}})
+await verifyReviewPackage(root,review)
+console.log(JSON.stringify({v1:true,denied,imageCount:images.samples.length,videoFrames:video.samples.length,duration:video.metadata.duration,sheets:review.sheets.length}))
+`)
+      const executed = spawnSync(process.execPath, [runner, installed, job], { cwd: job, encoding: 'utf8', timeout: 30_000 })
+      expect(executed.status, executed.stderr).toBe(0)
+      expect(JSON.parse(executed.stdout)).toMatchObject({ v1: true, denied: true, imageCount: 3, videoFrames: 5, duration: 5, sheets: 1 })
     }
   })
 
