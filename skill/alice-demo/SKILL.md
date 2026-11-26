@@ -1,7 +1,7 @@
 ---
 name: alice-demo
 description: Create video presentations of features, workflows or concepts from an agreed storyboard. Discuss the story, save it for user review, choose a visual direction and image/five-second review, then produce capture, HTML or mixed scenes with optional narration, subtitles and final-video contact sheets. Use for demo videos, not ordinary slides or implementation planning.
-version: 0.2.10
+version: 0.2.11
 ---
 
 # Video presentations with Alice

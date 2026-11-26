@@ -178,6 +178,22 @@ async function scrollToEndByKeyboard(page: Page, region: ReturnType<Page['locato
   throw new Error('table did not reach its last column by keyboard')
 }
 
+/** รอให้ smooth scroll หยุดก่อน (ค่าเท่าเดิมสองเฟรมติดกัน) ไม่งั้นกดปุ่มถัดไประหว่าง animation แล้วตำแหน่งเพี้ยน */
+async function settledScrollLeft(region: ReturnType<Page['locator']>) {
+  return region.evaluate((el) => new Promise<number>((resolve) => {
+    let last = -1
+    let still = 0
+    const tick = () => {
+      const now = el.scrollLeft
+      still = now === last ? still + 1 : 0
+      last = now
+      if (still >= 5) resolve(now)
+      else requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  }))
+}
+
 function wideTable() {
   const head = Array.from({ length: 20 }, (_, i) => `Column ${i + 1}`)
   const row = (r: number) => head.map((_, c) => (c === 1 ? 'รายละเอียดภาษาไทยที่ยาวพอสมควรเพื่อทดสอบการตัดบรรทัดภายในเซลล์ของตาราง' : c === 2 ? `https://example.com/${'very-long-path-segment-'.repeat(8)}${r}` : c === 3 ? 'A longer explanation that should wrap inside its own cell rather than stretching the column without any bound at all. '.repeat(2) : `R${r}C${c + 1}`))
@@ -220,9 +236,9 @@ test('wide tables scroll inside their own region on the page and in the reader @
   const outline = await wide.evaluate((el) => getComputedStyle(el).outlineStyle)
   expect(outline).toBe('solid')
   await page.keyboard.press('ArrowRight')
-  await expect.poll(() => wide.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0)
+  expect(await settledScrollLeft(wide)).toBeGreaterThan(0)
   await page.keyboard.press('ArrowLeft')
-  await expect.poll(() => wide.evaluate((el) => el.scrollLeft)).toBe(0)
+  expect(await settledScrollLeft(wide)).toBe(0)
   await scrollToEndByKeyboard(page, wide)
   await expect(wide.getByRole('columnheader', { name: 'Column 20' })).toBeInViewport()
   // touch/trackpad: กรอบเลื่อนได้เองด้วย overflow ปกติ และไม่ปิด gesture
