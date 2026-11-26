@@ -12,7 +12,8 @@ homes first (the agent-setup system test covers file equality). Set up job-local
 the bundled PRODUCTION.md. Preflight must prove H.264/AAC, libass subtitles, browser, selected voice
 provider and font availability. Do not alter the user's system tools just to make a test pass.
 
-The controlled harness is `tests/manual/alice-demo.ts`. It uses `testDir()` and a temporary Alice
+The controlled harness is `tests/manual/alice-demo.ts`; it defaults to the v2 visual workflow. Set
+`DEMO_MANIFEST_VERSION=1` for the retained legacy workflow. It uses `testDir()` and a temporary Alice
 server, makes synthetic Document edits through the real HTTP API and performs live fresh reads at
 production guards. It captures an actual interactive local fixture page, explicitly labelled synthetic;
 this is not footage of a deployed production application. The voice scripts contain no private data.
@@ -29,8 +30,10 @@ node --import tsx tests/manual/alice-demo.ts
 
 `DEMO_FFPROBE` may select a particular binary. `DEMO_REUSE_AUDIO_DIR` optionally names a prior harness
 root: audio is reused only when content/settings/file hashes match; speech bounds are remeasured.
-`DEMO_REUSE_MEDIA_DIR` additionally reuses saved capture footage and must be reported as re-rendering,
-not a new capture. Evidence paths are recorded in `latest.txt`, each run's `transcript.json` and reports.
+`DEMO_REUSE_FRAMES_DIR` may copy prior HTML cache candidates: fresh authorization, complete input/runtime
+fingerprints and frame hashes still determine reuse. `DEMO_REUSE_MEDIA_DIR` additionally offers saved
+capture footage; v2 recaptures when URL/actions/input fingerprints differ. Report actual reuse as
+re-rendering rather than a new capture. Evidence paths are recorded in `latest.txt`, each run's `transcript.json` and reports.
 
 Use a standalone Thai TTF/OTF and inspect the rendered result. A macOS TTC collection loaded as a custom
 web font produced poor Thai marks in the first local trial; qualification used Noto Sans Thai with its
@@ -53,6 +56,22 @@ OFL license instead. File presence alone does not establish glyph quality.
 The harness covers runtime revision behavior using controlled inputs. Evaluate the conversation against
 SKILL.md/TEMPLATE.md separately; do not claim an unseen agent made these decisions independently.
 
+## Visual direction and scoped feedback
+
+The v2 harness generates six/seven illustrated choices, records an explicit selected direction and
+images/video5 review mode, freshly reads the actual edited scratch Document, and produces only the
+selected sample. Capture samples use actual retained fixture footage; HTML uses the same native pages,
+font/assets and time-driven motion as production. Visual samples are silent and scoped separately from
+full narration/subtitle settings. Production has a distinct simulated fixture grant and actual sample
+artifact hash; these are controlled test inputs, never real user consent.
+
+Each v2 production returns a final-MP4-bound contact sheet/map, automated QA and helper/source package.
+In the HTML example, approve one of two feedback proposals, edit the original scratch Document, and
+verify source revision 4, unchanged third-scene content and frame/clip cache hits `[true,false,true]`.
+All earlier output remains intact. A later proposal against an old output must stop for reconciliation.
+Source-change negative tests deliberately leave historical artifacts whose approved source revision is
+recorded; showing them for qualification does not assert that they are a current production preview.
+
 ## Media and review
 
 - Produce capture, HTML and mixed examples, each at least three scenes, 30–60 seconds, 1920x1080/30fps.
@@ -67,10 +86,21 @@ SKILL.md/TEMPLATE.md separately; do not claim an unseen agent made these decisio
   file lengths, and visually present/absent frames at cue boundaries must differ by at most 0.2 seconds.
   Silence threshold is a technical check, not proof of pronunciation or an independent listening review.
 
-For these synthetic layouts (with no other white text in the bottom 180 pixels), run
+For these synthetic layouts, compare final captioned crops with the exact corresponding saved
+normalized clip. The paired difference avoids mistaking a light background for white caption text. Run
 `ALICE_KEEP_TEST_DIRS=1 node --import tsx tests/manual/alice-demo-subtitles.ts EVIDENCE_ROOT`.
-It decodes actual output frames 0.08 seconds before/after cue edges and saves caption-presence images
-plus subtitle-boundaries.json. This fixture-specific check is not for arbitrary layouts.
+It decodes actual final and baseline frames 0.08 seconds before/after cue edges. More than 50 pixels
+with maximum-channel difference over 50 indicates caption compositing in the reserved bottom crop;
+recompression noise stays below that bound in this fixture. It saves both crops and
+subtitle-boundaries.json. This is a bounded fixture comparison, not general OCR or a proof of speech
+pronunciation. Investigate false positives rather than relaxing thresholds to certify arbitrary layouts.
+
+Run `ALICE_KEEP_TEST_DIRS=1 node --import tsx tests/manual/alice-demo-playback.ts EVIDENCE_ROOT` to
+observe the final movies at normal 1x playback without seeking. It records twelve actual browser
+screenshots per film, timing/dimensions and ended state in playback-observations.json. Playback is
+muted: inspect its frames and retain separate actual human listening feedback. If a later visual-only
+fix leaves the AAC stream identical, retain the exact old/new stream hashes and identify precisely which
+files the human heard; never claim they watched revised visual files they did not see.
 
 ## Failure, integrity and delivery
 
@@ -88,7 +118,7 @@ plus subtitle-boundaries.json. This fixture-specific check is not for arbitrary 
 ## Automated checks
 
 ```sh
-npx vitest run tests/unit/alice-demo.test.ts tests/unit/alice-demo-core.test.ts tests/unit/alice-demo-audio.test.ts tests/unit/alice-demo-capture.test.ts tests/unit/alice-demo-html.test.ts tests/unit/alice-demo-render.test.ts tests/system/agent-setup.test.ts tests/unit/agent-guide.test.ts tests/unit/readme-get-started.test.ts tests/unit/skill-workspace-choice.test.ts
+npx vitest run tests/unit/alice-demo.test.ts tests/unit/alice-demo-core.test.ts tests/unit/alice-demo-audio.test.ts tests/unit/alice-demo-capture.test.ts tests/unit/alice-demo-html.test.ts tests/unit/alice-demo-render.test.ts tests/unit/alice-demo-visual.test.ts tests/unit/alice-demo-review.test.ts tests/system/agent-setup.test.ts tests/unit/agent-guide.test.ts tests/unit/readme-get-started.test.ts tests/unit/skill-workspace-choice.test.ts
 npm run typecheck
 npm run build
 git diff --check

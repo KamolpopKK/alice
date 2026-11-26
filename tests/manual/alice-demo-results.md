@@ -1,3 +1,110 @@
+# alice-demo visual workflow qualification — 2026-11-26
+
+Runner: Codex executing the approved visual-direction plan. All media used synthetic data and a
+scratch Alice HTTP server. Direction choices and source/sample/production grants in the harness were
+controlled fixtures, not autonomous evaluation or actual user production consent. Human observation
+below is actual feedback in this conversation. The historical qualification follows this entry.
+
+## Candidate and environment
+
+The candidate extends base `376ce20` on `codex/alice-demo-visual-review`; the qualification commit
+contains the final harness, source-package closure and footer fix. Exact helper bytes, executed
+sources, output hashes, hardware/tools and dirty-source baselines are retained in the evidence root.
+The final commit links this report to those bytes; generated media stays outside git.
+
+- macOS Darwin 25.6.0, arm64 Apple M5, 24 GiB RAM; Node 24.18.0.
+- Job Python: gTTS 2.5.4 and edge-tts 7.3.1; the full package lock is retained locally.
+- Installed Homebrew ffmpeg-full with libass, ffprobe and Playwright Chromium; exact versions in
+  transcript/report. No production dependencies or font binaries were added to Alice's runtime.
+- Noto Sans Thai TTF and OFL licence copied into each job/source package.
+- Final full suite: **88 files, 598 tests passed, 1 existing skipped**. Typecheck, full build and diff
+  checks pass. The pre-existing web chunk-size warning remains; no new size limit is inferred.
+- Generic skill-creator quick validation still rejects Alice's required root `version` field;
+  repository metadata/resources and installer tests validate that release contract instead.
+
+## Evidence and actual media
+
+Final evidence root (ignored): `.alice-test/demo-visual/qualification/qualification-dtk5Q1/`.
+`transcript.json`, `final-audit.json`, `human-review.json`, `subtitle-boundaries.json` and
+`playback-observations.json` contain observed results. Earlier candidate roots remain retained and
+are not silently treated as final results. No person's production board/session was used.
+
+| Mode | Voice | Final run beneath mode directory | Actual result |
+|---|---|---|---|
+| Capture | gTTS Thai | `runs/29413244-6e6c-4cef-bc59-27a6f3b186e1/` | Three real interactive synthetic-page captures |
+| HTML | edge-tts Thai | `runs/52595375-a910-443f-9c90-94b8cd7d17d1/` | Native Diagram Explainer; approved-subset feedback applied |
+| Mixed | None | `runs/2c5a9563-98f2-42b0-ba3c-a860e66ce9f9/` | Capture / native Product Spotlight / capture |
+
+All final MP4s are H.264/AAC, 1920x1080 at 30fps, 900 frames / three scenes and 30.033333 seconds.
+All source packages reproduced offline and reproduced outputs passed metadata checks. Final review
+maps/sheets are tied to the actual encoded output hash and sampled exact frames including both sides
+of cuts. Each package contains the complete 16-file public helper closure; observed file inventories
+are 39 / 41 / 36. A bounded filename/content scan found no auth/env/credential files or actual Alice
+bearer markers; it is not a universal secret detector.
+
+## Requirements and agreed DoD
+
+| Coverage | Observed evidence |
+|---|---|
+| Style choices | Six capture/mixed choices and seven HTML choices generated as native illustrated galleries; preset/custom/hybrid/explicit-choice contracts also pass. No gallery TTS/capture call or default production consent. |
+| Selected review | Actual capture keyframes and 150-frame five-second HTML video; mode retained, selected style only, fresh revision-2 source, same visual tokens/fonts/assets as full production. Sample authorization is separate. |
+| Motion | All five vocabularies pass repeated/backward/out-of-order pixel comparisons in the same browser. Independent CSS time and history-dependent rendering fail. Native disclosure moved above actual captions after detailed frame inspection. |
+| Full preview | Actual final MP4-bound sheets cover start/middle/end and cuts; fractional-duration mapping, multiple sheets, stale/tampered images/video and failed extraction are exercised through real media tests. Failed packages preserve MP4 and prior latest output. |
+| Scoped feedback/cache | HTML applies only the copy proposal, retains the optional third-scene edit unapplied and saves source revision 4. Frame and normalized-clip reuse is `[true,false,true]`; unchanged original provenance remains, validatedFor identifies the new source. Supplied-audio bytes, shared style/imports, timing/locality and corrupted frames have invalidation regressions. |
+| Quality/integrity | Nine cue-edge comparisons pass at ±0.08 seconds (within 0.2s). Exact decoded frames and normal 1x muted browser playback were observed; all three videos reached ended state with twelve retained observations each. Thai/API text fits. All three live source-change tests stop production; no Delivery Document was created. |
+| Operation/security/docs | All four Codex/Claude user/project installations execute installed samples and review helpers outside repository source. v1 compatibility, v2 authorization/path/subprocess guards, source-package privacy/closure, recovery and matching owning guides pass. Source-package reproduction does not contact TTS or the original app. |
+
+These results cover the seven DoD areas: test levels, security, deployment/operation, performance,
+accessibility/compatibility, reliability/integrity and documentation. All ten Testing design groups
+have observed tests or actual controlled media evidence; no scenario is delegated to future work.
+Canvas/automated-quality unknowns remain explicit in the helper and have regression coverage.
+
+Final post-preflight production stages took 5.369s capture, 4.937s final HTML and 5.715s mixed. These
+include assembly/review/QA/package but exclude prior capture, HTML frame generation, audio and initial
+preflight. Gallery/sample/feedback timings and all stage timestamps are retained; some startup
+measurements overlapped the full test suite. No render-time ceiling or performance guarantee applies.
+
+## Actual human listening and visual observations
+
+The actual user reviewed the three linked `qualification-8RXaO9` videos and answered **“ผ่านทั้ง 3 คลิป”**
+(all three pass) about Thai/caption readability and clear uncut gTTS/edge-tts speech. Afterwards the
+native disclosure/footer was moved above the caption area. The revised files were inspected separately
+at full size and during actual normal muted playback; no claim is made that the user watched those
+revised visual files or that Codex listened.
+
+The final encoded AAC streams are byte-identical to the reviewed streams, including the silent case:
+
+| Mode | SHA-256 of encoded AAC stream, equal in reviewed and final files |
+|---|---|
+| Capture | `ed76aab8bca79800805fe16685472073c89a95908fe8a8441459b6a365607cbc` |
+| HTML | `b3ff17de9d430730688034d05537752a3b39647f400ef5149bead7ac24372f2e` |
+| Mixed | `6b9b689deda2a0e491b498ca0440cc51b14bf198b949f0834607f615239421e4` |
+
+Thus the actual listening feedback applies to unchanged final audio. Every full cue fits its scene;
+assembly preserves complete audio and pads silence. Source/input/media hashes were checked before
+reuse. Temporal freeze warnings correspond to agreed readable holds. Conservative caption-safe-area
+warnings mark footer text line-box edges; final full-size frames show a clear gap from real caption
+pixels, with no text overflow or actual caption overlap. The warnings were reviewed, not erased or
+turned into an automatic universal pass.
+
+## Fixes and limits
+
+Qualification corrected fixture page names, included public shared guides in source packages and
+excluded unrelated neighboring helper-folder files (privacy regression included). Native disclosure
+layout now leaves the actual caption area clear. Native flow labels no longer silently stop after four;
+a six-label browser regression passes. The existing three-label HTML pages are byte-identical after
+that builder fix (native-html-equivalence.json), so rendering/playback evidence is reused only for those
+unchanged emitted pages. Frozen source packages retain their actual producing helper hashes; the normal
+cache still invalidates changed helper code. Subtitle QA now compares against normalized clips so pale
+backgrounds are not misclassified as white subtitles. A type-only playback callback annotation was
+added after execution; emitted JavaScript equivalence is retained in the evidence.
+
+Qualification covers this Mac/tool configuration and synthetic workflows. Linux/Windows, arbitrary
+native apps/sites/fonts and future service availability remain unverified. No video was published,
+paid service activated, personal skill installation changed, or release performed by this plan.
+
+---
+
 # alice-demo macOS qualification — 2026-11-23
 
 Runner: Codex in the authorized `plan:alice-demo` implementation. The media walkthrough used a

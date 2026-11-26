@@ -63,3 +63,52 @@ describe('demo production boundaries', () => {
     await expect(withinDeadline(new Promise(() => {}), 10)).rejects.toMatchObject({ code: 'SCENE_TIMEOUT' })
   })
 })
+
+// @ts-expect-error standalone distributable
+import { prepareStage, manifestHash } from '../../skill/alice-demo/demo-core.mjs'
+const visualManifest = (): any => ({ ...manifest(), version: 2, purpose: 'sample',
+  visual: { key: 'editorial', palette: { background: '#fff8ef', foreground: '#282520', accent: '#ad521e' }, typography: { family: 'DemoThai' }, layout: 'editorial', motion: 'reveal', dependencies: [] },
+  review: { mode: 'video5', sceneId: 'intro', start: 0 }, render: { seed: 7, localTime: true, toolVersions: { chromium: 'fixture' } },
+  scenes: manifest().scenes.map((s) => ({ ...s, dependencies: [] })) })
+
+describe('v2 source-bound visual stages', () => {
+  it('keeps v1 readable and validates v2 tokens, review, dependencies, seed and frames', () => {
+    const root = testDir('visual-contract-'), m = visualManifest()
+    expect(validateManifest(m, root)).toBe(m)
+    for (const patch of [{ version: 3 }, { purpose: 'publish' }, { visual: {} }, { review: { ...m.review, mode: 'gif' } },
+      { render: { ...m.render, seed: NaN } }, { scenes: [{ ...m.scenes[0], dependencies: ['../private'] }] },
+      { scenes: [{ ...m.scenes[0], frameCount: 1 }] }, { purpose: 'production' }]) expect(() => validateManifest({ ...m, ...patch }, root)).toThrow()
+    expect(validateManifest(manifest(), root).version).toBe(1)
+  })
+
+  it('requires out-of-manifest authorization bound to inputs and cannot promote samples', async () => {
+    const root = testDir('visual-approval-'), m = visualManifest()
+    writeJson(root, 'source.json', m.source)
+    const readSource = async () => m.source
+    await expect(prepareStage(root, m, { readSource })).rejects.toMatchObject({ code: 'APPROVAL_REQUIRED' })
+    await expect(prepareStage(root, m, { readSource, authorize: async () => true })).rejects.toMatchObject({ code: 'APPROVAL_REQUIRED' })
+    const authorize = async (binding: any) => ({ stage: binding.stage, sourceHash: binding.source.hash, inputHash: binding.inputHash, reference: 'controlled fixture; simulated consent' })
+    const guard = await prepareStage(root, m, { readSource, authorize })
+    await guard()
+    await expect(prepareStage(root, m, { readSource, authorize }, 'production')).rejects.toMatchObject({ code: 'WRONG_PURPOSE' })
+    const production = { ...m, purpose: 'production', review: { ...m.review, artifactHash: 'a'.repeat(64) } }
+    // A sample authorization, even with a renamed manifest, cannot satisfy full production.
+    await expect(prepareStage(root, production, { readSource, authorize: async () => ({ stage: 'sample', sourceHash: m.source.hash, inputHash: manifestHash(m), reference: 'sample only' }) })).rejects.toMatchObject({ code: 'APPROVAL_REQUIRED' })
+    await expect(prepareStage(root, production, { readSource, authorize })).rejects.toMatchObject({ code: 'APPROVAL_REQUIRED' })
+    await expect(prepareStage(root, production, { readSource, authorize: async (b: any) => ({ ...await authorize(b), reviewedArtifactHash: production.review.artifactHash }) })).resolves.toBeTypeOf('function')
+  })
+
+  it('fails unreadable/edited source and detects changed inputs before publication', async () => {
+    const root = testDir('visual-source-'), m = visualManifest()
+    writeJson(root, 'source.json', m.source)
+    const authorize = async (b: any) => ({ stage: b.stage, sourceHash: b.source.hash, inputHash: b.inputHash, reference: 'fixture consent' })
+    await expect(prepareStage(root, m, { readSource: async () => { throw new Error('unavailable') }, authorize })).rejects.toThrow('unavailable')
+    let fresh = m.source
+    const guard = await prepareStage(root, m, { readSource: async () => fresh, authorize })
+    fresh = { ...m.source, body: 'Edited after authorization' }
+    await expect(guard()).rejects.toMatchObject({ code: 'SOURCE_CHANGED' })
+    fresh = m.source
+    m.visual.palette.accent = '#000000'
+    await expect(guard()).rejects.toMatchObject({ code: 'INPUT_CHANGED' })
+  })
+})
