@@ -95,9 +95,12 @@ export function packageSources(root, manifest, runDirectory, normalizedClips) {
     fs.mkdirSync(helpers)
     const sourceFolder = path.dirname(fileURLToPath(import.meta.url))
     const inventory = []
-    for (const file of fs.readdirSync(sourceFolder).filter((name) => /\.(mjs|html|md)$/.test(name))) {
-      const input = path.join(sourceFolder, file)
-      if (!fs.statSync(input).isFile()) continue
+    const names = ['demo-core.mjs', 'demo-audio.mjs', 'demo-capture.mjs', 'demo-html.mjs', 'demo-render.mjs', 'demo-styles.mjs', 'demo-motion.mjs', 'demo-visual.mjs', 'demo-review.mjs', 'scene-template.html', 'SKILL.md', 'TEMPLATE.md', 'PRODUCTION.md', 'DOCUMENT-KNOWLEDGE.md', 'OUTPUT-FORMATS.md', 'PROJECT-FILES.md']
+    for (const file of names) {
+      let input = path.join(sourceFolder, file)
+      // Repository helpers inherit the public guides already included in installed skills.
+      if (!fs.existsSync(input) && path.basename(path.dirname(sourceFolder)) === 'skill' && ['DOCUMENT-KNOWLEDGE.md', 'OUTPUT-FORMATS.md', 'PROJECT-FILES.md'].includes(file)) input = path.join(sourceFolder, '../_shared', file)
+      if (!fs.existsSync(input) || !fs.statSync(input).isFile()) fail('MISSING_HELPER', 'Source package requires the complete public helper closure')
       fs.copyFileSync(input, path.join(helpers, file))
       inventory.push({ file, hash: hash(fs.readFileSync(input)) })
     }

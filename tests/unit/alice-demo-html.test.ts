@@ -135,3 +135,26 @@ describe('approved dependency-aware HTML reuse', () => {
     expect((await renderHtmlScene(root, declared, 'html', options)).dependenciesComplete).toBe(true)
   })
 })
+
+it('keeps native disclosure text above the caption region', async () => {
+  const root = setup(), m = v2()
+  fs.writeFileSync(path.join(root, 'scene.html'), directionSceneHtml(m.visual, { ...m.scenes[0], disclosure: 'Concept / synthetic fixture', duration: 5 }))
+  const { browser, page, render } = await openHtmlScene(root, m, m.scenes[0])
+  try {
+    await render(2)
+    const bounds = await page.locator('footer').boundingBox()
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(m.video.height * 0.86 + 1)
+  } finally { await browser.close() }
+})
+
+it('retains every approved flow label instead of truncating after four steps', async () => {
+  const root = setup(), m = v2()
+  const steps = ['Research', 'Planning', 'Specification', 'Implementation', 'Verification', 'Delivery']
+  fs.writeFileSync(path.join(root, 'scene.html'), directionSceneHtml({ ...m.visual, layout: 'diagram' }, { ...m.scenes[0], steps }))
+  const { browser, page, render } = await openHtmlScene(root, m, m.scenes[0])
+  try {
+    await render(2)
+    expect(await page.locator('.step span').allTextContents()).toEqual(steps)
+    expect(await page.locator('.step').last().isVisible()).toBe(true)
+  } finally { await browser.close() }
+})

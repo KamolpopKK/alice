@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { testDir } from '../helpers/tmp'
 // @ts-expect-error standalone distributable
@@ -131,6 +132,7 @@ it('applies only approved feedback and republishes a matched latest preview pack
   expect(fs.existsSync(path.join(root, first.output))).toBe(true)
   expect(hash(fs.readFileSync(path.join(root, first.output)))).toBe(first.review.videoHash)
   expect(fs.existsSync(path.join(root, latest.sourcePackage, 'helpers/demo-review.mjs'))).toBe(true)
+  expect(fs.existsSync(path.join(root, latest.sourcePackage, 'helpers/DOCUMENT-KNOWLEDGE.md'))).toBe(true)
   expect(fs.existsSync(path.join(root, latest.sourcePackage, 'review.json'))).toBe(true)
   await expect(proposeFeedback(root, before, first.review, proposals)).rejects.toMatchObject({ code: 'STALE_FEEDBACK' })
   writeJson(root, 'feedback-evidence.json', { first, plan, applied, latest })
@@ -152,4 +154,20 @@ it('retains the MP4 and previous latest preview when contact-sheet extraction fa
   expect(incomplete).toHaveLength(1)
   expect(fs.existsSync(path.join(root, 'runs', incomplete[0], 'video.mp4'))).toBe(true)
   expect(fs.existsSync(path.join(root, first.output))).toBe(true)
+})
+
+it('packages only the public helper closure rather than unrelated files beside installed helpers', async () => {
+  const { root, m } = await setup(), installed = testDir('demo-package-helpers-')
+  for (const file of fs.readdirSync('skill/alice-demo')) fs.copyFileSync(path.join('skill/alice-demo', file), path.join(installed, file))
+  for (const file of fs.readdirSync('skill/_shared')) fs.copyFileSync(path.join('skill/_shared', file), path.join(installed, file))
+  fs.writeFileSync(path.join(installed, 'private-notes.md'), 'Synthetic private note; must not be copied')
+  fs.writeFileSync(path.join(installed, 'agent-authorization.mjs'), 'export const privateReference="not-for-sharing"')
+  const { packageSources } = await import(pathToFileURL(path.join(installed, 'demo-render.mjs')).href)
+  const manifest = { ...m, version: 2, visual: { dependencies: [] } }
+  writeJson(root, 'manifest.json', manifest)
+  const folder = packageSources(root, manifest, 'runs/public-closure', ['input.mp4'])
+  expect(fs.existsSync(path.join(root, folder, 'helpers/demo-visual.mjs'))).toBe(true)
+  expect(fs.existsSync(path.join(root, folder, 'helpers/DOCUMENT-KNOWLEDGE.md'))).toBe(true)
+  expect(fs.existsSync(path.join(root, folder, 'helpers/private-notes.md'))).toBe(false)
+  expect(fs.existsSync(path.join(root, folder, 'helpers/agent-authorization.mjs'))).toBe(false)
 })
