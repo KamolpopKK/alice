@@ -65,3 +65,25 @@ describe('demo assembly and delivery files', () => {
     await expect(verifyVideo(path.join(root, 'input.mp4'), m)).rejects.toMatchObject({ code: 'INVALID_OUTPUT' })
   })
 })
+
+// @ts-expect-error standalone distributable
+import { stylePresets } from '../../skill/alice-demo/demo-styles.mjs'
+it('reuses unchanged normalized media after fresh approval and rejects changed capture inputs', async () => {
+  const { root, source, m } = await setup()
+  let current = source
+  const v2: any = { ...m, version: 2, purpose: 'production', visual: structuredClone(stylePresets[0].visual), review: { mode: 'images', sceneId: 's1', start: 0, artifactHash: 'a'.repeat(64) }, render: { seed: 1, localTime: true, toolVersions: { ffmpeg: 'fixture' } }, scenes: [{ ...m.scenes[0], dependencies: [] }] }
+  const options = { readSource: async () => current, authorize: async (b: any) => ({ stage: b.stage, sourceHash: b.source.hash, inputHash: b.inputHash, reviewedArtifactHash: b.review.artifactHash, reference: 'controlled fixture production authorization' }), checkTools: async () => ({ ffmpeg: 'fixture' }) }
+  await importCapture(root, v2, 's1', options)
+  const first = await renderVideo(root, v2, options)
+  expect(first.cache[0].cached).toBe(false)
+  current = snapshotSource({ ...source, body: 'Approved revision with same media', revision: 3 })
+  v2.source = current
+  writeJson(root, 'source.json', current)
+  const fresh = await renderVideo(root, v2, options)
+  expect(fresh.cache[0].cached).toBe(true)
+  expect(fresh.cache[0].hash).toBe(first.cache[0].hash)
+  expect(fresh.cache[0].createdFrom.revision).toBe(2)
+  expect(fresh.cache[0].validatedFor.revision).toBe(3)
+  v2.scenes[0].duration = 0.5
+  await expect(renderVideo(root, v2, options)).rejects.toMatchObject({ code: 'STALE_CAPTURE' })
+})

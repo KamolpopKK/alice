@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { validateManifest, prepareStage, jobPath, writeJson, readJson, hash, probe, runTool, fail, visualHash, isMain, cliError } from './demo-core.mjs'
+import { captureInputHash } from './demo-capture.mjs'
 import { openHtmlScene, htmlInputHash } from './demo-html.mjs'
 import { verifyAudio, makeSubtitles } from './demo-render.mjs'
 
@@ -59,7 +60,7 @@ export async function generateVisualSample(root, manifest, options = {}) {
   } else {
     // Reuse reviewed/supplied footage; this helper never launches an unrequested capture session.
     const capture = readJson(jobPath(root, `media/capture/${scene.id}.json`)), file = jobPath(root, capture.file)
-    if (capture.hash !== hash(fs.readFileSync(file))) fail('STALE_CAPTURE', 'Captured media changed')
+    if ((m.version === 2 && capture.inputHash !== captureInputHash(root, m, scene)) || capture.hash !== hash(fs.readFileSync(file))) fail('STALE_CAPTURE', 'Captured media changed')
     const metadata = await inspect(file)
     const trim = capture.trimStart ?? 0
     if (metadata.duration + 1 / fps < trim + start + duration) fail('SAMPLE_EXCERPT_REQUIRED', 'Supplied footage is too short for the chosen excerpt')

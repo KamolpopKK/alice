@@ -84,3 +84,54 @@ describe('native time-derived motion', () => {
     await expect(renderHtmlScene(root, m, 'html', options)).rejects.toMatchObject({ code: 'WALL_CLOCK_ANIMATION' })
   })
 })
+
+describe('approved dependency-aware HTML reuse', () => {
+  it('rebinds unchanged frames to fresh source and invalidates only affected dependencies', async () => {
+    const root = setup(), m: any = v2(), matrix: any[] = []
+    writeJson(root, 'source.json', m.source)
+    m.scenes.push({ ...m.scenes[0], id: 'second', start: 0.4, title: 'Second' })
+    const options = { readSource: async () => m.source, authorize: permit }
+    const first = await renderHtmlScene(root, m, 'html', options), second = await renderHtmlScene(root, m, 'second', options)
+    m.source = snapshotSource({ ...m.source, body: 'Approved revision; unchanged media inputs', revision: 2 })
+    writeJson(root, 'source.json', m.source)
+    const reused = await renderHtmlScene(root, m, 'html', options)
+    expect(reused.cached).toBe(true)
+    expect(reused.directory).toBe(first.directory)
+    expect(reused.createdFrom.revision).toBe(1)
+    expect(reused.validatedFor.revision).toBe(2)
+    matrix.push({ case: 'fresh source, equivalent media', before: first, after: reused })
+    m.scenes[0].onScreenText = 'Changed only first scene'
+    const changed = await renderHtmlScene(root, m, 'html', options), intact = await renderHtmlScene(root, m, 'second', options)
+    expect(changed.cached).toBe(false)
+    expect(intact.directory).toBe(second.directory)
+    matrix.push({ case: 'one scene', changed, intact })
+    m.visual.palette.accent = '#cc0000'
+    const global = await renderHtmlScene(root, m, 'second', options)
+    expect(global.cached).toBe(false)
+    matrix.push({ case: 'shared style', after: global })
+    fs.writeFileSync(path.join(root, global.directory, '000000.png'), 'corrupt')
+    expect((await renderHtmlScene(root, m, 'second', options)).cached).toBe(false)
+    const old = htmlInputHash(root, m, m.scenes[1])
+    expect(old).toBe(htmlInputHash(root, m, { ...m.scenes[1], start: 100 }))
+    expect(old).not.toBe(htmlInputHash(root, { ...m, render: { ...m.render, localTime: false } }, m.scenes[1]))
+    expect(old).not.toBe(htmlInputHash(root, { ...m, render: { ...m.render, toolVersions: { chromium: 'new-version' } } }, m.scenes[1]))
+    expect(old).not.toBe(htmlInputHash(root, m, { ...m.scenes[1], duration: 1 }))
+    fs.writeFileSync(path.join(root, 'shared.css'), 'body{color:green}')
+    m.visual.dependencies = ['shared.css']
+    const shared = htmlInputHash(root, m, m.scenes[1])
+    fs.writeFileSync(path.join(root, 'shared.css'), 'body{color:red}')
+    expect(shared).not.toBe(htmlInputHash(root, m, m.scenes[1]))
+    writeJson(root, 'cache-evidence.json', matrix)
+  })
+
+  it('blocks undeclared imports instead of reusing HTML-only fingerprints', async () => {
+    const root = setup(), m = v2()
+    writeJson(root, 'source.json', m.source)
+    fs.writeFileSync(path.join(root, 'extra.css'), 'body{background:red}')
+    fs.appendFileSync(path.join(root, 'scene.html'), '<link rel="stylesheet" href="extra.css">')
+    const options = { readSource: async () => m.source, authorize: permit }
+    await expect(renderHtmlScene(root, m, 'html', options)).rejects.toMatchObject({ code: 'UNDECLARED_DEPENDENCY' })
+    const declared = { ...m, scenes: [{ ...m.scenes[0], dependencies: ['extra.css'] }] }
+    expect((await renderHtmlScene(root, declared, 'html', options)).dependenciesComplete).toBe(true)
+  })
+})

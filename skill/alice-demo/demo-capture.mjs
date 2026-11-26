@@ -3,6 +3,13 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { jobPath, prepareStage, validateManifest, readJson, writeJson, hash, probe, fail, loadPlaywright, withinDeadline, isMain, cliError } from './demo-core.mjs'
 
+export function captureInputHash(root, m, scene) {
+  const input = { ...scene }
+  if (m.version === 2 && m.render.localTime) delete input.start
+  const files = [scene.media, scene.actions, ...(scene.dependencies ?? [])].filter(Boolean)
+  return hash(JSON.stringify({ scene: input, video: m.video, files: files.map((file) => [file, hash(fs.readFileSync(jobPath(root, file)))]) }))
+}
+
 export async function importCapture(root, manifest, sceneId, { inspect = probe, readSource, authorize } = {}) {
   const m = validateManifest(manifest, root)
   const guard = await prepareStage(root, m, { readSource, authorize })
@@ -12,7 +19,7 @@ export async function importCapture(root, manifest, sceneId, { inspect = probe, 
   const media = await inspect(input)
   if (!media.streams.some((s) => s.codec_type === 'video')) fail('INVALID_CAPTURE', 'Supplied footage has no video')
   const record = { scene: scene.id, file: scene.media, duration: media.duration, trimStart: 0,
-    hash: hash(fs.readFileSync(input)), provenance: scene.provenance ?? 'User-supplied footage; verify actual source before publishing' }
+    hash: hash(fs.readFileSync(input)), ...(m.version === 2 ? { inputHash: captureInputHash(root, m, scene), createdFrom: m.source, validatedFor: m.source } : {}), provenance: scene.provenance ?? 'User-supplied footage; verify actual source before publishing' }
   await guard()
   writeJson(root, `media/capture/${scene.id}.json`, record)
   return record
@@ -54,7 +61,7 @@ export async function captureScene(root, manifest, sceneId, { actionsReviewed = 
     const file = await video.path()
     const media = await inspect(file)
     const record = { scene: scene.id, file: path.relative(fs.realpathSync(root), file), duration: media.duration,
-      trimStart, hash: hash(fs.readFileSync(file)), provenance: 'Real browser capture', actions: scene.actions ?? null }
+      trimStart, hash: hash(fs.readFileSync(file)), ...(m.version === 2 ? { inputHash: captureInputHash(root, m, scene), createdFrom: m.source, validatedFor: m.source } : {}), provenance: 'Real browser capture', actions: scene.actions ?? null }
     await guard()
     writeJson(root, `media/capture/${scene.id}.json`, record)
     return record

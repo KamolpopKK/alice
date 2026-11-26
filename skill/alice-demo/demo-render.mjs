@@ -1,8 +1,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { fileURLToPath } from 'node:url'
 import { assertSourceRevision, prepareStage, validateManifest, snapshotSource, readJson, writeJson, jobPath, hash, probe, runTool, preflight, fail, isMain, cliError } from './demo-core.mjs'
-import { htmlInputHash } from './demo-html.mjs'
+import { verifyHtmlFrames } from './demo-html.mjs'
+import { captureInputHash } from './demo-capture.mjs'
+import { audioInputKey } from './demo-audio.mjs'
 
 const timestamp = (seconds) => {
   const n = Math.round(seconds * 1000)
@@ -52,9 +55,7 @@ export function verifyAudio(root, manifest) {
     const measured = audio.scenes.find((s) => s.id === scene.id)
     if (!measured || measured.cues.length !== (scene.cues ?? []).length) fail('STALE_AUDIO', 'Narration cues changed')
     for (const [i, record] of measured.cues.entries()) {
-      let text = scene.cues[i].text
-      for (const [word, replacement] of Object.entries(manifest.pronunciations ?? {})) text = text.replaceAll(word, replacement)
-      if (record.key !== hash(JSON.stringify({ text, settings: manifest.narration })) ||
+      if (record.key !== audioInputKey(root, manifest, scene.cues[i]).key ||
           record.hash !== hash(fs.readFileSync(jobPath(root, record.file))) || record.subtitle !== (scene.cues[i].subtitle ?? scene.cues[i].text)) fail('STALE_AUDIO', 'Narration source or media changed')
     }
     if (measured.duration > scene.duration + 0.001) fail('AUDIO_OVERRUN', `Speech exceeds the agreed duration: ${scene.title}`)
@@ -110,18 +111,21 @@ export async function renderVideo(root, manifest, { readSource, authorize, tools
   fs.mkdirSync(directory, { recursive: true })
   writeJson(root, 'manifest.json', m)
   const ffmpeg = tools.ffmpeg ?? 'ffmpeg'
-  const clips = []
+  const clips = [], cache = []
   const started = Date.now()
   for (const [index, scene] of m.scenes.entries()) {
     await guard()
     const args = ['-v', 'error', '-nostdin']
+    let mediaFingerprint
     if (scene.type === 'html') {
       const frames = readJson(jobPath(root, `media/frames/${scene.id}.json`))
-      if (frames.inputHash !== htmlInputHash(root, m, scene) || frames.count !== Math.ceil(scene.duration * m.video.fps) || frames.fps !== m.video.fps) fail('STALE_FRAMES', 'HTML content, assets or timing changed; render the scene again')
+      verifyHtmlFrames(root, m, scene, frames)
+      mediaFingerprint = { inputHash: frames.inputHash, frameHashes: frames.frameHashes }
       args.push('-framerate', String(m.video.fps), '-i', jobPath(root, `${frames.directory}/%06d.png`))
     } else {
       const capture = readJson(jobPath(root, `media/capture/${scene.id}.json`))
-      if (capture.hash !== hash(fs.readFileSync(jobPath(root, capture.file)))) fail('STALE_CAPTURE', 'Captured footage changed')
+      if ((m.version === 2 && capture.inputHash !== captureInputHash(root, m, scene)) || capture.hash !== hash(fs.readFileSync(jobPath(root, capture.file)))) fail('STALE_CAPTURE', 'Captured footage changed')
+      mediaFingerprint = { hash: capture.hash, inputHash: capture.inputHash, trimStart: capture.trimStart ?? 0 }
       args.push('-ss', String(capture.trimStart ?? 0), '-i', jobPath(root, capture.file))
     }
     const cues = audio?.scenes.find((s) => s.id === scene.id)?.cues ?? []
@@ -136,7 +140,28 @@ export async function renderVideo(root, manifest, { readSource, authorize, tools
     args.push('-filter_complex', filters.join(';'), '-map', '0:v:0', '-map', '[audio]', '-vf',
       `scale=${m.video.width}:${m.video.height}:force_original_aspect_ratio=decrease,pad=${m.video.width}:${m.video.height}:(ow-iw)/2:(oh-ih)/2,tpad=stop_mode=clone:stop_duration=${scene.duration},trim=duration=${scene.duration},setpts=PTS-STARTPTS,fps=${m.video.fps}`,
       '-t', String(scene.duration), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-pix_fmt', 'yuv420p', '-threads', '2', '-c:a', 'aac', '-ar', '48000', '-ac', '2', '-movflags', '+faststart', jobPath(root, output))
-    await run(ffmpeg, args, { cwd: root, timeoutMs: 3_600_000 })
+    const key = hash(JSON.stringify({ video: m.video, duration: scene.duration, media: mediaFingerprint, cues: cues.map((c) => ({ hash: c.hash, duration: c.duration, start: c.start, end: c.end, speechStart: c.speechStart, speechEnd: c.speechEnd })), versions,
+      helper: hash(fs.readFileSync(fileURLToPath(import.meta.url))) }))
+    const recordPath = `media/clips/${scene.id}.json`
+    let previous, reused = false
+    if (m.version === 2 && fs.existsSync(jobPath(root, recordPath))) {
+      try {
+        previous = readJson(jobPath(root, recordPath))
+        if (previous.key === key && previous.hash === hash(fs.readFileSync(jobPath(root, previous.file)))) {
+          fs.copyFileSync(jobPath(root, previous.file), jobPath(root, output))
+          reused = true
+        }
+      } catch (error) {
+        if (!['ENOENT', 'INVALID_PATH'].includes(error.code) && !(error instanceof SyntaxError)) throw error
+      }
+    }
+    if (!reused) await run(ffmpeg, args, { cwd: root, timeoutMs: 3_600_000 })
+    await guard()
+    if (m.version === 2) {
+      const record = { key, file: output, hash: hash(fs.readFileSync(jobPath(root, output))), cached: reused,
+        createdFrom: reused ? previous.createdFrom : m.source, validatedFor: m.source }
+      cache.push({ scene: scene.id, ...record })
+    }
     clips.push(output)
   }
   fs.writeFileSync(path.join(directory, 'concat.txt'), clips.map((_, i) => `file 'scene-${i}.mp4'`).join('\n') + '\n')
@@ -153,11 +178,23 @@ export async function renderVideo(root, manifest, { readSource, authorize, tools
   const metadata = await verifyVideo(temporary, m, { inspect: (file) => inspect(file, tools) })
   await guard()
   await stageGuard()
+  if (m.version === 2) {
+    verifyAudio(root, m)
+    for (const clip of cache) if (clip.hash !== hash(fs.readFileSync(jobPath(root, clip.file)))) fail('STALE_CLIP', 'Normalized clip changed during assembly')
+    for (const scene of m.scenes) {
+      if (scene.type === 'html') verifyHtmlFrames(root, m, scene, readJson(jobPath(root, `media/frames/${scene.id}.json`)))
+      else {
+        const capture = readJson(jobPath(root, `media/capture/${scene.id}.json`))
+        if ((m.version === 2 && capture.inputHash !== captureInputHash(root, m, scene)) || capture.hash !== hash(fs.readFileSync(jobPath(root, capture.file)))) fail('STALE_CAPTURE', 'Capture bytes changed during assembly')
+      }
+    }
+  }
+  for (const clip of cache) writeJson(root, `media/clips/${clip.scene}.json`, clip)
   const output = `${runDirectory}/video.mp4`
   fs.renameSync(temporary, jobPath(root, output))
   const sourcePackage = packageSources(root, m, runDirectory, clips)
   const result = { output, sourcePackage, source: { id: saved.id, title: saved.title, revision: saved.revision, hash: saved.hash }, metadata,
-    elapsedMs: Date.now() - started, versions, checks: { metadata: 'passed', visualAndListening: 'required before delivery', sourceRevision: 'matched at final read; no lock' } }
+    elapsedMs: Date.now() - started, versions, ...(m.version === 2 ? { cache } : {}), checks: { metadata: 'passed', visualAndListening: 'required before delivery', sourceRevision: 'matched at final read; no lock' } }
   writeJson(root, `${runDirectory}/report.json`, result)
   fs.copyFileSync(jobPath(root, `${runDirectory}/report.json`), jobPath(root, `${sourcePackage}/report.json`))
   return result

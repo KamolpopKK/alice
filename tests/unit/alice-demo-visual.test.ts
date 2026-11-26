@@ -37,6 +37,8 @@ describe('visual direction choices', () => {
 })
 
 // @ts-expect-error standalone distributable
+import { audioInputKey } from '../../skill/alice-demo/demo-audio.mjs'
+// @ts-expect-error standalone distributable
 import { generateVisualSample } from '../../skill/alice-demo/demo-visual.mjs'
 // @ts-expect-error standalone distributable
 import { snapshotSource, writeJson } from '../../skill/alice-demo/demo-core.mjs'
@@ -100,6 +102,7 @@ describe('real footage and approved sample sound', () => {
     const text = 'API', narration = { provider: 'provided', language: 'th' }
     await runTool('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'sine=frequency=400:duration=1', path.join(root, 'provided.mp3')])
     const cue = { id: 'c1', text, subtitle: text, file: 'provided.mp3', hash: hash(fs.readFileSync(path.join(root, 'provided.mp3'))), key: hash(JSON.stringify({ text, settings: narration })), duration: 1, speechStart: 0, speechEnd: 1, start: 0, end: 1 }
+    cue.key = audioInputKey(root, { ...m, narration }, { text, audio: 'provided.mp3' }).key
     writeJson(root, 'audio.json', { narration, scenes: [{ id: 's1', duration: 1, cues: [cue] }] })
     const sound = { ...m, narration, scenes: [{ ...m.scenes[0], cues: [{ id: 'c1', text, audio: 'provided.mp3' }] }], review: { ...m.review, mode: 'video5', sound: true } }
     expect((await generateVisualSample(root, sound, options)).checks.sound).toContain('existing approved')

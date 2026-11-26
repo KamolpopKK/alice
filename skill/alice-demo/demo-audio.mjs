@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { hash, readJson, writeJson, jobPath, runTool, probe, prepareStage, validateManifest, fail, isMain, cliError } from './demo-core.mjs'
 
 export async function listVoices({ python = 'python3', run = runTool } = {}) {
@@ -17,15 +18,25 @@ export async function measureSpeech(file, duration, { ffmpeg = process.env.DEMO_
   return { speechStart: start, speechEnd: end }
 }
 
-async function cueAudio(root, scene, cue, m, options) {
-  const { python = 'python3', run = runTool, inspect = probe, measure = measureSpeech } = options
-  const settings = m.narration
+export function audioInputKey(root, m, cue) {
   let text = cue.text
   for (const [word, replacement] of Object.entries(m.pronunciations ?? {})) {
     if (!word || typeof replacement !== 'string') fail('INVALID_PRONUNCIATION', 'Pronunciations must map nonempty words to text')
     text = text.replaceAll(word, replacement)
   }
-  const key = hash(JSON.stringify({ text, settings }))
+  const input = { text, settings: m.narration }
+  if (m.version === 2) input.runtime = { tools: m.render.toolVersions, helper: hash(fs.readFileSync(fileURLToPath(import.meta.url))) }
+  if (m.narration.provider === 'provided') {
+    if (!cue.audio) fail('MISSING_AUDIO', 'Provide selected external narration')
+    input.providedHash = hash(fs.readFileSync(jobPath(root, cue.audio)))
+  }
+  return { key: hash(JSON.stringify(input)), text }
+}
+
+async function cueAudio(root, scene, cue, m, options) {
+  const { python = 'python3', run = runTool, inspect = probe, measure = measureSpeech } = options
+  const settings = m.narration
+  const { key, text } = audioInputKey(root, m, cue)
   const stem = `media/audio/${scene.id}-${cue.id}-${key.slice(0, 16)}`
   const file = `${stem}.mp3`, recordFile = `${stem}.json`
   const target = jobPath(root, file)
@@ -35,7 +46,8 @@ async function cueAudio(root, scene, cue, m, options) {
     if (cached.key === key && cached.hash === hash(fs.readFileSync(target))) {
       await inspect(target)
       const bounds = await measure(target, cached.duration)
-      const updated = { ...cached, ...bounds, subtitle: cue.subtitle ?? cue.text }
+      const updated = { ...cached, ...bounds, ...(m.version === 2 ? { validatedFor: m.source } : {}), subtitle: cue.subtitle ?? cue.text }
+      if (key !== audioInputKey(root, m, cue).key) fail('INPUT_CHANGED', 'Audio input changed during cache validation')
       writeJson(root, recordFile, updated)
       return { ...updated, cached: true }
     }
@@ -61,7 +73,8 @@ async function cueAudio(root, scene, cue, m, options) {
   fs.renameSync(tmp, target)
   const bounds = await measure(target, media.duration)
   const record = { key, file, hash: hash(fs.readFileSync(target)), duration: media.duration, ...bounds,
-    provider: settings.provider, settings, text, subtitle: cue.subtitle ?? cue.text }
+    provider: settings.provider, settings, text, ...(m.version === 2 ? { createdFrom: m.source, validatedFor: m.source } : {}), subtitle: cue.subtitle ?? cue.text }
+  if (key !== audioInputKey(root, m, cue).key) fail('INPUT_CHANGED', 'Audio input changed during generation')
   writeJson(root, recordFile, record)
   return { ...record, cached: false }
 }

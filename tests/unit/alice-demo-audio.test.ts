@@ -72,3 +72,38 @@ describe('demo narration', () => {
     await expect(generateNarration(root, m, { sampleApproved: true, inspect, measure, run: async (_: string, args: string[]) => { fs.writeFileSync(args[3], 'audio'); return { stdout: '' } } })).rejects.toMatchObject({ code: 'AUDIO_OVERRUN' })
   })
 })
+
+it('invalidates provided narration when bytes change at the same path', async () => {
+  const root = testDir('demo-provided-cache-'), m: any = manifest('provided')
+  m.scenes[0].cues[0].audio = 'provided.mp3'
+  fs.writeFileSync(jobPath(root, 'provided.mp3'), 'first recording')
+  const first = await generateSample(root, m, { inspect, measure })
+  const reused = await generateSample(root, m, { inspect, measure })
+  expect(reused.cached).toBe(true)
+  fs.writeFileSync(jobPath(root, 'provided.mp3'), 'new recording at same path')
+  const changed = await generateSample(root, m, { inspect, measure })
+  expect(changed.cached).toBe(false)
+  expect(changed.key).not.toBe(first.key)
+  expect(fs.readFileSync(jobPath(root, first.file), 'utf8')).toBe('first recording')
+})
+
+// @ts-expect-error standalone distributable
+import { writeJson } from '../../skill/alice-demo/demo-core.mjs'
+// @ts-expect-error standalone distributable
+import { stylePresets } from '../../skill/alice-demo/demo-styles.mjs'
+it('retains original audio provenance when a new approved source has equivalent cue input', async () => {
+  const root = testDir('demo-audio-provenance-')
+  const m: any = { ...manifest('provided'), version: 2, purpose: 'sample', visual: structuredClone(stylePresets[0].visual), review: { mode: 'images', sceneId: 's1', start: 0 }, render: { seed: 1, localTime: true, toolVersions: { audio: 'fixture' } }, scenes: [{ ...manifest('provided').scenes[0], dependencies: [] }] }
+  m.scenes[0].cues[0].audio = 'voice.mp3'
+  fs.writeFileSync(jobPath(root, 'voice.mp3'), 'same approved recording')
+  writeJson(root, 'source.json', m.source)
+  const options = { inspect, measure, readSource: async () => m.source, authorize: async (b: any) => ({ stage: b.stage, sourceHash: b.source.hash, inputHash: b.inputHash, reference: 'fixture consent' }) }
+  const first = await generateSample(root, m, options)
+  m.source = snapshotSource({ ...m.source, revision: 2, body: 'Approved metadata edit; no cue change' })
+  writeJson(root, 'source.json', m.source)
+  const second = await generateSample(root, m, options)
+  expect(second.cached).toBe(true)
+  expect(second.key).toBe(first.key)
+  expect(second.createdFrom.revision).toBe(1)
+  expect(second.validatedFor.revision).toBe(2)
+})
