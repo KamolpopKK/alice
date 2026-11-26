@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { motionScript } from './demo-motion.mjs'
 import { fail, hash, jobPath, writeJson, loadPlaywright, isMain, readJson, cliError } from './demo-core.mjs'
 
 export const escapeHtml = (text) => String(text ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
@@ -51,7 +52,7 @@ export function directionSceneHtml(visual, scene = {}) {
   return `<!doctype html><html lang="th"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title>
 <style>*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}body{background:${p.background};color:${p.foreground};font-family:${JSON.stringify(visual.typography.family).replace(/</g, '\\3c ')},sans-serif}main{height:100%;padding:7%;display:flex;flex-direction:column;justify-content:center;gap:3vh}small,aside{letter-spacing:.12em;font-size:1.6vw}h1{font-size:5vw;line-height:1.4;margin:1vh 0;overflow-wrap:anywhere}p{font-size:2.5vw;line-height:1.65;margin:0;white-space:pre-wrap;overflow-wrap:anywhere}.rule{height:1vh;background:${p.accent};width:10vw;margin-top:3vh}aside{color:${p.accent}}main.editorial,main.split{display:grid;grid-template-columns:22% 1fr;align-items:center;gap:5%}main.split{grid-template-columns:1fr 1fr}main.split .split-copy{border-left:2px solid ${p.accent};padding-left:3vw}.big-mark{font-size:8vw;color:${p.accent}} .flow{display:flex;align-items:stretch;gap:1.5vw}.step{flex:1;background:${p.foreground}0e;border:1px solid ${p.foreground}40;border-radius:1.5vw;padding:2vw;display:flex;flex-direction:column;gap:2vh;min-width:0}.step b{font-size:3vw;color:${p.accent}}.step span{font-size:2vw;line-height:1.5;overflow-wrap:anywhere}.arrow{align-self:center;font-size:2vw;color:${p.accent}}.feature{display:grid;grid-template-columns:25% 1fr;align-items:center;border:1px solid ${p.accent};padding:4vw;border-radius:3vw;gap:4vw}.feature>span{font-size:9vw;color:${p.accent};text-align:center}main.kinetic h1{font-size:7vw;max-width:85%}.statement{border-left:.7vw solid ${p.accent};padding-left:3vw}main.cards .arrow{display:none}main.timeline{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:5%}.timeline .flow{flex-direction:column;gap:1vh}.timeline .step{flex-direction:row;align-items:center;padding:1.3vw;gap:2vw}.timeline .arrow{rotate:90deg}footer{position:absolute;bottom:2%;left:7%;font-size:1.2vw;opacity:.65}</style>
 <main class="${escapeHtml(layout)}">${content}</main><footer>${escapeHtml(scene.disclosure || '')}</footer>
-<script>window.renderAt=(t)=>{document.querySelectorAll('[data-part]').forEach((e,i)=>{const p=Math.min(1,Math.max(0,(t-i*.12)/.45));e.style.opacity=String(p);e.style.transform='translateY('+((1-p)*12)+'px)'})};window.renderAt(2)</script></html>`
+<script>${motionScript(visual, scene.duration ?? 5, scene.seed ?? 0)}</script></html>`
 }
 
 export async function generateDirectionGallery(root, input, { chromium } = {}) {

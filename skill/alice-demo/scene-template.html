@@ -11,13 +11,20 @@
   p { font-size: clamp(18px, 2.3vw, 52px); line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 }
   small { display: block; font-size: 1.4vw; color: #acb9da; margin-top: 2vw }
 </style>
-<main><h1></h1><p></p><small></small></main>
+<main><h1 data-part></h1><p data-part></p><small></small></main>
 <script>
   const scene = window.demoScene || { title: 'Presentation', onScreenText: 'Describe the agreed story here.' }
   document.querySelector('h1').textContent = scene.title
   document.querySelector('p').textContent = scene.onScreenText || ''
   document.querySelector('small').textContent = scene.disclosure || ''
+  const visual = window.demoVisual
+  if (visual) {
+    document.body.style.background = visual.palette.background
+    document.body.style.color = visual.palette.foreground
+    document.querySelector('main').style.borderColor = visual.palette.accent
+  }
   window.renderAt = (t) => {
+    if (visual && window.demoMotion) return window.demoMotion(t, { motion: visual.motion, duration: scene.duration, accent: visual.palette.accent, seed: window.demoRender.seed })
     const progress = Math.min(1, Math.max(0, t / 0.7))
     const main = document.querySelector('main')
     main.style.opacity = String(progress)
