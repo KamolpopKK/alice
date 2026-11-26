@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { assertSourceRevision, prepareStage, validateManifest, snapshotSource, readJson, writeJson, jobPath, hash, probe, runTool, preflight, fail, isMain, cliError } from './demo-core.mjs'
 import { verifyHtmlFrames } from './demo-html.mjs'
+import { normalizedSceneMap } from './demo-review.mjs'
 import { captureInputHash } from './demo-capture.mjs'
 import { audioInputKey } from './demo-audio.mjs'
 
@@ -164,11 +165,12 @@ export async function renderVideo(root, manifest, { readSource, authorize, tools
     }
     clips.push(output)
   }
+  const sceneMap = m.version === 2 ? await normalizedSceneMap(root, m, clips, { inspect, tools }) : undefined
   fs.writeFileSync(path.join(directory, 'concat.txt'), clips.map((_, i) => `file 'scene-${i}.mp4'`).join('\n') + '\n')
   const temporary = path.join(directory, 'video.partial.mp4')
   const args = ['-v', 'error', '-nostdin', '-f', 'concat', '-safe', '1', '-i', path.join(directory, 'concat.txt')]
   if (m.subtitles) {
-    fs.writeFileSync(path.join(directory, 'captions.srt'), makeSubtitles(m, audio))
+    fs.writeFileSync(path.join(directory, 'captions.srt'), makeSubtitles(sceneMap ? { ...m, scenes: m.scenes.map((s, i) => ({ ...s, start: sceneMap.scenes[i].start })) } : m, audio))
     fs.mkdirSync(path.join(directory, 'fonts'))
     fs.copyFileSync(jobPath(root, m.font), path.join(directory, 'fonts', `selected${path.extname(m.font)}`))
     args.push('-vf', `subtitles=filename=${runDirectory}/captions.srt:fontsdir=${runDirectory}/fonts`, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-pix_fmt', 'yuv420p', '-threads', '2', '-c:a', 'copy')
@@ -194,7 +196,7 @@ export async function renderVideo(root, manifest, { readSource, authorize, tools
   fs.renameSync(temporary, jobPath(root, output))
   const sourcePackage = packageSources(root, m, runDirectory, clips)
   const result = { output, sourcePackage, source: { id: saved.id, title: saved.title, revision: saved.revision, hash: saved.hash }, metadata,
-    elapsedMs: Date.now() - started, versions, ...(m.version === 2 ? { cache } : {}), checks: { metadata: 'passed', visualAndListening: 'required before delivery', sourceRevision: 'matched at final read; no lock' } }
+    elapsedMs: Date.now() - started, versions, ...(m.version === 2 ? { cache, sceneMap } : {}), checks: { metadata: 'passed', visualAndListening: 'required before delivery', sourceRevision: 'matched at final read; no lock' } }
   writeJson(root, `${runDirectory}/report.json`, result)
   fs.copyFileSync(jobPath(root, `${runDirectory}/report.json`), jobPath(root, `${sourcePackage}/report.json`))
   return result
