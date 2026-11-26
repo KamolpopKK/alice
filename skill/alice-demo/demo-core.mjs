@@ -119,7 +119,7 @@ function validateVisualManifest(m, root) {
       !['reveal', 'stagger', 'focus', 'handoff', 'none'].includes(v.motion)) {
     fail('INVALID_VISUAL', 'Choose concrete visual tokens, layout and motion for the v2 job')
   }
-  if (!r || !['images', 'video5'].includes(r.mode) || !m.scenes.some((s) => s.id === r.sceneId) ||
+  if (!r || (r.sound !== undefined && typeof r.sound !== 'boolean') || !['images', 'video5'].includes(r.mode) || !m.scenes.some((s) => s.id === r.sceneId) ||
       !Number.isFinite(r.start) || r.start < 0 || r.start >= m.scenes.find((s) => s.id === r.sceneId).duration ||
       (r.artifactHash !== undefined && !digest(r.artifactHash))) fail('INVALID_REVIEW', 'Choose a representative scene, offset and review mode')
   if (m.purpose === 'production' && !digest(r.artifactHash)) fail('REVIEW_REQUIRED', 'Full production needs the identity of the reviewed visual sample')

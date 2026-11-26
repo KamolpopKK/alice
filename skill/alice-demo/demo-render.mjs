@@ -44,7 +44,7 @@ export function aliceSourceReader(workspace, identity = 'codex', command = 'alic
   }
 }
 
-function verifyAudio(root, manifest) {
+export function verifyAudio(root, manifest) {
   if (!manifest.narration) return null
   const audio = readJson(jobPath(root, 'audio.json'))
   if (JSON.stringify(audio.narration) !== JSON.stringify(manifest.narration)) fail('STALE_AUDIO', 'Narration settings changed; regenerate affected audio')
