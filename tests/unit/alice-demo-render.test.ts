@@ -107,6 +107,11 @@ it('applies only approved feedback and republishes a matched latest preview pack
   for (const scene of before.scenes) await renderHtmlScene(root, before, scene.id, options)
   const first = await renderVideo(root, before, options)
   expect(first.review.status).toBe('complete')
+  fs.copyFileSync(path.join(root, 'scene.html'), path.join(root, 'corrected.html'))
+  const repairPlan = await proposeFeedback(root, before, first.review, [{ id: 'padding', sceneId: 'first', field: 'html', value: 'corrected.html', intent: 'implementation', reason: 'Restore approved layout without changing the story' }])
+  const repaired = await applyFeedback(root, before, first.review, repairPlan, ['padding'], options)
+  expect(repaired.source.hash).toBe(before.source.hash)
+  await expect(proposeFeedback(root, before, first.review, [{ id: 'bad', sceneId: 'first', field: 'onScreenText', value: 'New story', intent: 'implementation', reason: 'Wrongly bypass source update' }])).rejects.toMatchObject({ code: 'INVALID_FEEDBACK' })
   const proposals = [{ id: 'copy', sceneId: 'first', time: 0.2, field: 'onScreenText', value: 'บริบทใหม่ API', reason: 'Clarify approved explanation' }, { id: 'other', sceneId: 'second', time: 0.8, field: 'title', value: 'Unapproved title', reason: 'Optional idea' }]
   const plan = await proposeFeedback(root, before, first.review, proposals)
   await expect(applyFeedback(root, before, first.review, plan, ['copy'], options)).rejects.toMatchObject({ code: 'SOURCE_UPDATE_REQUIRED' })

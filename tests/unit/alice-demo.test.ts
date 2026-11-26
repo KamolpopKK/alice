@@ -17,10 +17,10 @@ describe('alice-demo distributable instructions', () => {
     expect(front.description.length).toBeLessThanOrEqual(1024)
   })
 
-  it('resolves local Markdown references in the flat installed package', () => {
+  it('resolves local resource references in the flat installed package', () => {
     for (const file of fs.readdirSync(dir).filter((name) => name.endsWith('.md'))) {
       const text = fs.readFileSync(path.join(dir, file), 'utf8')
-      for (const [, link] of text.matchAll(/\]\(([^)#]+\.md)(?:#[^)]*)?\)/g)) {
+      for (const [, link] of text.matchAll(/\]\(([^)#]+\.(?:md|mjs|html))(?:#[^)]*)?\)/g)) {
         if (/^https?:/.test(link)) continue
         expect(fs.existsSync(path.join(dir, link)) || fs.existsSync(path.join(root, 'skill/_shared', link)), `${file}: ${link}`).toBe(true)
       }

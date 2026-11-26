@@ -1,6 +1,6 @@
 ---
 name: alice-demo
-description: Create video presentations of features, workflows or concepts from an agreed storyboard. Discuss the story, save it for user review, then produce capture, HTML or mixed scenes with optional narration and subtitles. Use for demo videos, not ordinary slides or implementation planning.
+description: Create video presentations of features, workflows or concepts from an agreed storyboard. Discuss the story, save it for user review, choose a visual direction and image/five-second review, then produce capture, HTML or mixed scenes with optional narration, subtitles and final-video contact sheets. Use for demo videos, not ordinary slides or implementation planning.
 version: 0.2.10
 ---
 
@@ -101,15 +101,38 @@ voice list; do not invent names. Let the user listen to a short real-script samp
 narration. Keep pronunciation substitutions separate from on-screen text. Never switch providers or
 upgrade to paid usage without agreement.
 
-## 2. Save for review
+## 2. Choose a visual direction
+
+Offer 6–7 illustrated directions grounded in the actual story: normally Editorial, Product Spotlight,
+Diagram Explainer and Kinetic Typography plus 2–3 tailored directions. Each card has an image, name,
+palette, typography, composition/motion, reason and trade-off. Show a recommendation and let the user
+choose, combine or supply another direction. A direction must differ in composition/motion rather than
+colour alone. If the user already specified a direction, retain it without asking again.
+
+Ask whether to review **keyframe images** or **a five-second video** for this job; retain an explicit
+answer. Offer both decisions together when both are missing. Initial cards may be exploratory drafts
+from agreed conversation context before the storyboard exists. Label them as drafts, use authorized
+assets, and do not start real capture or generate new narration for these cards.
+
+## 3. Save for review
 
 When the story is understood, save one Storyboard Document using TEMPLATE.md and link the project.
 The user reviews and may edit the Document directly. Do not require another full chat copy before
-this review. Wait for explicit production approval; current/reviewed metadata is not that approval.
+this review. Record the selected visual specification, representative scene/excerpt and review mode
+in this same Document. Obtain sample authorization, freshly read the actual source,
+and produce only the selected direction. Use the same fonts/assets/style as production. Images show
+composition/readability/payoff; they do not establish motion approval. Video contains exactly five
+seconds of frames (±1 frame measured duration), using an agreed excerpt that fits. Never compress the
+whole story or cut speech to fit. Visual samples normally need no new narration; requested sound uses
+complete previously approved cues only. Preserve timed captions when selected.
+
+Let the user review/adjust the sample, then obtain explicit approval for the latest storyboard and
+visual direction before full production. Sample consent, a local flag or current/reviewed metadata is
+not that approval; no new service/charge/publication permission follows from choosing a style.
 For project files, read [PROJECT-FILES.md](PROJECT-FILES.md), follow its document format and use a
 content hash rather than inventing runtime revisions. Do not create .alice/ without agreement.
 
-## 3. Read the approved source again
+## 4. Read the approved source again
 
 After approval fetch the actual Document again, not a prior chat draft or cached body. Save id, title,
 revision, body and SHA-256 in a local source snapshot. If approval names a revision which changed,
@@ -117,7 +140,7 @@ agree which to use. An instruction to use latest uses the fresh read after that 
 before production, resuming, preview and delivery. On revision/hash change or failed read, stop starting
 new stages and agree the source. Never claim a lock or atomic concurrency protection.
 
-## 4. Produce locally
+## 5. Produce locally
 
 Use Playwright + Chromium for real web capture, HTML/CSS/JavaScript for presentation, and FFmpeg/ffprobe
 for assembly/inspection. Do not use Remotion. macOS is the qualification target; Linux/Windows remain
@@ -125,32 +148,53 @@ unverified until tested. Keep production dependencies in the job environment, no
 Check browser, chosen audio tool, H.264/AAC, subtitle rendering, Thai font, assets and page access;
 a command existing does not prove the required capability works.
 
-Read [PRODUCTION.md](PRODUCTION.md) before production. Use bundled demo-core.mjs, demo-audio.mjs,
-demo-capture.mjs, demo-html.mjs and demo-render.mjs as described
-by their --help and production guide. Confirm the installed build has them before claiming readiness.
+Read [PRODUCTION.md](PRODUCTION.md) before production. Use its version-2 agent-runner recipe and bundled
+core, style, motion, visual-sample, audio, capture, HTML, review and render helpers. The calling agent
+supplies live source reads and actual source-bound authorization through a trusted callback; a
+manifest or review JSON never grants permission. Standalone legacy commands remain for version 1.
+Keep existing jobs compatible; opt in explicitly rather than automatically rewriting old storyboards.
+Confirm the installed build has them before claiming readiness.
 Helpers do not approve sources: the agent reads Alice fresh and supplies those reads at source guards.
 Translate storyboard meaning to a validated manifest; the user need not write JSON or match a parser.
 
 Generate audio per speech cue/scene, measure real duration and reuse only matching input/settings
-hashes. Build subtitles from measured cues, not character counts. If speech exceeds the agreed slot,
+hashes, complete declared dependencies and actual media bytes (including supplied narration). Preserve
+createdFrom provenance and record validation against the new approved source. Build subtitles from
+measured cues, not character counts. If speech exceeds the agreed slot,
 discuss duration/script/settings changes; do not silently truncate or accelerate it. Capture real
 actions in isolated contexts with matching viewport/video sizes and finalized clips. HTML uses
 renderAt(t), waits for fonts/assets and captures explicit frame times, not wall-clock animations.
+Use native reveal/stagger/focus/handoff primitives and readable holds. Repeated and out-of-order seeks
+must produce the same frame in the same environment. Declare imported CSS/modules/fonts/images;
+undeclared dependencies block reuse. No mandatory GSAP, renderer or App dependency is introduced.
 Preserve source/media: re-rendering saved media differs from recapturing changing application state.
 
 Use finite timeouts and bounded transient retries. Stop on invalid data/denied permission, preserve
 completed media/prior output and report failures. Never replace real footage with a simulated scene,
 switch services or claim completion with missing required media.
 
-## 5. Preview and deliver
+## 6. Preview, feedback and delivery
 
 Compare all scenes to the approved source. Inspect ffprobe metadata and actually watch/listen,
 including Thai text, subtitle timing and speech ends. Qualification examples have at least three
 scenes, 30–60 seconds, 1080p/30fps, subtitle error at most 0.2 seconds, no clipped Thai text or cut-off
-speech. Normal jobs use the user's agreed format. Send preview and accept feedback; agree substantive
-script/story changes before producing them.
+speech. Normal jobs use the user's agreed format.
 
-Deliver MP4 and editable/reproducible sources in chat: snapshot, manifest, media, HTML/capture source,
+Send the **full preview MP4 plus readable contact sheets** extracted after final subtitles/overlays,
+with scene/frame/time labels covering key moments and both sides of cuts. Bind sheets to the actual
+final MP4 hash. A failed sheet stage leaves the package incomplete even if the MP4 exists. Automated
+geometry/font/safe-area/media checks and black/freeze/contrast warnings complement actual watching and
+listening. Canvas text and unrun checks remain unknown; do not turn metrics into a universal pass.
+
+Invite feedback by viewed output, scene/time. Reconcile old/ambiguous feedback against the latest
+preview, summarize impacts and agree the subset to apply. Save substantive story/script/style changes
+in the original storyboard for user review; re-read it and obtain affected approval. Apply only the
+approved subset, synchronize custom HTML/assets with that source and preserve unrelated content.
+Changed style/font/assets return to visual sample review; changed voice/script retains voice consent
+and no-cut timing checks. Reuse equivalent media only after fresh-source authorization and complete
+fingerprint/file-hash checks, then regenerate matching latest MP4/sheets. Retain prior runs.
+
+Deliver MP4, contact-sheet images/scene map and editable/reproducible sources in chat: snapshot, manifest, media, HTML/capture source,
 scripts, pronunciation map, subtitles when selected, tool versions, reproduction commands and results.
 State source title/revision and real local paths; do not describe local files as uploaded/shared.
 Keep results in the job folder. Do not create a Delivery Document or rewrite/append results to the

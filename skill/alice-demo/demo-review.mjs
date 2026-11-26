@@ -163,10 +163,12 @@ export async function proposeFeedback(root, before, review, proposals) {
     const mapped = scene && review.sceneMap.scenes.find((s) => s.id === scene.id)
     if (!/^[\w-]{1,80}$/.test(p.id ?? '') || typeof p.reason !== 'string' || !p.reason.trim() || !Object.hasOwn(p, 'value') ||
         (p.sceneId ? !scene || !sceneFields.includes(p.field) : !globalFields.includes(p.field)) ||
+        (p.intent !== undefined && !['story', 'implementation'].includes(p.intent)) ||
+        (p.intent === 'implementation' && !['html', 'media', 'actions', 'font', 'assets'].includes(p.field)) ||
         (p.time !== undefined && (!mapped || !Number.isFinite(p.time) || p.time < mapped.startFrame / review.sceneMap.fps || p.time >= mapped.endFrame / review.sceneMap.fps))) fail('INVALID_FEEDBACK', 'Feedback must identify an actual scene/time and an allowed change')
     return { ...structuredClone(p), affects: p.sceneId ? [p.sceneId] : before.scenes.map((s) => s.id),
       impact: p.field === 'duration' || p.field === 'order' ? 'assembly, captions, scene map and audio-fit checks' : p.field === 'narration' || p.field === 'cues' ? 'affected voice/cues, audio-fit and assembly; preserve voice consent' : 'dependent visual media, assembly and fresh contact sheets',
-      sourceUpdateRequired: true }
+      sourceUpdateRequired: p.intent !== 'implementation' }
   })
   const plan = { videoHash: review.videoHash, output: review.output, source: before.source, proposals: items }
   return { ...plan, hash: hash(JSON.stringify(plan)) }
@@ -184,7 +186,8 @@ export async function applyFeedback(root, before, review, plan, approvedIds, { r
   if (typeof readSource !== 'function' || typeof authorize !== 'function') fail('APPROVAL_REQUIRED', 'Fresh authoritative source and actual approved feedback subset are required')
   const { snapshotSource, validateManifest } = await import('./demo-core.mjs')
   const source = snapshotSource(await readSource(before.source.id))
-  if (source.id !== before.source.id || source.hash === before.source.hash || source.revision <= before.source.revision) fail('SOURCE_UPDATE_REQUIRED', 'Save agreed substantive changes in the original storyboard before applying feedback')
+  const sourceEditRequired = plan.proposals.some((p) => approvedIds.includes(p.id) && p.sourceUpdateRequired)
+  if (source.id !== before.source.id || source.revision < before.source.revision || (sourceEditRequired && (source.hash === before.source.hash || source.revision <= before.source.revision))) fail('SOURCE_UPDATE_REQUIRED', 'Save agreed substantive changes in the original storyboard before applying feedback')
   const binding = { stage: 'feedback', source, videoHash: review.videoHash, planHash: plan.hash, approvedIds: [...approvedIds] }
   const evidence = await authorize(binding)
   if (!evidence || evidence.stage !== 'feedback' || evidence.sourceHash !== source.hash || evidence.videoHash !== review.videoHash || evidence.planHash !== plan.hash ||
