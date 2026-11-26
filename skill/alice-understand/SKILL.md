@@ -1,7 +1,7 @@
 ---
 name: alice-understand
 description: Understand an existing project or a focused part of it, map business flows to code and services, and maintain reusable project knowledge with a Mermaid system graph. Use for onboarding or refreshing knowledge of existing systems, including multiple repositories; not for auditing, designing changes or planning implementation.
-version: 0.2.10
+version: 0.2.11
 ---
 
 # Understanding existing projects in Alice

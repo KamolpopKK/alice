@@ -1,3 +1,14 @@
+# Alice 0.2.11 — Visual review for alice-demo
+
+- **Review the look before production.** `alice-demo` offers illustrated visual directions for a story,
+  and shows the chosen style as keyframes or five-second clips before it renders the whole video.
+- **Check the result honestly.** After rendering, it builds contact sheets mapped to scenes from the
+  final encoded video and publishes matched previews. Feedback stays with the scenes it is about.
+- **Safer reuse.** Each visual stage needs authorization tied to its source, and existing demo media is
+  reused only when its dependencies and provenance match.
+- All seven bundled skills advance to 0.2.11 for Local integration refresh. Skill-only change: no
+  schema, Client API or MCP contract change.
+
 # Alice 0.2.10 — Comfortable document reading
 
 - **Focus reader.** Read a document in a near-full-window view with a comfortable line length, while

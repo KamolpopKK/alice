@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 0.2.11 — 2026-11-26
+
+### Changed
+
+- **`alice-demo` reviews visuals before and after rendering.** It offers illustrated visual directions
+  for a story and shows the chosen style as keyframes or five-second clips before production. After
+  rendering, it builds scene-mapped contact sheets from the final encoded video and publishes matched
+  previews, and feedback stays scoped to the scenes it concerns. Each visual stage needs authorization
+  tied to its source, and demo media is reused only when its dependencies and provenance match.
+- **Refresh all seven bundled skills to 0.2.11.** Update Desktop/CLI and restart the agent session.
+  Skill-only release: no schema, Client API or MCP contract change.
+
 ## 0.2.10 — 2026-11-25
 
 ### Added
