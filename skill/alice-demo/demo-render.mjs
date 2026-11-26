@@ -2,9 +2,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
-import { assertSourceRevision, prepareStage, validateManifest, snapshotSource, readJson, writeJson, jobPath, hash, probe, runTool, preflight, fail, isMain, cliError } from './demo-core.mjs'
+import { assertSourceRevision, prepareStage, manifestHash, validateManifest, snapshotSource, readJson, writeJson, jobPath, hash, probe, runTool, preflight, fail, isMain, cliError } from './demo-core.mjs'
 import { verifyHtmlFrames } from './demo-html.mjs'
-import { normalizedSceneMap } from './demo-review.mjs'
+import { normalizedSceneMap, createContactSheets, visualQualityChecks, verifyReviewPackage } from './demo-review.mjs'
 import { captureInputHash } from './demo-capture.mjs'
 import { audioInputKey } from './demo-audio.mjs'
 
@@ -76,7 +76,7 @@ export function packageSources(root, manifest, runDirectory, normalizedClips) {
     fs.copyFileSync(input, output)
   }
   for (const file of ['source.json', 'manifest.json']) copy(file)
-  for (const file of manifest.assets ?? []) copy(file)
+  for (const file of new Set([...(manifest.assets ?? []), ...(manifest.font ? [manifest.font] : []), ...(manifest.visual?.dependencies ?? []), ...manifest.scenes.flatMap((s) => s.dependencies ?? [])])) copy(file)
   for (const scene of manifest.scenes) for (const key of ['html', 'actions', 'media']) if (scene[key]) copy(scene[key])
   const audioFile = jobPath(root, 'audio.json')
   if (manifest.narration && fs.existsSync(audioFile)) {
@@ -89,6 +89,19 @@ export function packageSources(root, manifest, runDirectory, normalizedClips) {
     fs.copyFileSync(jobPath(root, `${runDirectory}/captions.srt`), path.join(folder, 'captions.srt'))
     fs.mkdirSync(path.join(folder, 'fonts'))
     fs.copyFileSync(jobPath(root, manifest.font), path.join(folder, 'fonts', `selected${path.extname(manifest.font)}`))
+  }
+  if (manifest.version === 2) {
+    const helpers = path.join(folder, 'helpers')
+    fs.mkdirSync(helpers)
+    const sourceFolder = path.dirname(fileURLToPath(import.meta.url))
+    const inventory = []
+    for (const file of fs.readdirSync(sourceFolder).filter((name) => /\.(mjs|html|md)$/.test(name))) {
+      const input = path.join(sourceFolder, file)
+      if (!fs.statSync(input).isFile()) continue
+      fs.copyFileSync(input, path.join(helpers, file))
+      inventory.push({ file, hash: hash(fs.readFileSync(input)) })
+    }
+    fs.writeFileSync(path.join(folder, 'helper-versions.json'), JSON.stringify(inventory, null, 2))
   }
   const reproduce = `import fs from 'node:fs'\nimport path from 'node:path'\nimport {fileURLToPath} from 'node:url'\nimport {spawnSync} from 'node:child_process'\nconst root=path.dirname(fileURLToPath(import.meta.url))\nconst output=path.resolve(root,process.argv[2]??'reproduced.mp4')\nif(fs.existsSync(output)) throw new Error('Choose a new output path')\nconst args=['-v','error','-f','concat','-safe','1','-i','concat.txt',${manifest.subtitles ? "'-vf','subtitles=filename=captions.srt:fontsdir=fonts','-c:v','libx264','-preset','veryfast','-crf','18','-pix_fmt','yuv420p','-c:a','copy'," : "'-c','copy',"}'-movflags','+faststart',output]\nconst r=spawnSync(process.env.DEMO_FFMPEG??'ffmpeg',args,{cwd:root,stdio:'inherit',timeout:3600000,shell:false})\nif(r.error||r.status!==0) throw new Error('Reproduction failed')\n`
   fs.writeFileSync(path.join(folder, 'reproduce.mjs'), reproduce)
@@ -194,11 +207,30 @@ export async function renderVideo(root, manifest, { readSource, authorize, tools
   for (const clip of cache) writeJson(root, `media/clips/${clip.scene}.json`, clip)
   const output = `${runDirectory}/video.mp4`
   fs.renameSync(temporary, jobPath(root, output))
-  const sourcePackage = packageSources(root, m, runDirectory, clips)
+  let review, qa, sourcePackage
+  try {
+    if (m.version === 2) {
+      review = await createContactSheets(root, { output, sceneMap, font: m.font, source: m.source, inputHash: manifestHash(m) }, { tools, inspect, run })
+      qa = await visualQualityChecks(root, m, output, { tools, run })
+      await stageGuard()
+      await verifyReviewPackage(root, review, { tools, inspect })
+    }
+    sourcePackage = packageSources(root, m, runDirectory, clips)
+    if (review) {
+      fs.copyFileSync(jobPath(root, review.record), jobPath(root, `${sourcePackage}/review.json`))
+      writeJson(root, `${sourcePackage}/visual-qa.json`, qa)
+    }
+    await guard()
+    await stageGuard()
+  } catch (error) {
+    writeJson(root, `${runDirectory}/incomplete.json`, { output, source: m.source, status: 'incomplete', stage: 'review-package', code: error.code ?? 'PACKAGE_FAILED' })
+    throw Object.assign(new Error(`Review package incomplete; MP4 preserved at ${output}`), { code: error.code ?? 'PACKAGE_FAILED', cause: error })
+  }
   const result = { output, sourcePackage, source: { id: saved.id, title: saved.title, revision: saved.revision, hash: saved.hash }, metadata,
-    elapsedMs: Date.now() - started, versions, ...(m.version === 2 ? { cache, sceneMap } : {}), checks: { metadata: 'passed', visualAndListening: 'required before delivery', sourceRevision: 'matched at final read; no lock' } }
+    elapsedMs: Date.now() - started, versions, ...(m.version === 2 ? { cache, sceneMap, review, qa, videoHash: review.videoHash } : {}), checks: { metadata: 'passed', visualAndListening: 'required before delivery', sourceRevision: 'matched at final read; no lock' } }
   writeJson(root, `${runDirectory}/report.json`, result)
   fs.copyFileSync(jobPath(root, `${runDirectory}/report.json`), jobPath(root, `${sourcePackage}/report.json`))
+  if (m.version === 2) writeJson(root, 'latest.json', { output, videoHash: review.videoHash, report: `${runDirectory}/report.json`, source: m.source, inputHash: manifestHash(m) })
   return result
 }
 

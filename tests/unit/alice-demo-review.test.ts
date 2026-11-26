@@ -65,3 +65,17 @@ describe('final-video contact sheets', () => {
     await expect(createContactSheets(root, { output: 'final.mp4', sceneMap: { ...sceneMap, frameCount: 99 } })).rejects.toMatchObject({ code: 'INVALID_SCENE_MAP' })
   })
 })
+
+// @ts-expect-error standalone distributable
+import { visualQualityChecks } from '../../skill/alice-demo/demo-review.mjs'
+it('records warnings and unknown canvas checks without declaring a universal quality pass', async () => {
+  const { root } = await setup()
+  fs.writeFileSync(path.join(root, 'scene.html'), '<canvas></canvas><p style="position:absolute;left:-100px">overflow ไทย</p><script>window.renderAt=()=>{}</script>')
+  const m = { version: 2, video: { width: 320, height: 180, fps: 10 }, render: { localTime: true }, visual: { palette: { background: '#ffffff', foreground: '#ffffff' }, dependencies: [] }, subtitles: true, scenes: [{ id: 's1', type: 'html', html: 'scene.html', start: 0, duration: 1, dependencies: [] }] }
+  const report = await visualQualityChecks(root, m, 'final.mp4', { run: async () => ({ stderr: 'black_start:0 black_end:1\nfreeze_start:0' }) })
+  expect(report.geometry[0].issues.some((x: any) => x.kind === 'text-overflow')).toBe(true)
+  expect(report.unknown.join(' ')).toContain('canvas')
+  expect(report.warnings.join(' ')).toContain('contrast')
+  expect(report.warnings.join(' ')).toContain('Black/frozen')
+  expect(report.verdict).toContain('no universal quality pass')
+})
