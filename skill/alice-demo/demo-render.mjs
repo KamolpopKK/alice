@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { assertSourceRevision, validateManifest, snapshotSource, readJson, writeJson, jobPath, hash, probe, runTool, preflight, fail, isMain, cliError } from './demo-core.mjs'
+import { assertSourceRevision, prepareStage, validateManifest, snapshotSource, readJson, writeJson, jobPath, hash, probe, runTool, preflight, fail, isMain, cliError } from './demo-core.mjs'
 import { htmlInputHash } from './demo-html.mjs'
 
 const timestamp = (seconds) => {
@@ -95,8 +95,9 @@ export function packageSources(root, manifest, runDirectory, normalizedClips) {
   return path.relative(fs.realpathSync(root), folder)
 }
 
-export async function renderVideo(root, manifest, { readSource, tools = {}, run = runTool, inspect = probe, checkTools = preflight } = {}) {
+export async function renderVideo(root, manifest, { readSource, authorize, tools = {}, run = runTool, inspect = probe, checkTools = preflight } = {}) {
   const m = validateManifest(manifest, root)
+  const stageGuard = await prepareStage(root, m, { readSource, authorize }, 'production')
   if (typeof readSource !== 'function') fail('FRESH_SOURCE_REQUIRED', 'Provide a reader which fetches the actual current storyboard')
   const saved = snapshotSource(readJson(jobPath(root, 'source.json')))
   assertSourceRevision(m.source, saved)
@@ -151,6 +152,7 @@ export async function renderVideo(root, manifest, { readSource, tools = {}, run 
   await run(ffmpeg, args, { cwd: root, timeoutMs: 3_600_000 })
   const metadata = await verifyVideo(temporary, m, { inspect: (file) => inspect(file, tools) })
   await guard()
+  await stageGuard()
   const output = `${runDirectory}/video.mp4`
   fs.renameSync(temporary, jobPath(root, output))
   const sourcePackage = packageSources(root, m, runDirectory, clips)

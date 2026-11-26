@@ -2,15 +2,16 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
-import { jobPath, validateManifest, readJson, writeJson, hash, fail, loadPlaywright, withinDeadline, isMain, cliError } from './demo-core.mjs'
+import { jobPath, prepareStage, validateManifest, readJson, writeJson, hash, fail, loadPlaywright, withinDeadline, isMain, cliError } from './demo-core.mjs'
 
 export function htmlInputHash(root, manifest, scene) {
   const files = [scene.html, ...(manifest.font ? [manifest.font] : []), ...(manifest.assets ?? [])]
   return hash(JSON.stringify({ scene, video: manifest.video, files: files.map((file) => [file, hash(fs.readFileSync(jobPath(root, file)))]) }))
 }
 
-export async function renderHtmlScene(root, manifest, sceneId, { chromium } = {}) {
+export async function renderHtmlScene(root, manifest, sceneId, { chromium, readSource, authorize } = {}) {
   const m = validateManifest(manifest, root)
+  const guard = await prepareStage(root, m, { readSource, authorize })
   const scene = m.scenes.find((s) => s.id === sceneId && s.type === 'html')
   if (!scene) fail('MISSING_SCENE', 'Choose an HTML scene')
   const source = jobPath(root, scene.html)
@@ -48,6 +49,7 @@ export async function renderHtmlScene(root, manifest, sceneId, { chromium } = {}
     }
     const record = { scene: scene.id, directory: relative, count, fps: m.video.fps, duration: scene.duration, inputHash: htmlInputHash(root, m, scene),
       source: scene.html, sourceHash: hash(fs.readFileSync(source)), provenance: scene.disclosure ?? 'HTML presentation; label simulated content in the storyboard' }
+    await guard()
     writeJson(root, `media/frames/${scene.id}.json`, record)
     return record
   } finally { await browser.close() }

@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { hash, readJson, writeJson, jobPath, runTool, probe, validateManifest, fail, isMain, cliError } from './demo-core.mjs'
+import { hash, readJson, writeJson, jobPath, runTool, probe, prepareStage, validateManifest, fail, isMain, cliError } from './demo-core.mjs'
 
 export async function listVoices({ python = 'python3', run = runTool } = {}) {
   const script = 'import asyncio,json,edge_tts; print(json.dumps(asyncio.run(edge_tts.list_voices())))'
@@ -72,13 +72,17 @@ export async function generateSample(root, manifest, { sceneId, cueId, ...option
   const scene = m.scenes.find((s) => (!sceneId || s.id === sceneId) && s.cues?.length)
   const cue = scene?.cues.find((c) => !cueId || c.id === cueId)
   if (!cue) fail('MISSING_CUE', 'Choose a real script cue for the voice sample')
-  return cueAudio(root, scene, cue, m, options)
+  const guard = await prepareStage(root, m, options)
+  const result = await cueAudio(root, scene, cue, m, options)
+  await guard()
+  return result
 }
 
 export async function generateNarration(root, manifest, { sampleApproved = false, ...options } = {}) {
   const m = validateManifest(manifest, root)
   if (!m.narration) return { scenes: [], narration: null }
   if (!sampleApproved) fail('SAMPLE_APPROVAL_REQUIRED', 'Let the user listen and approve the voice sample before full narration')
+  const guard = await prepareStage(root, m, options, 'production')
   const scenes = []
   for (const scene of m.scenes) {
     let offset = 0
@@ -92,6 +96,7 @@ export async function generateNarration(root, manifest, { sampleApproved = false
     scenes.push({ id: scene.id, duration: offset, cues })
   }
   const result = { narration: m.narration, scenes }
+  await guard()
   writeJson(root, 'audio.json', result)
   return result
 }

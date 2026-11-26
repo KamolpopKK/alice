@@ -67,7 +67,7 @@ export function writeJson(root, relative, value) {
 const validId = (v) => typeof v === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test(v)
 export function validateManifest(manifest, root) {
   const m = manifest
-  if (m?.version !== 1 || !m.source || !/^[a-f0-9]{64}$/.test(m.source.hash ?? '') ||
+  if (![1, 2].includes(m?.version) || !m.source || !/^[a-f0-9]{64}$/.test(m.source.hash ?? '') ||
       !m.source.id || !Number.isSafeInteger(m.source.revision) || m.source.revision < 1) fail('INVALID_MANIFEST', 'Invalid manifest source/version')
   const v = m.video
   if (!v || ![v.width, v.height].every((n) => Number.isInteger(n) && n >= 16 && n <= 7680 && n % 2 === 0) ||
@@ -102,7 +102,62 @@ export function validateManifest(manifest, root) {
     }
   }
   if ((m.narration || m.subtitles) && !m.scenes.some((s) => s.cues?.length)) fail('INVALID_MANIFEST', 'Selected narration/subtitles require script cues')
+  if (m.version === 2) validateVisualManifest(m, root)
   return m
+}
+
+// Authorization is supplied by the calling agent after actual user consent, never read from manifest flags.
+export const manifestHash = (m) => hash(JSON.stringify(m))
+export const visualHash = (m) => hash(JSON.stringify(m.visual))
+const digest = (v) => typeof v === 'string' && /^[a-f0-9]{64}$/.test(v)
+function validateVisualManifest(m, root) {
+  const v = m.visual, r = m.review
+  if (!['sample', 'production'].includes(m.purpose) || !v || !validId(v.key) ||
+      !v.palette || !['background', 'foreground', 'accent'].every((key) => typeof v.palette[key] === 'string' && /^#[a-fA-F0-9]{6}$/.test(v.palette[key])) ||
+      typeof v.typography?.family !== 'string' || !v.typography.family.trim() ||
+      !['editorial', 'spotlight', 'diagram', 'kinetic', 'custom'].includes(v.layout) ||
+      !['reveal', 'stagger', 'focus', 'handoff', 'none'].includes(v.motion)) {
+    fail('INVALID_VISUAL', 'Choose concrete visual tokens, layout and motion for the v2 job')
+  }
+  if (!r || !['images', 'video5'].includes(r.mode) || !m.scenes.some((s) => s.id === r.sceneId) ||
+      !Number.isFinite(r.start) || r.start < 0 || r.start >= m.scenes.find((s) => s.id === r.sceneId).duration ||
+      (r.artifactHash !== undefined && !digest(r.artifactHash))) fail('INVALID_REVIEW', 'Choose a representative scene, offset and review mode')
+  if (m.purpose === 'production' && !digest(r.artifactHash)) fail('REVIEW_REQUIRED', 'Full production needs the identity of the reviewed visual sample')
+  if (!Number.isSafeInteger(m.render?.seed) || typeof m.render.localTime !== 'boolean' ||
+      !m.render.toolVersions || typeof m.render.toolVersions !== 'object' || Array.isArray(m.render.toolVersions) ||
+      !Object.values(m.render.toolVersions).every((v) => typeof v === 'string' && v.trim())) fail('INVALID_RENDER', 'Record seed, time basis and tool versions')
+  for (const item of [v, ...m.scenes]) {
+    if (!Array.isArray(item.dependencies) || !item.dependencies.every((file) => typeof file === 'string') ||
+        new Set(item.dependencies).size !== item.dependencies.length) fail('INVALID_DEPENDENCIES', 'Declare local visual and scene dependencies explicitly')
+    for (const file of item.dependencies) jobPath(root, file)
+  }
+  for (const scene of m.scenes) {
+    if (scene.frameCount !== undefined && scene.frameCount !== Math.ceil(scene.duration * m.video.fps)) fail('INVALID_FRAMES', 'Scene frame count must match duration and fps')
+  }
+  for (const file of [...(m.assets ?? []), ...(m.font ? [m.font] : [])]) jobPath(root, file)
+}
+
+export async function prepareStage(root, m, { readSource, authorize } = {}, purpose = m.purpose) {
+  if (m.version !== 2) return async () => {}
+  if (purpose !== m.purpose) fail('WRONG_PURPOSE', 'A sample cannot be promoted into a production stage')
+  if (typeof readSource !== 'function') fail('FRESH_SOURCE_REQUIRED', 'Fetch the actual current storyboard for this stage')
+  if (typeof authorize !== 'function') fail('APPROVAL_REQUIRED', 'The calling agent must supply actual source-bound user authorization; manifest flags are not consent')
+  const inputHash = manifestHash(m), selectedHash = visualHash(m)
+  const saved = snapshotSource(readJson(jobPath(root, 'source.json')))
+  assertSourceRevision(m.source, saved)
+  const guard = async () => {
+    if (manifestHash(m) !== inputHash) fail('INPUT_CHANGED', 'Stage inputs changed; stop before publishing')
+    return assertSourceRevision(saved, await readSource(saved.id))
+  }
+  await guard()
+  const evidence = await authorize({ stage: purpose, source: saved, inputHash, visualHash: selectedHash, review: m.review })
+  if (!evidence || evidence.stage !== purpose || evidence.sourceHash !== saved.hash || evidence.inputHash !== inputHash ||
+      typeof evidence.reference !== 'string' || !evidence.reference.trim() ||
+      (purpose === 'production' && evidence.reviewedArtifactHash !== m.review.artifactHash)) {
+    fail('APPROVAL_REQUIRED', 'Actual user authorization must cover this stage, fresh source, visual inputs and reviewed artifact')
+  }
+  await guard()
+  return guard
 }
 
 export function runTool(command, args, { cwd, timeoutMs = 30_000, maxBytes = 4_000_000, env = process.env } = {}) {
